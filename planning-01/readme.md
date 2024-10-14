@@ -32,42 +32,55 @@
 
 ![系統架構圖](img/專案系統架構圖.png)
 
-##### System Overview
+#### 系統概述
 
-- **Primary Purpose**: Real-time communication.
-- **Architecture Diagram**: Include a high-level architecture diagram.
+###### 主要目的
 
-##### Functional Requirements
+建立一個類似 Thread 的社群平台，支援即時貼文、互動和內容分享。
 
-- **High Availability**
-- **Scalability**
-- **Low Latency**
+#### 核心組件
 
-##### Non-Functional Requirements
+###### 1. Client App
 
-- **Performance**
-- **Reliability**
-- **Maintainability**
-- **Usability**
+- 使用者介面
+- 讓用戶能夠瀏覽、發布貼文和互動
 
-##### System Architecture
+##### 2. CDN (Content Delivery Network)
 
-- **Client App**: Describe the role and functionality.
-- **CDN (Content Delivery Network)**: Explain its purpose and connection to the Client App.
-- **Load Balancer (Nginx)**: Describe its role in distributing traffic.
-- **API Gateway**: Custom-built; outline its responsibilities.
+- 加速內容傳遞
+- 提升使用者體驗，特別是圖片和影片等媒體內容
 
-##### Services
+##### 3. Nginx
 
-- **Message Broker (RabbitMQ)**: Describe its function and integration.
-- **Text Search (Elastic Search)**: Explain its role in the system.
-- **Cache (Redis)**: Describe its purpose and usage.
-- **General Services (AWS)**: Outline the services provided.
+- 作為負載平衡器
+- 確保系統在高流量下的穩定性
 
-##### Data Storage
+##### 4. API Gateway
 
-- **Object Store (Amazon S3)**: Describe its role and connection to the CDN.
-- **Database (NoSQL DB - MongoDB)**: Explain its purpose and data management.
+- 管理所有外部請求
+- 路由到適當的內部服務
+
+##### 5. 服務層
+
+- **Message Broker**：處理即時訊息和通知
+- **Elastic Search**：支援全文檢索，便於用戶搜尋貼文和話題
+- **Redis**：快取熱門內容和使用者資料，提升回應速度
+
+##### 6. 儲存層
+
+- **Amazon S3**：儲存用戶上傳的媒體檔案
+- **MongoDB**：作為主要資料庫，儲存用戶資料、貼文和互動紀錄
+
+#### 特點
+
+- **高可用性**：支援大量同時在線用戶
+- **可擴展性**：因應用戶成長和流量變化，可快速擴充系統資源
+- **低延遲**：提供近乎即時的貼文發布和互動體驗
+- **彈性架構**：採用微服務設計，便於未來功能擴充和維護
+
+---
+
+這個系統架構專為打造類似 Thread 的社群媒體平台而設計，能夠處理大量並發用戶，支援即時貼文、互動和內容分享，同時保持系統的可靠性和擴展性。透過這樣的設計，我們旨在提供一個流暢、互動性高的社群體驗。
 
 ## 如何設計推薦演算法？有什麼相關參數？
 
