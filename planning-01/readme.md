@@ -32,6 +32,43 @@
 
 ![系統架構圖](img/專案系統架構圖.png)
 
+##### System Overview
+
+- **Primary Purpose**: Real-time communication.
+- **Architecture Diagram**: Include a high-level architecture diagram.
+
+##### Functional Requirements
+
+- **High Availability**
+- **Scalability**
+- **Low Latency**
+
+##### Non-Functional Requirements
+
+- **Performance**
+- **Reliability**
+- **Maintainability**
+- **Usability**
+
+##### System Architecture
+
+- **Client App**: Describe the role and functionality.
+- **CDN (Content Delivery Network)**: Explain its purpose and connection to the Client App.
+- **Load Balancer (Nginx)**: Describe its role in distributing traffic.
+- **API Gateway**: Custom-built; outline its responsibilities.
+
+##### Services
+
+- **Message Broker (RabbitMQ)**: Describe its function and integration.
+- **Text Search (Elastic Search)**: Explain its role in the system.
+- **Cache (Redis)**: Describe its purpose and usage.
+- **General Services (AWS)**: Outline the services provided.
+
+##### Data Storage
+
+- **Object Store (Amazon S3)**: Describe its role and connection to the CDN.
+- **Database (NoSQL DB - MongoDB)**: Explain its purpose and data management.
+
 ## 如何設計推薦演算法？有什麼相關參數？
 
 我們預計採用混合模型，結合基於內容的推薦 (Content-Based Filtering) 和協同過濾 (Collaborative Filtering) 來設計推薦演算法，並參考 Twitter 和 Instagram 的模型設計來優化推薦邏輯，提供個性化和多樣性的內容推薦。
