@@ -31,8 +31,8 @@ jobs:
         working-directory: ./backend
         run: npm run lint
 
-    #   - name: 運行測試
-    #     run: npm test
+      - name: 運行測試
+        run: npm test
 
-    #   - name: 生成測試覆蓋率報告
-    #     run: npm run coverage
+      - name: 生成測試覆蓋率報告
+        run: npm run coverage
