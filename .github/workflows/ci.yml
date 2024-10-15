@@ -21,12 +21,15 @@ jobs:
           cache: "npm"
 
       - name: 安裝依賴
+        working-directory: ./backend
         run: npm install
 
       - name: 檢查 TypeScript 編譯錯誤
+        working-directory: ./backend
         run: npm run build
 
       - name: 運行 ESLint
+        working-directory: ./backend
         run: npm run lint
 
     #   - name: 運行測試
