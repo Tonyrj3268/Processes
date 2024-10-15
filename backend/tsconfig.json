@@ -114,10 +114,10 @@
     // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
     "skipLibCheck": true /* Skip type checking all .d.ts files. */,
     "include": [
-      "src/**/*" // 僅包括 src 目錄中的檔案
+      "src" // 僅包括 src 目錄中的檔案
     ],
     "exclude": [
-      "tests/**/*", // 排除 tests 目錄
+      "tests", // 排除 tests 目錄
       "node_modules" // 確保不包括 node_modules
     ]
   }
