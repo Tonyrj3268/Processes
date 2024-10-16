@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -9,13 +10,14 @@ const app = express();
 // app.use(cors());
 
 // connect MongoDB
-// mongoose
-//   .connect("mongodb://localhost/processes", {
-//     useNewUrlParser: true,
-//     useUnifiedTopology: true,
-//   })
-//   .then(() => console.log("MongoDB 已连接"))
-//   .catch((err) => console.log(err));
+if (!process.env.MONGO_URI) {
+  throw new Error("MONGO_URI environment variable is required");
+}
+const mongoURI: string = process.env.MONGO_URI;
+mongoose
+  .connect(mongoURI)
+  .then(() => console.log("MongoDB 已連接"))
+  .catch((err) => console.log(err));
 
 // route
 app.use("/", (req, res) => {
