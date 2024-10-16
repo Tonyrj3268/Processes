@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 檢出代碼
+        uses: actions/checkout@v3
+
+      - name: 設置 Node.js 環境
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: 安裝依賴
+        working-directory: ./backend
+        run: npm install
+
+      - name: 檢查 TypeScript 編譯錯誤
+        working-directory: ./backend
+        run: npm run build
+
+      - name: 運行 ESLint
+        working-directory: ./backend
+        run: npm run lint
+
+      - name: 運行測試
+        working-directory: ./backend
+        run: npm test
+
+      - name: 生成測試覆蓋率報告
+        working-directory: ./backend
+        run: npm run coverage
