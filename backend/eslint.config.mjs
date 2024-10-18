@@ -44,21 +44,4 @@ export default [
       // "@typescript-eslint/no-explicit-any": "off",
     },
   },
-  {
-    files: ["**/*.test.{js,ts}"],
-    languageOptions: {
-      globals: {
-        ...globals.jest, // 加入 Jest 的全局變數支持
-      },
-    },
-    plugins: {
-      jest: {
-        // 如果您需要，可以添加 eslint-plugin-jest 的支持
-        configs: require("eslint-plugin-jest").configs,
-      },
-    },
-    rules: {
-      ...require("eslint-plugin-jest").configs.recommended.rules,
-    },
-  },
 ];
