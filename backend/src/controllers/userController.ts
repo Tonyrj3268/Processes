@@ -1,9 +1,12 @@
-import User, { IUser } from "../models/user";
+import User, { IUserDocument } from "../models/user";
 import { Request, Response } from "express";
 
 interface AuthenticatedRequest extends Request {
-  user?: IUser;
+  user?: {
+    id: string;
+  };
 }
+export type { AuthenticatedRequest };
 
 export async function getUserProfile(req: Request, res: Response) {
   const userId = req.params.userId;
@@ -30,7 +33,7 @@ export async function updateUserProfile(
   const { username, email } = req.body;
 
   try {
-    const user = await User.findById(userId);
+    const user: IUserDocument | null = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ msg: "用户不存在" });
     }
