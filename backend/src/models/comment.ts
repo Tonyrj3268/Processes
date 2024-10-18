@@ -1,15 +1,17 @@
 // src/models/comment.ts
 
 import mongoose, { Document, Schema } from "mongoose";
-import { IUser } from "./user";
-import { IPost } from "./post";
+import { IUserDocument } from "./user";
+import { IPostDocument } from "./post";
 
 export interface IComment extends Document {
-  user: IUser["_id"];
-  post: IPost["_id"];
+  user: IUserDocument["_id"];
+  post: IPostDocument["_id"];
   content: string;
   createdAt: Date;
 }
+
+export interface ICommentDocument extends IComment, Document {}
 
 const CommentSchema: Schema = new Schema({
   user: {
@@ -35,4 +37,4 @@ const CommentSchema: Schema = new Schema({
 
 CommentSchema.index({ post: 1, createdAt: -1 });
 
-export default mongoose.model<IComment>("Comment", CommentSchema);
+export default mongoose.model<ICommentDocument>("Comment", CommentSchema);

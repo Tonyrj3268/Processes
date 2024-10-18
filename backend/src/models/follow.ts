@@ -1,13 +1,15 @@
 // src/models/Follow.ts
 
 import mongoose, { Document, Schema } from "mongoose";
-import { IUser } from "./user";
+import { IUserDocument } from "./user";
 
 export interface IFollow extends Document {
-  follower: IUser["_id"];
-  following: IUser["_id"];
+  follower: IUserDocument["_id"];
+  following: IUserDocument["_id"];
   createdAt: Date;
 }
+
+export interface IFollowDocument extends IFollow, Document {}
 
 const FollowSchema: Schema = new Schema({
   follower: {
@@ -29,4 +31,4 @@ const FollowSchema: Schema = new Schema({
 // 防止重複關注，同一組合唯一
 FollowSchema.index({ follower: 1, following: 1 }, { unique: true });
 
-export default mongoose.model<IFollow>("Follow", FollowSchema);
+export default mongoose.model<IFollowDocument>("Follow", FollowSchema);
