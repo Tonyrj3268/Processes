@@ -46,11 +46,19 @@ export default [
   },
   {
     files: ["**/*.test.{js,ts}"],
-    env: {
-      jest: true, // 添加 Jest 環境
+    languageOptions: {
+      globals: {
+        ...globals.jest, // 加入 Jest 的全局變數支持
+      },
     },
-    globals: {
-      ...globals.jest, // 支持 Jest 全局函數
+    plugins: {
+      jest: {
+        // 如果您需要，可以添加 eslint-plugin-jest 的支持
+        configs: require("eslint-plugin-jest").configs,
+      },
+    },
+    rules: {
+      ...require("eslint-plugin-jest").configs.recommended.rules,
     },
   },
 ];
