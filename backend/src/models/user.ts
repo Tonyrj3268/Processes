@@ -11,7 +11,7 @@ export interface IUser extends Document {
   createdAt: Date;
 }
 
-const UserSchema: Schema = new Schema({
+const UserSchema: Schema = new Schema<IUser>({
   username: {
     type: String,
     required: true,
