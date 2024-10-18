@@ -5,7 +5,7 @@ import {
   getUserProfile,
   updateUserProfile,
 } from "../src/controllers/userController";
-import User, { IUser } from "../src/models/user";
+import User from "../src/models/user";
 
 jest.mock("../src/models/user");
 

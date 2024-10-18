@@ -27,7 +27,7 @@ export async function updateUserProfile(
 ) {
   const userId = req.user!.id;
 
-  const { username, email, bio } = req.body;
+  const { username, email } = req.body;
 
   try {
     const user = await User.findById(userId);

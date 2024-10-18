@@ -10,7 +10,10 @@ export default [
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
-      globals: globals.node,
+      globals: {
+        ...globals.node,
+        ...globals.jest, // 加入 Jest 的全局變數支持
+      },
     },
     rules: {
       ...js.configs.recommended.rules,
@@ -26,6 +29,10 @@ export default [
         ecmaVersion: "latest",
         sourceType: "module",
       },
+      globals: {
+        ...globals.node,
+        ...globals.jest, // 加入 Jest 的全局變數支持
+      },
     },
     plugins: {
       "@typescript-eslint": ts,
@@ -35,6 +42,15 @@ export default [
       // 您的自訂規則（可選）
       // 例如：
       // "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+  {
+    files: ["**/*.test.{js,ts}"],
+    env: {
+      jest: true, // 添加 Jest 環境
+    },
+    globals: {
+      ...globals.jest, // 支持 Jest 全局函數
     },
   },
 ];
