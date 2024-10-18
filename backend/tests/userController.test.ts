@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { MongoMemoryServer } from "mongodb-memory-server";
-import User, { IUserDocument } from "../src/models/user";
+import User from "../src/models/user";
 import {
   getUserProfile,
   updateUserProfile,
@@ -14,9 +14,9 @@ let mongoServer: MongoMemoryServer;
 // 模擬 Express 的 Response 對象
 const mockResponse = () => {
   const res: Partial<Response> = {};
-  (res as any).status = jest.fn().mockReturnValue(res);
+  res.status = jest.fn().mockReturnValue(res);
   res.json = jest.fn().mockReturnValue(res);
-  (res as any).send = jest.fn().mockReturnValue(res);
+  res.send = jest.fn().mockReturnValue(res);
   return res as Response;
 };
 
@@ -42,7 +42,7 @@ afterAll(async () => {
 // 測試案例
 describe("UserController", () => {
   it("should update user profile when user exists", async () => {
-    const user: IUserDocument = new User({
+    const user = new User({
       username: "testuser",
       email: "test@example.com",
       password: "password123",
