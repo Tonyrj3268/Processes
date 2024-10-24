@@ -1,15 +1,15 @@
 import mongoose from "mongoose";
-import { MongoMemoryServer } from "mongodb-memory-server";
-import User from "../src/models/user";
+import { User } from "@src/models/user";
 import {
   getUserProfile,
   updateUserProfile,
   AuthenticatedRequest,
-} from "../src/controllers/userController";
+} from "@src/controllers/userController";
 import { Request, Response } from "express";
 import { ParamsDictionary } from "express-serve-static-core";
 
-let mongoServer: MongoMemoryServer;
+// 導入 setup.ts 文件來初始化和清理 MongoMemoryServer
+import "@tests/setup";
 
 // 模擬 Express 的 Response 對象
 const mockResponse = () => {
@@ -19,25 +19,6 @@ const mockResponse = () => {
   res.send = jest.fn().mockReturnValue(res);
   return res as Response;
 };
-
-// 在所有測試之前，啟動 MongoMemoryServer 並建立 MongoDB 連接
-beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const uri = mongoServer.getUri();
-
-  await mongoose.connect(uri);
-});
-
-// 在每個測試之間清空數據庫
-beforeEach(async () => {
-  await User.deleteMany(); // 清空所有數據，確保每次測試都是獨立的
-});
-
-// 在所有測試之後，關閉數據庫和 MongoMemoryServer
-afterAll(async () => {
-  await mongoose.disconnect(); // 斷開與 MongoDB 的連接
-  await mongoServer.stop(); // 停止 MongoMemoryServer
-});
 
 // 測試案例
 describe("UserController", () => {
@@ -112,7 +93,7 @@ describe("updateUserProfile", () => {
 
     // 模擬 AuthenticatedRequest
     const req = {
-      user: { id: user._id },
+      user: { id: user._id.toString() },
       body: { username: "newusername", email: "new@example.com" },
     } as AuthenticatedRequest;
 

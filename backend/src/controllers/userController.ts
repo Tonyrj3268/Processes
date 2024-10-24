@@ -1,6 +1,5 @@
-import User from "../models/user";
 import { Request, Response } from "express";
-
+import { UserService } from "@src/services/userService";
 interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
@@ -8,11 +7,13 @@ interface AuthenticatedRequest extends Request {
 }
 export type { AuthenticatedRequest };
 
+const userService = new UserService();
+
 export async function getUserProfile(req: Request, res: Response) {
   const userId = req.params.userId;
 
   try {
-    const user = await User.findById(userId).select("-password");
+    const user = await userService.findUserById(userId);
     if (!user) {
       return res.status(404).json({ msg: "使用者不存在" });
     }
@@ -33,7 +34,7 @@ export async function updateUserProfile(
   const { username, email } = req.body;
 
   try {
-    const user = await User.findById(userId);
+    const user = await userService.findUserById(userId);
     if (!user) {
       return res.status(404).json({ msg: "用户不存在" });
     }
@@ -41,7 +42,7 @@ export async function updateUserProfile(
     if (username) user.username = username;
     if (email) user.email = email;
 
-    await user.save();
+    await userService.updateUserProfile(userId, username, email);
 
     res.json({ msg: "使用者資料已更新" });
   } catch (err) {
