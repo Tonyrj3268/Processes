@@ -15,6 +15,18 @@ export class UserService {
       throw new Error("伺服器錯誤");
     }
   }
+  async findUserByEmail(email: string) {
+    try {
+      const user = await User.findOne({ email }).select("-password");
+      if (!user) {
+        return null;
+      }
+      return user;
+    } catch (err) {
+      console.error(err);
+      throw new Error("伺服器錯誤");
+    }
+  }
 
   // 更新用戶資料
   async updateUserProfile(userId: string, username?: string, email?: string) {

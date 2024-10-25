@@ -1,6 +1,7 @@
 // src/models/user.ts
 
-import { Schema, model } from "mongoose";
+import { Schema, model, Document } from "mongoose";
+// import passportLocalMongoose from "passport-local-mongoose";
 
 export interface IUser {
   username: string;
@@ -8,14 +9,16 @@ export interface IUser {
   password: string;
   followersCount: number;
   followingCount: number;
-  createdAt: Date;
+  createdAt?: Date;
+  googleId?: string;
 }
+
+export interface UserDocument extends IUser, Document {}
 
 const userSchema: Schema = new Schema<IUser>({
   username: {
     type: String,
     required: true,
-    unique: true,
     trim: true,
     maxlength: 30,
   },
@@ -42,9 +45,14 @@ const userSchema: Schema = new Schema<IUser>({
     type: Date,
     default: Date.now,
   },
+  googleId: {
+    type: String,
+  },
 });
 
 userSchema.index({ username: 1 });
 userSchema.index({ email: 1 });
+
+// userSchema.plugin(passportLocalMongoose);
 
 export const User = model<IUser>("User", userSchema);
