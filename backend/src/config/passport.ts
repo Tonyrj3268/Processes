@@ -1,49 +1,29 @@
 // src/passport-config.ts
 import { PassportStatic } from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
+import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 // import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { UserService } from "@src/services/userService";
-import bcrypt from "bcryptjs";
+import { JWT_SECRET } from "@src/config/config";
 export default function initializePassport(passport: PassportStatic) {
   const userService = new UserService();
 
-  // 序列化用戶
-  passport.serializeUser((user: Express.User, done) => {
-    done(null, user._id);
-  });
-
-  // 反序列化用戶
-  passport.deserializeUser(async (id: string, done) => {
-    try {
-      const user = await userService.findUserById(id);
-      done(null, user);
-    } catch (err) {
-      done(err);
-    }
-  });
-
   passport.use(
-    new LocalStrategy(
+    new JwtStrategy(
       {
-        usernameField: "email", // 默認為 'username'
-        passwordField: "password",
+        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), // 從 Authorization 標頭中提取 token
+        secretOrKey: JWT_SECRET, // 用於驗證 JWT 的密鑰
       },
-      async (email, password, done) => {
+      async (jwtPayload, done) => {
         try {
-          // 使用 UserService 查找用戶
-          const user = await userService.findUserByEmail(email);
-          if (!user) {
-            return done(null, false, { message: "沒有這個用戶" });
-          }
-
-          const isMatch = await bcrypt.compare(password, user.password);
-          if (isMatch) {
+          // 根據 JWT 載荷中的 id 查找用戶
+          const user = await userService.findUserById(jwtPayload.id);
+          if (user) {
             return done(null, user);
           } else {
-            return done(null, false, { message: "密碼錯誤" });
+            return done(null, false);
           }
         } catch (err) {
-          return done(err);
+          return done(err, false);
         }
       }
     )

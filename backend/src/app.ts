@@ -1,29 +1,29 @@
 import express from "express";
 import mongoose from "mongoose";
-import dotenv from "dotenv";
-dotenv.config();
+import passport from "passport";
+import initializePassport from "@src/config/passport";
+import { MONGO_URI } from "@src/config/config";
+import authRoutes from "@src/routes/authRoutes";
+import userRoutes from "@src/routes/userRoutes";
 
 const app = express();
 
 // middleware
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+initializePassport(passport); // 初始化 Passport
+app.use(passport.initialize());
 
-// connect MongoDB
-if (!process.env.MONGO_URI) {
-  throw new Error("MONGO_URI environment variable is required");
-}
-const mongoURI: string = process.env.MONGO_URI;
 mongoose
-  .connect(mongoURI)
+  .connect(MONGO_URI)
   .then(() => console.log("MongoDB 已連接"))
   .catch((err) => console.log(err));
 
 // route
-app.use("/", (req, res) => {
-  res.send("Hello World");
-});
-// app.use("/api/auth", authRoutes);
+// app.use("/", (req, res) => {
+//   res.send("Hello World");
+// });
+app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
 // app.use("/api/posts", postRoutes);
 // app.use("/api/follow", followRoutes);
 // app.use("/api/feed", feedRoutes);
