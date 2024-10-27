@@ -1,16 +1,15 @@
 // src/models/post.ts
 
-import mongoose, { Document, Schema } from "mongoose";
-import { IUser } from "./user";
+import { Schema, Types, model } from "mongoose";
 
-export interface IPost extends Document {
-  user: IUser["_id"];
+export interface IPost {
+  user: Types.ObjectId;
   content: string;
   createdAt: Date;
-  likes: mongoose.Types.ObjectId[];
+  likes: Types.ObjectId[];
 }
 
-const PostSchema: Schema = new Schema({
+const postSchema: Schema = new Schema({
   user: {
     type: Schema.Types.ObjectId,
     ref: "User",
@@ -34,6 +33,6 @@ const PostSchema: Schema = new Schema({
 });
 
 // 添加索引
-PostSchema.index({ user: 1, createdAt: -1 });
+postSchema.index({ user: 1, createdAt: -1 });
 
-export default mongoose.model<IPost>("Post", PostSchema);
+export const Post = model<IPost>("Post", postSchema);

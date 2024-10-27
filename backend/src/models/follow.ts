@@ -1,15 +1,14 @@
 // src/models/Follow.ts
 
-import mongoose, { Document, Schema } from "mongoose";
-import { IUser } from "./user";
+import { Schema, Types, model } from "mongoose";
 
 export interface IFollow extends Document {
-  follower: IUser["_id"];
-  following: IUser["_id"];
+  follower: Types.ObjectId;
+  following: Types.ObjectId;
   createdAt: Date;
 }
 
-const FollowSchema: Schema = new Schema({
+const followSchema: Schema = new Schema({
   follower: {
     type: Schema.Types.ObjectId,
     ref: "User",
@@ -27,6 +26,6 @@ const FollowSchema: Schema = new Schema({
 });
 
 // 防止重複關注，同一組合唯一
-FollowSchema.index({ follower: 1, following: 1 }, { unique: true });
+followSchema.index({ follower: 1, following: 1 }, { unique: true });
 
-export default mongoose.model<IFollow>("Follow", FollowSchema);
+export const Follow = model<IFollow>("Follow", followSchema);

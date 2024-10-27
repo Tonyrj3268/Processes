@@ -10,7 +10,10 @@ export default [
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
-      globals: globals.node,
+      globals: {
+        ...globals.node,
+        ...globals.jest, // 加入 Jest 的全局變數支持
+      },
     },
     rules: {
       ...js.configs.recommended.rules,
@@ -25,6 +28,10 @@ export default [
       parserOptions: {
         ecmaVersion: "latest",
         sourceType: "module",
+      },
+      globals: {
+        ...globals.node,
+        ...globals.jest, // 加入 Jest 的全局變數支持
       },
     },
     plugins: {
