@@ -13,7 +13,7 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
 
         const token = authHeader.split(' ')[1];  // 'Bearer <token>'
 
-        jwt.verify(token, JWT_SECRET, async (err, decoded) => {
+        jwt.verify(token, JWT_SECRET, (err, decoded) => {
             if (err) {
                 return res.status(403).json({ msg: "無效的身份驗證標頭" });
             }
@@ -23,19 +23,19 @@ export const authenticateJWT = async (req: Request, res: Response, next: NextFun
                 const userId = payload.id as string;
                 const userService = new UserService();
 
-                try {
-                    // 查找用戶，並將完整的 Mongoose 用戶文檔保存到 req.user 中
-                    const user = await userService.findUserById(userId);
-                    if (!user) {
-                        return res.status(404).json({ msg: "用戶不存在" });
-                    }
+                userService.findUserById(userId)
+                    .then(user => {
+                        if (!user) {
+                            return res.status(404).json({ msg: "用戶不存在" });
+                        }
 
-                    req.user = user;
-                    next();
-                } catch (err) {
-                    console.error(err);
-                    return res.status(500).json({ msg: "伺服器錯誤" });
-                }
+                        req.user = user;
+                        next();
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        return res.status(500).json({ msg: "伺服器錯誤" });
+                    });
             } else {
                 return res.status(403).json({ msg: "無效的身份驗證標頭" });
             }
