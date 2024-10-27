@@ -1,15 +1,43 @@
 // services/userService.ts
-import { User } from "@src/models/user";
+import { User, UserDocument } from "@src/models/user";
 
 export class UserService {
   // 查找用戶
   async findUserById(userId: string) {
     try {
-      const user = await User.findById(userId).select("-password");
-      if (!user) {
-        return null;
-      }
-      return user;
+      return await User.findById(userId).select("-password");
+    } catch (err) {
+      console.error(err);
+      throw new Error("伺服器錯誤");
+    }
+  }
+
+  async findUserByEmail(email: string) {
+    try {
+      return await User.findOne({ email }).select("-password");
+    } catch (err) {
+      console.error(err);
+      throw new Error("伺服器錯誤");
+    }
+  }
+
+  async findUserByEmailWithPassword(email: string) {
+    try {
+      return await User.findOne({ email }).select("+password");
+    } catch (err) {
+      console.error(err);
+      throw new Error("伺服器錯誤");
+    }
+  }
+
+  // 創建用戶
+  async createUser(data: {
+    username: string;
+    email: string;
+    password: string;
+  }) {
+    try {
+      return await User.create(data);
     } catch (err) {
       console.error(err);
       throw new Error("伺服器錯誤");
@@ -17,23 +45,17 @@ export class UserService {
   }
 
   // 更新用戶資料
-  async updateUserProfile(userId: string, username?: string, email?: string) {
+  async updateUserProfile(
+    user: UserDocument,
+    data: { username?: string; email?: string }
+  ) {
     try {
-      const user = await this.findUserById(userId);
-      if (!user) {
-        return null;
-      }
 
       // 更新資料
-      if (username) {
-        user.username = username;
-      }
-      if (email) {
-        user.email = email;
-      }
+      if (data.username) user.username = data.username;
+      if (data.email) user.email = data.email;
 
-      const updatedUser = await user.save();
-      return updatedUser;
+      return await user.save();
     } catch (err) {
       console.error(err);
       throw new Error("伺服器錯誤");

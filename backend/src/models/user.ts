@@ -1,6 +1,6 @@
 // src/models/user.ts
 
-import { Schema, model } from "mongoose";
+import { Schema, model, Document } from "mongoose";
 
 export interface IUser {
   username: string;
@@ -8,14 +8,16 @@ export interface IUser {
   password: string;
   followersCount: number;
   followingCount: number;
-  createdAt: Date;
+  createdAt?: Date;
+  googleId?: string;
 }
+
+export interface UserDocument extends IUser, Document { }
 
 const userSchema: Schema = new Schema<IUser>({
   username: {
     type: String,
     required: true,
-    unique: true,
     trim: true,
     maxlength: 30,
   },
@@ -29,6 +31,7 @@ const userSchema: Schema = new Schema<IUser>({
   password: {
     type: String,
     required: true,
+    select: false,
   },
   followersCount: {
     type: Number,
@@ -41,6 +44,10 @@ const userSchema: Schema = new Schema<IUser>({
   createdAt: {
     type: Date,
     default: Date.now,
+    immutable: true,
+  },
+  googleId: {
+    type: String,
   },
 });
 
