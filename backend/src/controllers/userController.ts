@@ -1,8 +1,9 @@
 // controllers/userController.ts
 import { Request, Response } from "express";
-import userService from "@src/services/userService";
+import { UserService } from "@src/services/userService";
 import { IUserDocument } from "@src/models/user";
 
+const userService = new UserService();
 // 獲取用戶資料
 export async function getUserProfile(req: Request, res: Response) {
   const user = req.user as IUserDocument;

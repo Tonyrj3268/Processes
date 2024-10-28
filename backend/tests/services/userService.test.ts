@@ -1,10 +1,10 @@
-import userService from "@src/services/userService";
+import { UserService } from "@src/services/userService";
 import { User } from "@src/models/user";
 import mongoose from "mongoose";
 import "@tests/setup";
 
 describe("UserService with MongoMemoryServer", () => {
-
+  let userService: UserService;
   describe("findUserById", () => {
     it("應該返回用戶資料，如果用戶存在", async () => {
       const user = new User({

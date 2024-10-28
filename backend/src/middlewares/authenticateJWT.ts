@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { JWT_SECRET } from "@src/config/config";
-import userService from "@src/services/userService";
+import { UserService } from "@src/services/userService";
+
+const userService = new UserService();
 
 export const authenticateJWT = async (
     req: Request,
