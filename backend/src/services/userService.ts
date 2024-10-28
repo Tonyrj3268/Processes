@@ -1,11 +1,16 @@
 // services/userService.ts
-import { User, UserDocument } from "@src/models/user";
+import { User, IUserDocument, IUserModel } from "@src/models/user";
+import { Follow } from "@src/models/follow";
+class UserService {
+  private userModel: IUserModel;
 
-export class UserService {
+  constructor(userModel: IUserModel) {
+    this.userModel = userModel;
+  }
   // 查找用戶
   async findUserById(userId: string) {
     try {
-      return await User.findById(userId).select("-password");
+      return await this.userModel.findById(userId).select("-password");
     } catch (err) {
       console.error(err);
       throw new Error("伺服器錯誤");
@@ -14,7 +19,7 @@ export class UserService {
 
   async findUserByEmail(email: string) {
     try {
-      return await User.findOne({ email }).select("-password");
+      return await this.userModel.findOne({ email }).select("-password");
     } catch (err) {
       console.error(err);
       throw new Error("伺服器錯誤");
@@ -23,7 +28,7 @@ export class UserService {
 
   async findUserByEmailWithPassword(email: string) {
     try {
-      return await User.findOne({ email }).select("+password");
+      return await this.userModel.findOne({ email }).select("+password");
     } catch (err) {
       console.error(err);
       throw new Error("伺服器錯誤");
@@ -37,7 +42,7 @@ export class UserService {
     password: string;
   }) {
     try {
-      return await User.create(data);
+      return await this.userModel.create(data);
     } catch (err) {
       console.error(err);
       throw new Error("伺服器錯誤");
@@ -46,11 +51,10 @@ export class UserService {
 
   // 更新用戶資料
   async updateUserProfile(
-    user: UserDocument,
+    user: IUserDocument,
     data: { username?: string; email?: string }
   ) {
     try {
-
       // 更新資料
       if (data.username) user.username = data.username;
       if (data.email) user.email = data.email;
@@ -62,3 +66,6 @@ export class UserService {
     }
   }
 }
+
+const userService = new UserService(User);
+export default userService;

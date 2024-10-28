@@ -1,12 +1,15 @@
 // src/models/Follow.ts
 
-import { Schema, Types, model } from "mongoose";
+import { Schema, Types, model, Model, HydratedDocument } from "mongoose";
 
 export interface IFollow extends Document {
   follower: Types.ObjectId;
   following: Types.ObjectId;
   createdAt: Date;
 }
+
+export type IFollowDocument = HydratedDocument<IFollow>
+export type IFollowModel = Model<IFollowDocument>
 
 const followSchema: Schema = new Schema({
   follower: {

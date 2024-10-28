@@ -91,7 +91,7 @@ describe("UserController", () => {
       const req = {
         user: user,
         body: { username: "newusername", email: "new@example.com" },
-      } as Request;
+      } as unknown as Request;
 
       const res = mockResponse();
 

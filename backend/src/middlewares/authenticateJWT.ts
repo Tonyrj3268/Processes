@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { JWT_SECRET } from "@src/config/config";
-import { UserService } from "@src/services/userService";
+import userService from "@src/services/userService";
 
 export const authenticateJWT = async (
     req: Request,
@@ -31,7 +31,6 @@ export const authenticateJWT = async (
         }
 
         const userId = decoded.id as string;
-        const userService = new UserService();
         const user = await userService.findUserById(userId);
 
         if (!user) {

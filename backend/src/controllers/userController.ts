@@ -1,12 +1,11 @@
 // controllers/userController.ts
 import { Request, Response } from "express";
-import { UserService } from "@src/services/userService";
-import { UserDocument } from "@src/models/user";
-const userService = new UserService();
+import userService from "@src/services/userService";
+import { IUserDocument } from "@src/models/user";
 
 // 獲取用戶資料
 export async function getUserProfile(req: Request, res: Response) {
-  const user = req.user as UserDocument;
+  const user = req.user as IUserDocument;
   const requested_userId = req.params.userId;
 
   try {
@@ -16,7 +15,7 @@ export async function getUserProfile(req: Request, res: Response) {
       return;
     }
 
-    const isOwnProfile = user._id!.toString() === requestedUser._id.toString();
+    const isOwnProfile = user._id.equals(requestedUser._id);
 
     if (isOwnProfile) {
       // 當用戶查看自己的資料時，返回完整信息
@@ -45,7 +44,7 @@ export async function getUserProfile(req: Request, res: Response) {
 
 // 更新用戶資料
 export async function updateUserProfile(req: Request, res: Response) {
-  const user = req.user as UserDocument;
+  const user = req.user as IUserDocument;
   const { username, email } = req.body;
   try {
     const updatedUser = await userService.updateUserProfile(user, {

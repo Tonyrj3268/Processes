@@ -1,6 +1,6 @@
 // src/models/post.ts
 
-import { Schema, Types, model } from "mongoose";
+import { Schema, Types, model, Model, HydratedDocument } from "mongoose";
 
 export interface IPost {
   user: Types.ObjectId;
@@ -8,6 +8,9 @@ export interface IPost {
   createdAt: Date;
   likes: Types.ObjectId[];
 }
+
+export type IPostDocument = HydratedDocument<IPost>
+export type IPostModel = Model<IPostDocument>
 
 const postSchema: Schema = new Schema({
   user: {
