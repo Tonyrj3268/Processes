@@ -1,6 +1,6 @@
 // src/models/user.ts
 
-import { Schema, model, HydratedDocument, Model } from "mongoose";
+import { Schema, model, HydratedDocument } from "mongoose";
 
 export interface IUser {
   username: string;
@@ -13,7 +13,6 @@ export interface IUser {
 }
 
 export type IUserDocument = HydratedDocument<IUser>
-export type IUserModel = Model<IUserDocument>
 
 const userSchema: Schema = new Schema<IUserDocument>({
   username: {

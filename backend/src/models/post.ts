@@ -1,6 +1,6 @@
 // src/models/post.ts
 
-import { Schema, Types, model, Model, HydratedDocument } from "mongoose";
+import { Schema, Types, model, HydratedDocument } from "mongoose";
 
 export interface IPost {
   user: Types.ObjectId;
@@ -10,7 +10,6 @@ export interface IPost {
 }
 
 export type IPostDocument = HydratedDocument<IPost>
-export type IPostModel = Model<IPostDocument>
 
 const postSchema: Schema = new Schema({
   user: {
