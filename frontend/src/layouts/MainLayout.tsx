@@ -13,7 +13,7 @@ const MainLayout: React.FC = () => {
 
   useEffect(() => {
     const currentMatch = matches.find(
-      (match) => (match.handle as RouteHandle)?.title
+      (match) => (match.handle as RouteHandle)?.title,
     );
     if (currentMatch && currentMatch.handle) {
       document.title =
@@ -22,7 +22,7 @@ const MainLayout: React.FC = () => {
   }, [matches]);
 
   const currentMatch = matches.find(
-    (match) => (match.handle as RouteHandle)?.title
+    (match) => (match.handle as RouteHandle)?.title,
   );
   const pageTitle =
     currentMatch && (currentMatch.handle as RouteHandle)?.title
