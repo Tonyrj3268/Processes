@@ -4,11 +4,7 @@ import mongoose from "mongoose";
 import "@tests/setup";
 
 describe("UserService with MongoMemoryServer", () => {
-  let userService: UserService;
-
-  beforeEach(() => {
-    userService = new UserService();
-  });
+  let userService = new UserService();
 
   describe("findUserById", () => {
     it("應該返回用戶資料，如果用戶存在", async () => {

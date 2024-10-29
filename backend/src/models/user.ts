@@ -1,6 +1,6 @@
 // src/models/user.ts
 
-import { Schema, model, Document } from "mongoose";
+import { Schema, model, HydratedDocument } from "mongoose";
 
 export interface IUser {
   username: string;
@@ -12,9 +12,9 @@ export interface IUser {
   googleId?: string;
 }
 
-export interface UserDocument extends IUser, Document { }
+export type IUserDocument = HydratedDocument<IUser>
 
-const userSchema: Schema = new Schema<IUser>({
+const userSchema: Schema = new Schema<IUserDocument>({
   username: {
     type: String,
     required: true,
@@ -54,4 +54,4 @@ const userSchema: Schema = new Schema<IUser>({
 userSchema.index({ username: 1 });
 userSchema.index({ email: 1 });
 
-export const User = model<IUser>("User", userSchema);
+export const User = model<IUserDocument>("User", userSchema);

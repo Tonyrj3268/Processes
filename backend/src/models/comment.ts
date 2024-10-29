@@ -1,6 +1,6 @@
 // src/models/comment.ts
 
-import { model, Schema, Types } from "mongoose";
+import { Schema, Types, model, HydratedDocument } from "mongoose";
 
 export interface IComment {
   user: Types.ObjectId;
@@ -8,6 +8,8 @@ export interface IComment {
   content: string;
   createdAt: Date;
 }
+
+export type ICommentDocument = HydratedDocument<IComment>;
 
 const commentSchema: Schema = new Schema({
   user: {

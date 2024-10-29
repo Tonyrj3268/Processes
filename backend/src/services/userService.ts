@@ -1,6 +1,5 @@
 // services/userService.ts
-import { User, UserDocument } from "@src/models/user";
-
+import { User, IUserDocument } from "@src/models/user";
 export class UserService {
   // 查找用戶
   async findUserById(userId: string) {
@@ -46,11 +45,10 @@ export class UserService {
 
   // 更新用戶資料
   async updateUserProfile(
-    user: UserDocument,
+    user: IUserDocument,
     data: { username?: string; email?: string }
   ) {
     try {
-
       // 更新資料
       if (data.username) user.username = data.username;
       if (data.email) user.email = data.email;

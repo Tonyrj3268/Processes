@@ -3,6 +3,8 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import { JWT_SECRET } from "@src/config/config";
 import { UserService } from "@src/services/userService";
 
+const userService = new UserService();
+
 export const authenticateJWT = async (
     req: Request,
     res: Response,
@@ -31,7 +33,6 @@ export const authenticateJWT = async (
         }
 
         const userId = decoded.id as string;
-        const userService = new UserService();
         const user = await userService.findUserById(userId);
 
         if (!user) {
