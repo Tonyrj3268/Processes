@@ -64,3 +64,51 @@ export async function updateUserProfile(req: Request, res: Response) {
     res.status(500).send("伺服器發生錯誤");
   }
 }
+
+export async function followUser(req: Request, res: Response) {
+  const user = req.user as IUserDocument;
+  const { userId } = req.body;
+
+  try {
+    const followedUser = await userService.findUserById(userId);
+    if (!followedUser) {
+      res.status(404).json({ msg: "使用者不存在" });
+      return;
+    }
+
+    const result = await userService.followUser(user, followedUser);
+    if (!result) {
+      res.status(400).json({ msg: "使用者不存在" });
+      return;
+    }
+
+    res.json({ msg: "已關注" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("伺服器發生錯誤");
+  }
+}
+
+export async function unFollowUser(req: Request, res: Response) {
+  const user = req.user as IUserDocument;
+  const { userId } = req.body;
+
+  try {
+    const followedUser = await userService.findUserById(userId);
+    if (!followedUser) {
+      res.status(404).json({ msg: "使用者不存在" });
+      return;
+    }
+
+    const result = await userService.unFollowUser(user, followedUser);
+    if (!result) {
+      res.status(400).json({ msg: "使用者不存在" });
+      return;
+    }
+
+    res.json({ msg: "已取消關注" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("伺服器發生錯誤");
+  }
+}
