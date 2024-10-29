@@ -1,7 +1,7 @@
 import React from "react";
 
-const Home: React.FC = () => {
+const Profile: React.FC = () => {
   return <div className="page"></div>;
 };
 
-export default Home;
+export default Profile;
