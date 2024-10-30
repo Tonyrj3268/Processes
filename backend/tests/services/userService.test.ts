@@ -34,7 +34,7 @@ describe("UserService with MongoMemoryServer", () => {
     });
     anotherUser = await createTestUser({
       username: "anotheruser",
-      email: "anothertets@example.com",
+      email: "anothertest@example.com",
       password: "password123",
     });
   });
