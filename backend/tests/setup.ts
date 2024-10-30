@@ -1,13 +1,14 @@
 // tests/setup.ts
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
 import mongoose from "mongoose";
 
-let mongoServer: MongoMemoryServer;
-
+let mongoReplSet: MongoMemoryReplSet;
 // 在所有測試之前，啟動 MongoMemoryServer 並建立 MongoDB 連接
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const uri = mongoServer.getUri();
+  mongoReplSet = await MongoMemoryReplSet.create({
+    replSet: { count: 1 }, // 單節點副本集
+  });
+  const uri = mongoReplSet.getUri();
 
   await mongoose.connect(uri);
 });
@@ -26,5 +27,5 @@ beforeEach(async () => {
 // 在所有測試完成後斷開資料庫連接並停止 Mongo 伺服器
 afterAll(async () => {
   await mongoose.disconnect(); // 斷開與 MongoDB 的連接
-  await mongoServer.stop(); // 停止 MongoMemoryServer
+  await mongoReplSet.stop(); // 停止 MongoMemoryServer
 });
