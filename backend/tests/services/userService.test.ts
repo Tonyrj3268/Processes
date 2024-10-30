@@ -22,7 +22,7 @@ describe("UserService with MongoMemoryServer", () => {
     return user;
   };
 
-  beforeAll(async () => {
+  beforeAll(() => {
     userService = new UserService();
   });
 
