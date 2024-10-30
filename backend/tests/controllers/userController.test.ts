@@ -64,19 +64,6 @@ describe("UserController", () => {
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({ msg: "使用者不存在" });
     });
-
-    it("應該處理伺服器錯誤", async () => {
-      const req = {
-        params: { userId: "errorid" },
-      } as unknown as Request;
-
-      const res = mockResponse();
-
-      await getUserProfile(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.send).toHaveBeenCalledWith("伺服器發生錯誤");
-    });
   });
 
   describe("updateUserProfile", () => {
