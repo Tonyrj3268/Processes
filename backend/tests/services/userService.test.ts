@@ -10,6 +10,7 @@ describe("UserService with MongoMemoryServer", () => {
     it("應該返回用戶資料，如果用戶存在", async () => {
       const user = new User({
         userName: "testuser",
+        accountName: "testuser",
         email: "test@example.com",
         password: "password123",
       });
@@ -36,6 +37,7 @@ describe("UserService with MongoMemoryServer", () => {
     it("應該更新並返回更新後的用戶資料", async () => {
       const user = new User({
         userName: "oldUser",
+        accountName: "oldUser",
         email: "old@example.com",
         password: "test1234",
       });

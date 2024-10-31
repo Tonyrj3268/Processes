@@ -23,6 +23,7 @@ describe("UserController", () => {
     it("應該返回用戶資料，當用戶存在時", async () => {
       const user = new User({
         userName: "testuser",
+        accountName: "testuser",
         email: "test@example.com",
         password: "password123",
       });
@@ -83,6 +84,7 @@ describe("UserController", () => {
     it("應該成功更新用戶資料", async () => {
       const user = new User({
         userName: "olduserName",
+        accountName: "olduserName",
         email: "old@example.com",
         password: "password123",
       });
