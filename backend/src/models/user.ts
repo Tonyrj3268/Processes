@@ -3,11 +3,16 @@
 import { Schema, model, HydratedDocument } from "mongoose";
 
 export interface IUser {
-  username: string;
+  accountName: string;
+  userName: string;
   email: string;
   password: string;
   followersCount: number;
   followingCount: number;
+  isPublic: boolean;
+  bio: string;
+  avatarUrl: string;
+  hasNewNotifications: boolean;
   createdAt?: Date;
   googleId?: string;
 }
@@ -15,7 +20,14 @@ export interface IUser {
 export type IUserDocument = HydratedDocument<IUser>
 
 const userSchema: Schema = new Schema<IUserDocument>({
-  username: {
+  accountName: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    maxlength: 30,
+  },
+  userName: {
     type: String,
     required: true,
     trim: true,
@@ -41,6 +53,23 @@ const userSchema: Schema = new Schema<IUserDocument>({
     type: Number,
     default: 0,
   },
+  isPublic: {
+    type: Boolean,
+    default: true,
+  },
+  bio: {
+    type: String,
+    trim: true,
+    maxlength: 160,
+  },
+  avatarUrl: {
+    type: String,
+    trim: true,
+  },
+  hasNewNotifications: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -51,7 +80,7 @@ const userSchema: Schema = new Schema<IUserDocument>({
   },
 });
 
-userSchema.index({ username: 1 });
+userSchema.index({ accountName: 1 });
 userSchema.index({ email: 1 });
 
 export const User = model<IUserDocument>("User", userSchema);

@@ -1,38 +1,27 @@
-// src/models/comment.ts
+// src/models/Comment.ts
 
-import { Schema, Types, model, HydratedDocument } from "mongoose";
+import { BaseContent, IBaseContent } from "@src/models/baseContent";
+import { Schema, Types } from "mongoose";
 
-export interface IComment {
-  user: Types.ObjectId;
+export interface IComment extends IBaseContent {
   post: Types.ObjectId;
-  content: string;
-  createdAt: Date;
+  commentType: string;
 }
 
-export type ICommentDocument = HydratedDocument<IComment>;
-
-const commentSchema: Schema = new Schema({
-  user: {
-    type: Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
+const commentSchema = new Schema({
   post: {
     type: Schema.Types.ObjectId,
     ref: "Post",
     required: true,
+    index: true, // 為了加速基於 post 的查詢
   },
-  content: {
+  commentType: {
     type: String,
-    required: true,
-    maxlength: 280,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
+    default: "Comment",
   },
 });
 
+// 複合索引，適用於按 Post 查詢 Comments 並按創建時間排序
 commentSchema.index({ post: 1, createdAt: -1 });
 
-export const Comment = model<IComment>("Comment", commentSchema);
+export const Comment = BaseContent.discriminator<IComment>("Comment", commentSchema);
