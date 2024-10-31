@@ -31,7 +31,7 @@ export class UserService {
 
   // 創建用戶
   async createUser(data: {
-    username: string;
+    userName: string;
     email: string;
     password: string;
   }) {
@@ -46,11 +46,11 @@ export class UserService {
   // 更新用戶資料
   async updateUserProfile(
     user: IUserDocument,
-    data: { username?: string; email?: string }
+    data: { userName?: string; email?: string }
   ) {
     try {
       // 更新資料
-      if (data.username) user.username = data.username;
+      if (data.userName) user.userName = data.userName;
       if (data.email) user.email = data.email;
 
       return await user.save();

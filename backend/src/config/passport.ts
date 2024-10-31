@@ -47,7 +47,7 @@ export default function initializePassport(passport: PassportStatic) {
   //           } else {
   //             // 創建新用戶
   //             const newUser = await userService.createGoogleUser({
-  //               username: profile.displayName,
+  //               userName: profile.displayName,
   //               email: profile.emails ? profile.emails[0].value : "",
   //               googleId: profile.id,
   //             });

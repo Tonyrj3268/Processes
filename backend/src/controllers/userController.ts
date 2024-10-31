@@ -22,7 +22,7 @@ export async function getUserProfile(req: Request, res: Response) {
       // 當用戶查看自己的資料時，返回完整信息
       res.status(200).json({
         _id: requestedUser._id,
-        username: requestedUser.username,
+        userName: requestedUser.userName,
         email: requestedUser.email,
         followersCount: requestedUser.followersCount,
         followingCount: requestedUser.followingCount,
@@ -32,7 +32,7 @@ export async function getUserProfile(req: Request, res: Response) {
       // 當其他用戶查看時，僅返回部分公共信息
       res.status(200).json({
         _id: requestedUser._id,
-        username: requestedUser.username,
+        userName: requestedUser.userName,
         followersCount: requestedUser.followersCount,
         followingCount: requestedUser.followingCount,
       });
@@ -46,10 +46,10 @@ export async function getUserProfile(req: Request, res: Response) {
 // 更新用戶資料
 export async function updateUserProfile(req: Request, res: Response) {
   const user = req.user as IUserDocument;
-  const { username, email } = req.body;
+  const { userName, email } = req.body;
   try {
     const updatedUser = await userService.updateUserProfile(user, {
-      username,
+      userName,
       email,
     });
 

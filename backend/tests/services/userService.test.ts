@@ -9,7 +9,7 @@ describe("UserService with MongoMemoryServer", () => {
   describe("findUserById", () => {
     it("應該返回用戶資料，如果用戶存在", async () => {
       const user = new User({
-        username: "testuser",
+        userName: "testuser",
         email: "test@example.com",
         password: "password123",
       });
@@ -18,7 +18,7 @@ describe("UserService with MongoMemoryServer", () => {
       const foundUser = await userService.findUserById(user._id.toString());
 
       expect(foundUser).not.toBeNull();
-      expect(foundUser!.username).toBe("testuser");
+      expect(foundUser!.userName).toBe("testuser");
       expect(foundUser!.email).toBe("test@example.com");
     });
 
@@ -35,7 +35,7 @@ describe("UserService with MongoMemoryServer", () => {
   describe("updateUserProfile", () => {
     it("應該更新並返回更新後的用戶資料", async () => {
       const user = new User({
-        username: "oldUser",
+        userName: "oldUser",
         email: "old@example.com",
         password: "test1234",
       });
@@ -44,13 +44,13 @@ describe("UserService with MongoMemoryServer", () => {
       const updatedUser = await userService.updateUserProfile(
         user,
         {
-          username: "newUser",
+          userName: "newUser",
           email: "new@example.com",
         }
       );
 
       expect(updatedUser).not.toBeNull();
-      expect(updatedUser!.username).toBe("newUser");
+      expect(updatedUser!.userName).toBe("newUser");
       expect(updatedUser!.email).toBe("new@example.com");
     });
 

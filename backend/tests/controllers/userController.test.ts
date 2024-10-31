@@ -22,7 +22,7 @@ describe("UserController", () => {
   describe("getUserProfile", () => {
     it("應該返回用戶資料，當用戶存在時", async () => {
       const user = new User({
-        username: "testuser",
+        userName: "testuser",
         email: "test@example.com",
         password: "password123",
       });
@@ -40,7 +40,7 @@ describe("UserController", () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           _id: user._id,
-          username: "testuser",
+          userName: "testuser",
           email: "test@example.com",
           followersCount: 0,
           followingCount: 0,
@@ -82,7 +82,7 @@ describe("UserController", () => {
   describe("updateUserProfile", () => {
     it("應該成功更新用戶資料", async () => {
       const user = new User({
-        username: "oldusername",
+        userName: "olduserName",
         email: "old@example.com",
         password: "password123",
       });
@@ -90,7 +90,7 @@ describe("UserController", () => {
 
       const req = {
         user: user,
-        body: { username: "newusername", email: "new@example.com" },
+        body: { userName: "newuserName", email: "new@example.com" },
       } as unknown as Request;
 
       const res = mockResponse();
@@ -102,12 +102,12 @@ describe("UserController", () => {
         msg: "使用者資料已更新",
         user: expect.objectContaining({
           _id: updatedUser!._id,
-          username: updatedUser!.username,
+          userName: updatedUser!.userName,
           email: updatedUser!.email,
         }),
       });
       expect(updatedUser).toBeDefined();
-      expect(updatedUser!.username).toBe("newusername");
+      expect(updatedUser!.userName).toBe("newuserName");
       expect(updatedUser!.email).toBe("new@example.com");
     });
   });
