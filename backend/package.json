@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/server.js",
+    "prebuild": "rm -rf dist",
+    "build": "tsc && tscpaths -p tsconfig.json -s . -o dist",
+    "start": "node dist/src/server.js",
     "dev": "ts-node -r tsconfig-paths/register src/server.ts",
     "lint": "eslint .",
     "test": "jest",
@@ -50,6 +51,7 @@
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
+    "tscpaths": "^0.0.9",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.9.0"
   }

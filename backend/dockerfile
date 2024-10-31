@@ -1,0 +1,47 @@
+# 使用官方 Node.js 20 Alpine 映像作為基礎映像
+FROM node:20-alpine AS builder
+
+# 設定工作目錄
+WORKDIR /usr/src/app
+
+# 複製 package.json 和 package-lock.json
+COPY package*.json ./
+
+# 安裝所有依賴
+RUN npm install
+
+# 複製所有源代碼，包括 tsconfig.json
+COPY . .
+
+# 編譯 TypeScript 代碼
+RUN npm run build
+
+# 檢查 dist/src 目錄是否存在並包含 server.js
+RUN ls -l dist/src
+
+# 使用輕量級的 Node.js 20 Alpine 映像作為生產階段基礎映像
+FROM node:20-alpine
+
+# 設定工作目錄
+WORKDIR /usr/src/app
+
+# 複製 package.json 和 package-lock.json
+COPY package*.json ./
+
+# 複製 tsconfig.json
+COPY tsconfig.json ./
+
+# 安裝生產依賴
+RUN npm install --only=production
+
+# 從 builder 階段複製編譯後的代碼
+COPY --from=builder /usr/src/app/dist ./dist
+
+# 設定環境變數
+ENV NODE_ENV=production
+
+# 暴露應用運行的端口（根據你的 .env.example，預設為 8000）
+EXPOSE 8000
+
+# 定義啟動命令，使用 tsconfig-paths 解析路徑別名
+CMD ["node", "dist/src/server.js"]
