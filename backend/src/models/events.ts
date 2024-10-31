@@ -5,7 +5,7 @@ import { Schema, Types, model, HydratedDocument } from "mongoose";
 export interface IEvent {
     sender: Types.ObjectId;
     receiver: Types.ObjectId;
-    event_type: "follow" | "comment" | "like" | "friend_request";
+    eventType: "follow" | "comment" | "like" | "friend_request";
     details: Map<string, unknown>;
     timestamp: Date;
 
@@ -16,7 +16,7 @@ export type IEventDocument = HydratedDocument<IEvent>;
 const eventSchema: Schema = new Schema({
     sender: { type: Types.ObjectId, required: true },
     receiver: { type: Types.ObjectId, required: true },
-    event_type: { type: String, enum: ["follow", "comment", "like", "friend_request"], required: true },
+    eventType: { type: String, enum: ["follow", "comment", "like", "friend_request"], required: true },
     details: {
         type: Map,
         of: Schema.Types.Mixed  // 使用混合類型以支持不同結構的資料
