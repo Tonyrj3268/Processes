@@ -1,9 +1,14 @@
 // services/userService.ts
 import { User, IUserDocument } from "@src/models/user";
+import mongoose from "mongoose";
+
 export class UserService {
   // 查找用戶
   async findUserById(userId: string) {
     try {
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return null;
+      }
       return await User.findById(userId).select("-password");
     } catch (err) {
       console.error(err);
