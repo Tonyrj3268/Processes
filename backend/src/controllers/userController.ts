@@ -21,7 +21,7 @@ export class UserController {
       if (isOwnProfile) {
         res.status(200).json({
           _id: requestedUser._id,
-          username: requestedUser.username,
+          username: requestedUser.userName,
           email: requestedUser.email,
           followersCount: requestedUser.followersCount,
           followingCount: requestedUser.followingCount,
@@ -30,7 +30,7 @@ export class UserController {
       } else {
         res.status(200).json({
           _id: requestedUser._id,
-          username: requestedUser.username,
+          username: requestedUser.userName,
           followersCount: requestedUser.followersCount,
           followingCount: requestedUser.followingCount,
         });
@@ -44,10 +44,10 @@ export class UserController {
   // 更新用戶資料
   async updateUserProfile(req: Request, res: Response): Promise<void> {
     const user = req.user as IUserDocument;
-    const { username, email } = req.body;
+    const { userName, email } = req.body;
     try {
       const updatedUser = await this.userService.updateUserProfile(user, {
-        username,
+        userName,
         email,
       });
       if (!updatedUser) {

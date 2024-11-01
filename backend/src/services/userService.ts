@@ -53,7 +53,7 @@ export class UserService {
   // 更新用戶資料
   async updateUserProfile(
     user: IUserDocument,
-    data: { username?: string; email?: string }
+    data: { userName?: string; email?: string }
   ): Promise<IUserDocument> {
     try {
       // 更新資料

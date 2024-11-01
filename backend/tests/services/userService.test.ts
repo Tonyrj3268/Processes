@@ -59,7 +59,7 @@ describe("UserService with MongoMemoryServer", () => {
   describe("updateUserProfile", () => {
     it("應該更新並返回更新後的用戶資料", async () => {
       const updatedUser = await userService.updateUserProfile(testUser, {
-        username: "newUser",
+        userName: "newUser",
         email: "new@example.com",
       });
 
