@@ -1,7 +1,5 @@
 // services/userService.ts
 import { User, IUserDocument } from "@src/models/user";
-import mongoose from "mongoose";
-
 import { Follow } from "@src/models/follow";
 import mongoose, { Error as MongooseError } from "mongoose";
 import { MongoServerError } from "mongodb";
