@@ -45,10 +45,12 @@ const userSchema: Schema = new Schema<IUserDocument>({
     required: true,
     select: false,
   },
+  // 用戶的粉絲數
   followersCount: {
     type: Number,
     default: 0,
   },
+  // 用戶的被關注數
   followingCount: {
     type: Number,
     default: 0,
