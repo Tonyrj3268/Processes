@@ -12,7 +12,8 @@ describe("UserService with MongoMemoryServer", () => {
   // 工廠函數來創建用戶
   const createTestUser = async (overrides = {}): Promise<IUserDocument> => {
     const userData = {
-      username: "defaultUser",
+      userName: "defaultUser",
+      accountName: "defaultAccountName",
       email: "default@example.com",
       password: "defaultPassword",
       ...overrides,
@@ -28,12 +29,14 @@ describe("UserService with MongoMemoryServer", () => {
 
   beforeEach(async () => {
     testUser = await createTestUser({
-      username: "testuser",
+      userName: "testuser",
+      accountName: "testAccountName",
       email: "test@example.com",
       password: "password123",
     });
     anotherUser = await createTestUser({
-      username: "anotheruser",
+      userName: "anotheruser",
+      accountName: "anotherAccountName",
       email: "anothertest@example.com",
       password: "password123",
     });

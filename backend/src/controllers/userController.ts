@@ -21,8 +21,11 @@ export class UserController {
       if (isOwnProfile) {
         res.status(200).json({
           _id: requestedUser._id,
-          username: requestedUser.userName,
+          accountName: requestedUser.accountName,
+          userName: requestedUser.userName,
           email: requestedUser.email,
+          bio: requestedUser.bio,
+          avatarUrl: requestedUser.avatarUrl,
           followersCount: requestedUser.followersCount,
           followingCount: requestedUser.followingCount,
           createdAt: requestedUser.createdAt,
@@ -30,7 +33,10 @@ export class UserController {
       } else {
         res.status(200).json({
           _id: requestedUser._id,
+          accountName: requestedUser.accountName,
           username: requestedUser.userName,
+          bio: requestedUser.bio,
+          avatarUrl: requestedUser.avatarUrl,
           followersCount: requestedUser.followersCount,
           followingCount: requestedUser.followingCount,
         });
