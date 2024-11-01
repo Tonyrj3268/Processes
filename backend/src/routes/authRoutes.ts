@@ -2,12 +2,11 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
-import { UserService } from "@src/services/userService";
+import { userService } from "@src/services/userService";
 import { Request, Response } from "express";
 import { JWT_SECRET } from "@src/config/config";
 import { body, validationResult } from "express-validator";
 const router = Router();
-const userService = new UserService();
 
 // 本地登錄
 router.post("/login",
