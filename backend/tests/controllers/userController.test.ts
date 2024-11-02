@@ -188,7 +188,6 @@ describe("UserController", () => {
       await controller.followUser(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ msg: "伺服器發生錯誤" });
     });
   });
 

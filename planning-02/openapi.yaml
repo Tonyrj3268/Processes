@@ -1,133 +1,22 @@
-openapi: 3.0.3
+openapi: 3.0.0
 info:
-  title: User Authentication, Post, Follow, and Feed API
+  title: My API
   version: 1.0.0
-  description: APIs for user authentication, post creation, following other users, and custom feed retrieval.
-  
+  description: API documentation for Processes
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
 paths:
-  /profile:
-    patch:
-      summary: Edit user profile
-      description: Update a user's profile information. User authentication required.
-      tags:
-        - Users
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                username:
-                  type: string
-                  description: New username
-                email:
-                  type: string
-                  description: New email
-                bio:
-                  type: string
-                  description: User biography
-                profileImage:
-                  type: string
-                  description: URL to the user's profile image
-              example:
-                username: newusername
-                email: newemail@example.com
-                bio: This is an updated biography.
-                profileImage: https://example.com/images/profile.jpg
-      responses:
-        '200':
-          description: Profile successfully updated.
-        '400':
-          description: Invalid user ID or input data.
-        '401':
-          description: Unauthorized.
-        '404':
-          description: User not found.
-        '500':
-          description: Internal server error.
-
-    get:
-      summary: Get user profile
-      description: Retrieve the profile information of the authenticated user.
-      tags:
-        - Users
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: User profile successfully retrieved.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  username:
-                    type: string
-                    description: Username of the user
-                  email:
-                    type: string
-                    description: Email of the user
-                  bio:
-                    type: string
-                    description: User biography
-                  profileImage:
-                    type: string
-                    description: URL to the user's profile image
-                  joinedAt:
-                    type: string
-                    format: date-time
-                    description: Date the user joined
-                example:
-                  username: "johndoe"
-                  email: "johndoe@example.com"
-
-  /register:
-    post:
-      summary: Register a new user
-      description: Register a user with username, email, and password. Check if the user already exists, hash the password, save the user, and return a JWT.
-      tags:
-        - Authentication
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                username:
-                  type: string
-                email:
-                  type: string
-                password:
-                  type: string
-              required:
-                - username
-                - email
-                - password
-      responses:
-        '201':
-          description: User successfully registered and JWT returned.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  token:
-                    type: string
-        '400':
-          description: User already exists.
-        '500':
-          description: Internal server error.
-
-  /login:
+  /api/auth/login:
     post:
       summary: User login
-      description: Validate user email and password, and return a JWT if valid.
       tags:
-        - Authentication
+        - Auth
       requestBody:
         required: true
         content:
@@ -137,14 +26,15 @@ paths:
               properties:
                 email:
                   type: string
+                  description: The user's email address
+                  example: user@example.com
                 password:
                   type: string
-              required:
-                - email
-                - password
+                  description: The user's password, must be at least 6 characters long
+                  example: password123!
       responses:
-        '200':
-          description: Login successful, JWT returned.
+        "200":
+          description: Login successful
           content:
             application/json:
               schema:
@@ -152,131 +42,30 @@ paths:
                 properties:
                   token:
                     type: string
-        '401':
-          description: Invalid credentials.
-        '500':
-          description: Internal server error.
-  
-  /posts/{postId}/comments:
-    get:
-      summary: Get comments for a post
-      description: Retrieve comments for a specific post by its ID. User authentication required.
-      tags:
-        - Posts
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: postId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: ID of the post to retrieve comments for
-      responses:
-        '200':
-          description: List of comments for the specified post.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                      description: ID of the comment
-                    author:
-                      type: string
-                      description: Username of the comment author
-                    content:
-                      type: string
-                      description: Content of the comment
-                    createdAt:
-                      type: string
-                      format: date-time
-                      description: Time the comment was created
-                example:
-                  - id: "comment123"
-                    author: "user456"
-                    content: "Great post! Thanks for sharing."
-                    createdAt: "2024-10-30T12:34:56Z"
-                  - id: "comment124"
-                    author: "user789"
-                    content: "Interesting insights!"
-                    createdAt: "2024-10-30T13:01:22Z"
-        '400':
-          description: Invalid post ID.
-        '401':
-          description: Unauthorized.
-        '404':
-          description: Post not found.
-        '500':
-          description: Internal server error.
-
-  /posts/{postId}/comment:
-    post:
-      summary: Add a comment to a post
-      description: Adds a new comment to a specific post. User authentication required.
-      tags:
-        - Posts
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: postId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: ID of the post to add a comment to
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                content:
-                  type: string
-                  description: The content of the comment
-              required:
-                - content
-              example:
-                content: "This is a great post!"
-      responses:
-        '201':
-          description: Comment successfully added.
+                    description: JWT token for authorization
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        "400":
+          description: Validation errors
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  commentId:
-                    type: string
-                    description: ID of the newly added comment
-        '400':
-          description: Invalid post ID or content.
-        '401':
-          description: Unauthorized.
-        '404':
-          description: Post not found.
-        '500':
-          description: Internal server error.
-
-  /comments/{commentId}:
-    patch:
-      summary: Edit a comment
-      description: Update the content of an existing comment. User authentication required.
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        msg:
+                          type: string
+                          example: Invalid email or password.
+        "500":
+          description: Server error
+  /api/auth/register:
+    post:
+      summary: User registration
       tags:
-        - Posts
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: commentId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: ID of the comment to edit
+        - Auth
       requestBody:
         required: true
         content:
@@ -284,121 +73,448 @@ paths:
             schema:
               type: object
               properties:
-                content:
+                username:
                   type: string
-                  description: Updated content of the comment
-              required:
-                - content
-              example:
-                content: "Edited comment content."
-      responses:
-        '200':
-          description: Comment successfully updated.
-        '400':
-          description: Invalid comment ID or content.
-        '401':
-          description: Unauthorized.
-        '404':
-          description: Comment not found.
-        '500':
-          description: Internal server error.
-
-  /posts/{postId}/like:
-    post:
-      summary: Add a like to a post
-      description: Adds a like to a specific post. User authentication required.
-      tags:
-        - Posts
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: postId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: ID of the post to add a like to
-      responses:
-        '200':
-          description: Like successfully added.
-        '400':
-          description: Invalid post ID.
-        '401':
-          description: Unauthorized.
-        '404':
-          description: Post not found.
-        '500':
-          description: Internal server error.
-
-
-  /posts:
-  
-    post:
-      summary: Create a new post
-      description: User authentication required. Receives post content and saves it.
-      tags:
-        - Posts
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                content:
+                  description: The user's chosen username, must be between 3 and 20 characters long
+                  example: john_doe
+                email:
                   type: string
-              required:
-                - content
+                  description: The user's email address
+                  example: user@example.com
+                password:
+                  type: string
+                  description: The user's password
+                  example: password123!
       responses:
-        '201':
-          description: Post successfully created.
-        '401':
-          description: Unauthorized.
-        '500':
-          description: Internal server error.
-
-    get:
-      summary: Retrieve all posts
-      description: Returns all posts, sorted by creation time. User authentication required.
-      tags:
-        - Posts
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: List of posts.
+        "201":
+          description: Registration successful
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    content:
-                      type: string
-                    createdAt:
-                      type: string
-                      format: date-time
-        '401':
-          description: Unauthorized.
-        '500':
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: 註冊成功
+        "400":
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        msg:
+                          type: string
+                          example: User already exists.
+  /api/comments:
+    post:
+      summary: Create a new comment
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+      responses:
+        "201":
+          description: Comment created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+  /api/comments/{commentId}:
+    patch:
+      summary: Update a comment
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: ID of the comment to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+      responses:
+        "200":
+          description: Comment updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+    delete:
+      summary: Delete a comment
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: ID of the comment to delete
+      responses:
+        "200":
+          description: Comment deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+  /api/comments/{commentId}/like:
+    post:
+      summary: Like a comment
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: ID of the comment to like
+      responses:
+        "200":
+          description: Comment liked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+    delete:
+      summary: Unlike a comment
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema:
+            type: string
+          description: ID of the comment to unlike
+      responses:
+        "200":
+          description: Comment unliked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+  /api/events:
+    get:
+      summary: Retrieve notifications with pagination
+      description: Fetch notifications with details about sender, receiver, timestamp, and event information.
+      tags:
+        - Event
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of items per page
+      responses:
+        "200":
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sender:
+                          type: string
+                          description: ID of the sender
+                        timestamp:
+                          type: string
+                          format: date-time
+                          description: Time the notification was created
+                        event:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              description: Type of the event
+                            content:
+                              type: string
+                              description: Template or content of the event
+              example:
+                events:
+                  - sender: 5f8f8c44b54764421b7156c9
+                    timestamp: "2024-10-30T10:15:30Z"
+                    event:
+                      type: like
+                      content: User xxx liked your post
+                  - sender: 5f8f8c44b54764421b7156c9
+                    timestamp: "2024-10-30T10:11:30Z"
+                    event:
+                      type: follow
+                      content: User xxx commented on your post
+        "400":
+          description: Invalid query parameters.
+        "500":
           description: Internal server error.
-
-  /posts/{postId}:
+  /api/feed/home:
+    get:
+      summary: Retrieve user feed with pagination
+      description: Fetch personalized feed with details about post content, author, likes, comment count, and timestamps.
+      tags:
+        - Feed
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of items per page
+      responses:
+        "200":
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        postId:
+                          type: string
+                          description: ID of the post
+                        author:
+                          type: string
+                          description: ID of the post author
+                        timestamp:
+                          type: string
+                          format: date-time
+                          description: Time the post was created
+                        content:
+                          type: string
+                          description: Content of the post
+                        likesCount:
+                          type: integer
+                          description: Number of likes on the post
+                        commentCount:
+                          type: integer
+                          description: Number of comments on the post
+              example:
+                posts:
+                  - postId: 5f8f8c44b54764421b715612
+                    author: 5f8f8c44b54764421b7156c9
+                    timestamp: "2024-10-30T10:15:30Z"
+                    content: Just finished a great workout session!
+                    likesCount: 15
+                    commentCount: 2
+                  - postId: 5f8f8cakf54764421b715613
+                    author: 5f8f8c44b54764421b7156c9
+                    timestamp: "2024-10-30T09:15:30Z"
+                    content: Beautiful day at the beach!
+                    likesCount: 25
+                    commentCount: 1
+        "400":
+          description: Invalid query parameters.
+        "500":
+          description: Internal server error.
+  /api/feed/search:
+    get:
+      summary: Search feed based on keywords
+      description: Search posts in the user's feed by keywords with pagination
+      tags:
+        - Feed
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: query
+          schema:
+            type: string
+          required: true
+          description: Search query for finding posts
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of items per page
+      responses:
+        "200":
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        postId:
+                          type: string
+                          description: Unique identifier for the post
+                        author:
+                          type: string
+                          description: ID of the post author
+                        timestamp:
+                          type: string
+                          format: date-time
+                          description: Time the post was created
+                        content:
+                          type: string
+                          description: Content of the post
+                        likesCount:
+                          type: integer
+                          description: Number of likes on the post
+                        commentCount:
+                          type: integer
+                          description: Number of comments on the post
+              example:
+                posts:
+                  - postId: posf8c44b5476442122156c9
+                    author: 5f8f8c44b54764421b7156c9
+                    timestamp: "2024-10-30T08:15:30Z"
+                    content: Exploring the city today!
+                    likesCount: 20
+                    commentCount: 5
+                  - postId: posf8c44b54764421b7156c9
+                    author: 5f8f8c44b54764421b7156c9
+                    timestamp: "2024-10-29T14:20:30Z"
+                    content: A day well spent with friends.
+                    likesCount: 30
+                    commentCount: 7
+        "400":
+          description: Invalid query parameters.
+        "500":
+          description: Internal server error.
+  /api/posts:
+    get:
+      summary: Retrieve all posts
+      tags:
+        - Posts
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: A list of posts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        postId:
+                          type: string
+                        author:
+                          type: string
+                        content:
+                          type: string
+                        likesCount:
+                          type: number
+                        commentCount:
+                          type: number
+                        createdAt:
+                          type: string
+                          format: date-time
+    post:
+      summary: Create a new post
+      tags:
+        - Posts
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+      responses:
+        "201":
+          description: Post created successfully
+  /api/posts/{postId}:
     patch:
       summary: Update a post
-      description: Update a specific post by its ID. User authentication required.
       tags:
         - Posts
       security:
         - bearerAuth: []
       parameters:
-        - name: postId
-          in: path
+        - in: path
+          name: postId
           required: true
           schema:
             type: string
@@ -412,53 +528,183 @@ paths:
               properties:
                 content:
                   type: string
-              required:
-                - content
       responses:
-        '200':
-          description: Post successfully updated.
-        '400':
-          description: Invalid post ID.
-        '401':
-          description: Unauthorized.
-        '404':
-          description: Post not found.
-        '500':
-          description: Internal server error.
-
+        "200":
+          description: Post updated successfully
     delete:
       summary: Delete a post
-      description: Delete a specific post by its ID. User authentication required.
       tags:
         - Posts
       security:
         - bearerAuth: []
       parameters:
-        - name: postId
-          in: path
+        - in: path
+          name: postId
           required: true
           schema:
             type: string
           description: ID of the post to delete
       responses:
-        '200':
-          description: Post successfully deleted.
-        '400':
-          description: Invalid post ID.
-        '401':
-          description: Unauthorized.
-        '404':
-          description: Post not found.
-        '500':
-          description: Internal server error.
-
-
-  /follow:
+        "200":
+          description: Post deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+  /api/posts/{postId}/like:
     post:
-      summary: Follow a user
-      description: User authentication required. Checks if the target user is already followed and saves the follow relationship.
+      summary: Like a post
       tags:
-        - Follow
+        - Posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: string
+          description: ID of the post to like
+      responses:
+        "200":
+          description: Post liked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+    delete:
+      summary: Unlike a post
+      tags:
+        - Posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: string
+          description: ID of the post to unlike
+      responses:
+        "200":
+          description: Post unliked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+  /api/posts/{postId}/comments:
+    post:
+      summary: Add a comment to a post
+      tags:
+        - Posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: string
+          description: ID of the post to comment on
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+      responses:
+        "201":
+          description: Comment added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+  /api/users/{userId}:
+    get:
+      summary: Get user profile
+      description: Retrieve a user's profile information. If requesting one's own profile, full information is returned, otherwise limited public information is provided.
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: The ID of the user to retrieve
+          example: 60f7b4d9f42b5c0018c0b5a5
+      responses:
+        "200":
+          description: Successfully retrieved user profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    description: The user's ID
+                    example: 60f7b4d9f42b5c0018c0b5a5
+                  accountName:
+                    type: string
+                    example: johndoe123
+                  userName:
+                    type: string
+                    example: John Doe
+                  email:
+                    type: string
+                    description: Only available if authenticated user is requesting their own profile
+                    example: john@example.com
+                  bio:
+                    type: string
+                    example: Passionate about technology and open source.
+                  avatarUrl:
+                    type: string
+                    example: https://example.com/avatar.jpg
+                  followersCount:
+                    type: integer
+                    example: 120
+                  followingCount:
+                    type: integer
+                    example: 80
+                  createdAt:
+                    type: string
+                    format: date-time
+                    example: "2021-07-21T17:32:28Z"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: 使用者不存在
+        "500":
+          description: Server error
+  /api/users/profile:
+    patch:
+      summary: Update user profile
+      tags:
+        - Users
       security:
         - bearerAuth: []
       requestBody:
@@ -468,166 +714,201 @@ paths:
             schema:
               type: object
               properties:
-                targetUserId:
+                username:
                   type: string
-              required:
-                - targetUserId
+                  description: New username for the user
+                  example: new_username
+                email:
+                  type: string
+                  description: New email for the user
+                  example: new_email@example.com
+                isPublic:
+                  type: boolean
+                  description: Whether the user's profile is public
+                  example: true
+                bio:
+                  type: string
+                  description: Short biography for the user, max 100 characters
+                  example: Enthusiastic developer and tech lover.
+                  maxLength: 100
       responses:
-        '200':
-          description: Successfully followed the user.
-        '400':
-          description: Already following the user.
-        '401':
-          description: Unauthorized.
-        '500':
-          description: Internal server error.
-  /unfollow:
-    post:
-      summary: Unfollow a user
-      description: User authentication required. Checks if the target user is followed and removes the follow relationship.
-      tags:
-        - Follow
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: targetUserId
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The ID of the user to unfollow.
-      responses:
-        '200':
-          description: Successfully unfollowed the user.
-        '400':
-          description: Not following the user.
-        '401':
-          description: Unauthorized.
-        '500':
-          description: Internal server error.
-
-  /events:
-    get:
-      summary: Retrieve notifications
-      description: Fetch notifications with details about sender, receiver, timestamp, and event information.
-      tags:
-        - Notification
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: receiverId
-          in: query
-          required: true
-          schema:
-            type: string
-          description: ID of the receiver to fetch notifications for
-      responses:
-        '200':
-          description: List of notifications.
+        "200":
+          description: User profile successfully updated
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    sender:
-                      type: string
-                      description: ID of the sender
-                    receiver:
-                      type: string
-                      description: ID of the receiver
-                    timestamp:
-                      type: string
-                      format: date-time
-                      description: Time the notification was created
-                    event:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: 使用者資料已更新
+                  user:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                        example: 60f7b4d9f42b5c0018c0b5a5
+                      username:
+                        type: string
+                        example: new_username
+                      email:
+                        type: string
+                        example: new_email@example.com
+                      isPublic:
+                        type: boolean
+                        example: true
+                      bio:
+                        type: string
+                        example: Enthusiastic developer and tech lover.
+        "400":
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
                       type: object
                       properties:
-                        event_type:
+                        msg:
                           type: string
-                          description: Type of the event
-                        content_template:
-                          type: string
-                          description: Template or content of the event
-                  example:
-                    sender: "user123"
-                    receiver: "user456"
-                    timestamp: "2024-10-30T10:15:30Z"
-                    event:
-                      event_type: "like"
-                      content_template: "User {sender} liked your post"
-        '400':
-          description: Invalid receiver ID.
-        '401':
-          description: Unauthorized.
-        '500':
-          description: Internal server error.
-
-  /feed/home:
-    get:
-      summary: Retrieve personalized feed
-      description: Fetch a customized feed for the authenticated user from Redis cache or query the database if cache miss.
-      tags:
-        - Feed
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Personalized feed of posts.
+                          example: Bio must not exceed 100 characters
+        "404":
+          description: User not found
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    content:
-                      type: string
-                    createdAt:
-                      type: string
-                      format: date-time
-        '401':
-          description: Unauthorized.
-        '500':
-          description: Internal server error.
-
-  /feed/search:
-    get:
-      summary: Retrieve search recommendation feed
-      description: Fetch posts recommended for the search bar, designed to show trending or popular content.
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: 使用者不存在
+        "500":
+          description: Server error
+  /api/user/follow:
+    post:
+      summary: Follow a user
       tags:
-        - Feed
+        - Users
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  description: The ID of the user to follow
+                  example: 5f8f8c44b54764421b7156c9
       responses:
-        '200':
-          description: Search recommendation feed of posts.
+        "200":
+          description: Successfully followed the user
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    content:
-                      type: string
-                    createdAt:
-                      type: string
-                      format: date-time
-        '401':
-          description: Unauthorized.
-        '500':
-          description: Internal server error.
-
-
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: 成功追蹤使用者
+        "400":
+          description: Invalid request, such as trying to follow oneself or missing/invalid userId
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example:
+                      validationError:
+                        value: 請求內容錯誤
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: 使用者不存在
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: 伺服器發生錯誤
+  /api/user/unfollow:
+    post:
+      summary: Unfollow a user
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  description: The mongo objectID of the user to unfollow
+                  example: 5f8f8c44b54764421b7156c9
+      responses:
+        "200":
+          description: Successfully unfollowed the user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: 成功取消追蹤使用者
+        "400":
+          description: Invalid request, such as missing/invalid userId
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: 請求內容錯誤
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: 使用者不存在
+        "500":
+          description: Server error
+tags:
+  - name: Auth
+    description: User authentication and registration
+  - name: Comments
+    description: API endpoints for managing comments
+  - name: Event
+    description: User's events, only accessible to authenticated users
+  - name: Feed
+    description: User's personalized feed, only accessible to authenticated users
+  - name: Posts
+    description: API endpoints for managing posts
+  - name: Users
+    description: User management

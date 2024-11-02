@@ -53,12 +53,14 @@ export class UserService {
   // 更新用戶資料
   async updateUserProfile(
     user: IUserDocument,
-    data: { userName?: string; email?: string }
+    data: { userName?: string; email?: string; isPublic?: boolean; bio?: string }
   ): Promise<IUserDocument> {
     try {
       // 更新資料
       if (data.userName) user.userName = data.userName;
       if (data.email) user.email = data.email;
+      if (data.isPublic !== undefined) user.isPublic = data.isPublic;
+      if (data.bio) user.bio = data.bio;
 
       return await user.save();
     } catch (err) {
