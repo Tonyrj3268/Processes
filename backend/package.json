@@ -8,7 +8,7 @@
     "build": "tsc && tscpaths -p tsconfig.json -s . -o dist",
     "start": "node dist/src/server.js",
     "dev": "ts-node -r tsconfig-paths/register src/server.ts",
-    "lint": "eslint .",
+    "lint": "eslint 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
     "test": "jest",
     "coverage": "jest --coverage"
   },
