@@ -7,7 +7,6 @@ export default [
   // 對 JavaScript 文件的配置
   {
     files: ["**/*.{js,mjs,cjs}"],
-    ignores: ["dist/*"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",

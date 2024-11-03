@@ -35,11 +35,6 @@ jobs:
       - name: Install dependencies
         working-directory: ./backend
         run: npm ci
-
-      - name: Check TypeScript compile errors
-        working-directory: ./backend
-        run: npm run build
-
       - name: Run ESLint
         working-directory: ./backend
         run: npm run lint
@@ -51,3 +46,7 @@ jobs:
       - name: Generate test coverage report
         working-directory: ./backend
         run: npm run coverage
+
+      - name: Check TypeScript compile errors
+        working-directory: ./backend
+        run: npm run build
