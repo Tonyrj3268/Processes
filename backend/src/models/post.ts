@@ -1,40 +1,18 @@
-// src/models/post.ts
+// src/models/Post.ts
 
-import { Schema, Types, model, HydratedDocument } from "mongoose";
+import { BaseContent, IBaseContent } from "@src/models/baseContent";
+import { Schema } from "mongoose";
 
-export interface IPost {
-  user: Types.ObjectId;
-  content: string;
-  createdAt: Date;
-  likes: Types.ObjectId[];
+export interface IPost extends IBaseContent {
+  postType: string;
 }
 
-export type IPostDocument = HydratedDocument<IPost>
-
-const postSchema: Schema = new Schema({
-  user: {
-    type: Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
-  content: {
+const postSchema = new Schema({
+  // 標記字段以滿足 ESLint 要求
+  postType: {
     type: String,
-    required: true,
-    maxlength: 280, // twitter限制為 280 字符
+    default: "Post",
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  likes: [
-    {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-    },
-  ],
 });
 
-// 添加索引
-postSchema.index({ user: 1, createdAt: -1 });
-
-export const Post = model<IPost>("Post", postSchema);
+export const Post = BaseContent.discriminator<IPost>("Post", postSchema);

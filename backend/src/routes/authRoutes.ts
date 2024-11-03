@@ -40,7 +40,7 @@ router.post("/login",
 // 註冊新用戶
 router.post("/register",
   [
-    body("username").notEmpty().withMessage("用戶名不能為空。"),
+    body("userName").notEmpty().withMessage("用戶名不能為空。"),
     body("email").isEmail().withMessage("請提供有效的郵箱地址。"),
     body("password").isLength({ min: 6 }).withMessage("密碼長度至少為6位。"),
   ],
@@ -51,7 +51,7 @@ router.post("/register",
       res.status(400).json({ errors: errors.array() });
       return;
     }
-    const { username, email, password } = req.body;
+    const { userName, email, password } = req.body;
 
     try {
       const existingUser = await userService.findUserByEmail(email);
@@ -62,7 +62,7 @@ router.post("/register",
 
       const hashedPassword = await bcrypt.hash(password, 10);
       await userService.createUser({
-        username,
+        userName,
         email,
         password: hashedPassword,
       });

@@ -12,7 +12,8 @@ describe("UserService with MongoMemoryServer", () => {
   // 工廠函數來創建用戶
   const createTestUser = async (overrides = {}): Promise<IUserDocument> => {
     const userData = {
-      username: "defaultUser",
+      userName: "defaultUser",
+      accountName: "defaultAccountName",
       email: "default@example.com",
       password: "defaultPassword",
       ...overrides,
@@ -28,12 +29,14 @@ describe("UserService with MongoMemoryServer", () => {
 
   beforeEach(async () => {
     testUser = await createTestUser({
-      username: "testuser",
+      userName: "testuser",
+      accountName: "testAccountName",
       email: "test@example.com",
       password: "password123",
     });
     anotherUser = await createTestUser({
-      username: "anotheruser",
+      userName: "anotheruser",
+      accountName: "anotherAccountName",
       email: "anothertest@example.com",
       password: "password123",
     });
@@ -44,7 +47,7 @@ describe("UserService with MongoMemoryServer", () => {
       const foundUser = await userService.findUserById(testUser._id.toString());
 
       expect(foundUser).not.toBeNull();
-      expect(foundUser!.username).toBe("testuser");
+      expect(foundUser!.userName).toBe("testuser");
       expect(foundUser!.email).toBe("test@example.com");
     });
 
@@ -59,12 +62,12 @@ describe("UserService with MongoMemoryServer", () => {
   describe("updateUserProfile", () => {
     it("應該更新並返回更新後的用戶資料", async () => {
       const updatedUser = await userService.updateUserProfile(testUser, {
-        username: "newUser",
+        userName: "newUser",
         email: "new@example.com",
       });
 
       expect(updatedUser).not.toBeNull();
-      expect(updatedUser!.username).toBe("newUser");
+      expect(updatedUser!.userName).toBe("newUser");
       expect(updatedUser!.email).toBe("new@example.com");
     });
   });

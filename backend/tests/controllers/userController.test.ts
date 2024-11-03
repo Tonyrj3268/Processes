@@ -26,7 +26,8 @@ describe("UserController", () => {
 
   const createTestUser = async (overrides = {}): Promise<IUserDocument> => {
     const userData = {
-      username: "defaultUser",
+      accountName: "defaultAccountName",
+      userName: "defaultUser",
       email: "default@example.com",
       password: "defaultPassword",
       ...overrides,
@@ -40,12 +41,16 @@ describe("UserController", () => {
     mockUserService = new UserService();
     controller = new UserController(mockUserService);
     testUser = await createTestUser({
-      username: "testuser",
+      userName: "testuser",
+      accountName: "testAccountName",
       email: "test@example.com",
       password: "password123",
+      bio: "test bio",
+      avatarUrl: "test-avatar.jpg",
     });
     anotherUser = await createTestUser({
-      username: "anotheruser",
+      userName: "anotheruser",
+      accountName: "anotherAccountName",
       email: "anothertets@example.com",
       password: "password123",
     });
@@ -66,8 +71,11 @@ describe("UserController", () => {
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
           _id: testUser._id,
-          username: "testuser",
+          userName: "testuser",
+          accountName: "testAccountName",
           email: "test@example.com",
+          bio: "test bio",
+          avatarUrl: "test-avatar.jpg",
           followersCount: 0,
           followingCount: 0,
         })
@@ -97,7 +105,7 @@ describe("UserController", () => {
 
       const req = {
         user: testUser,
-        body: { username: "newusername", email: "new@example.com" },
+        body: { userName: "newuserName", email: "new@example.com" },
       } as unknown as Request;
 
       const res = mockResponse();
@@ -109,12 +117,13 @@ describe("UserController", () => {
         msg: "使用者資料已更新",
         user: expect.objectContaining({
           _id: updatedUser!._id,
-          username: updatedUser!.username,
+          accountName: updatedUser!.accountName,
+          userName: updatedUser!.userName,
           email: updatedUser!.email,
         }),
       });
       expect(updatedUser).toBeDefined();
-      expect(updatedUser!.username).toBe("newusername");
+      expect(updatedUser!.userName).toBe("newuserName");
       expect(updatedUser!.email).toBe("new@example.com");
     });
   });
