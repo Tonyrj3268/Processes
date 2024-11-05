@@ -1,27 +1,57 @@
-// src/models/Comment.ts
+// src/models/comment.ts
 
-import { BaseContent, IBaseContent } from "@src/models/baseContent";
-import { Schema, Types } from "mongoose";
+import { Schema, Types, model, HydratedDocument } from "mongoose";
 
-export interface IComment extends IBaseContent {
-  post: Types.ObjectId;
-  commentType: string;
+export interface IComment {
+  user: Types.ObjectId;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+  likesCount: number;
+  comments: Types.ObjectId[];
 }
 
-const commentSchema = new Schema({
-  post: {
-    type: Schema.Types.ObjectId,
-    ref: "Post",
-    required: true,
-    index: true, // 為了加速基於 post 的查詢
-  },
-  commentType: {
-    type: String,
-    default: "Comment",
-  },
-});
+export type ICommentDocument = HydratedDocument<IComment>;
 
-// 複合索引，適用於按 Post 查詢 Comments 並按創建時間排序
-commentSchema.index({ post: 1, createdAt: -1 });
+const commentSchema = new Schema<ICommentDocument>(
+  {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    content: {
+      type: String,
+      required: true,
+      maxlength: 280,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+      index: true,
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    likesCount: {
+      type: Number,
+      default: 0,
+      index: true,
+    },
+    comments: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Comment",
+      },
+    ],
+  },
+  { discriminatorKey: "kind", timestamps: true }
+);
 
-export const Comment = BaseContent.discriminator<IComment>("Comment", commentSchema);
+// 複合索引，適用於按用戶查詢並按創建時間排序
+commentSchema.index({ user: 1, createdAt: -1 });
+commentSchema.index({ createdAt: -1 });
+
+export const Comment = model<ICommentDocument>("Comment", commentSchema);

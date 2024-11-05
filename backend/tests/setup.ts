@@ -5,12 +5,17 @@ import mongoose from "mongoose";
 let mongoReplSet: MongoMemoryReplSet;
 // 在所有測試之前，啟動 MongoMemoryServer 並建立 MongoDB 連接
 beforeAll(async () => {
-  mongoReplSet = await MongoMemoryReplSet.create({
-    replSet: { count: 1 }, // 單節點副本集
-  });
-  const uri = mongoReplSet.getUri();
+  try {
+    mongoReplSet = await MongoMemoryReplSet.create({
+      replSet: { count: 1 }, // 單節點副本集
+    });
+    const uri = mongoReplSet.getUri();
 
-  await mongoose.connect(uri);
+    await mongoose.connect(uri);
+  } catch (error) {
+    console.error("Failed to connect to MongoMemoryReplSet", error);
+    throw error; // 確保測試不繼續進行
+  }
 });
 
 // 每個測試結束後清除資料庫中的資料
@@ -18,9 +23,7 @@ beforeEach(async () => {
   const db = mongoose.connection.db;
   if (db) {
     const collections = await db.collections();
-    for (let collection of collections) {
-      await collection.deleteMany({});
-    }
+    await Promise.all(collections.map(collection => collection.deleteMany({})));
   }
 });
 

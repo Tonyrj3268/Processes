@@ -1,18 +1,57 @@
-// src/models/Post.ts
+// src/models/comment.ts
 
-import { BaseContent, IBaseContent } from "@src/models/baseContent";
-import { Schema } from "mongoose";
+import { Schema, Types, model, HydratedDocument } from "mongoose";
 
-export interface IPost extends IBaseContent {
-  postType: string;
+export interface IPost {
+  user: Types.ObjectId;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+  likesCount: number;
+  comments?: Types.ObjectId[];
 }
 
-const postSchema = new Schema({
-  // 標記字段以滿足 ESLint 要求
-  postType: {
-    type: String,
-    default: "Post",
-  },
-});
+export type IPostDocument = HydratedDocument<IPost>;
 
-export const Post = BaseContent.discriminator<IPost>("Post", postSchema);
+const postSchema = new Schema<IPostDocument>(
+  {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    content: {
+      type: String,
+      required: true,
+      maxlength: 280,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+      index: true,
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    likesCount: {
+      type: Number,
+      default: 0,
+      index: true,
+    },
+    comments: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Comment",
+      },
+    ],
+  },
+  { timestamps: true }
+);
+
+// 複合索引，適用於按用戶查詢並按創建時間排序
+postSchema.index({ user: 1, createdAt: -1 });
+postSchema.index({ createdAt: -1 });
+
+export const Post = model<IPostDocument>("Post", postSchema);
