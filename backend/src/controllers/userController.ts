@@ -1,17 +1,19 @@
 // controllers/userController.ts
 import { Request, Response } from "express";
-import { userService } from "@src/services/userService";
+import { UserService } from "@src/services/userService";
 import { IUserDocument } from "@src/models/user";
 import { Types } from 'mongoose';
 
 export class UserController {
+  constructor(private userService: UserService = new UserService()) { }
+
   // 獲取用戶資料
   async getUserProfile(req: Request, res: Response): Promise<void> {
     const user = req.user as IUserDocument;
     const requested_userId = req.params.userId;
 
     try {
-      const requestedUser = await userService.findUserById(requested_userId);
+      const requestedUser = await this.userService.findUserById(requested_userId);
       if (!requestedUser) {
         res.status(404).json({ msg: "使用者不存在" });
         return;
@@ -51,7 +53,7 @@ export class UserController {
     const user = req.user as IUserDocument;
     const { userName, email, isPublic, bio } = req.body;
     try {
-      const updatedUser = await userService.updateUserProfile(user, {
+      const updatedUser = await this.userService.updateUserProfile(user, {
         userName,
         email,
         isPublic,
@@ -74,7 +76,7 @@ export class UserController {
     const { userId } = req.body as { userId: string };
     try {
       const followedId = new Types.ObjectId(userId);
-      const result = await userService.followUser(user._id, followedId);
+      const result = await this.userService.followUser(user._id, followedId);
       if (!result) {
         res.status(404).json({ msg: "找不到或已經追蹤該使用者" });
         return;
@@ -92,7 +94,7 @@ export class UserController {
     const { userId } = req.body as { userId: string };
     const followedId = new Types.ObjectId(userId);
     try {
-      const result = await userService.unfollowUser(user._id, followedId);
+      const result = await this.userService.unfollowUser(user._id, followedId);
       if (!result) {
         res.status(404).json({ msg: "找不到或尚未追蹤該使用者" });
         return;
@@ -106,4 +108,4 @@ export class UserController {
 }
 
 // 預設導出一個實例，方便直接使用
-export const userController = new UserController();
+export const userController = new UserController(new UserService());
