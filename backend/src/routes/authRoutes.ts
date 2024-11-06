@@ -5,15 +5,72 @@ import bcrypt from "bcryptjs";
 import { userService } from "@src/services/userService";
 import { Request, Response } from "express";
 import { JWT_SECRET } from "@src/config/config";
-import { body, validationResult } from "express-validator";
+import { validationResult } from "express-validator";
+import { loginValidators, registerValidators } from "@src/middlewares/authMiddleware";
 const router = Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: User authentication and registration
+ */
+
 // 本地登錄
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: User login
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 description: The user's email address
+ *                 example: "user@example.com"
+ *               password:
+ *                 type: string
+ *                 description: The user's password, must be at least 6 characters long
+ *                 example: "password123!"
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   description: JWT token for authorization
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *       400:
+ *         description: Validation errors
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       msg:
+ *                         type: string
+ *                         example: "Invalid email or password."
+ *       500:
+ *         description: Server error
+ * 
+ */
 router.post("/login",
-  [
-    body("email").isEmail().withMessage("請提供有效的郵箱地址。"),
-    body("password").isLength({ min: 6 }).withMessage("密碼長度至少為6位。"),
-  ],
+  loginValidators,
   async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
@@ -33,17 +90,65 @@ router.post("/login",
       res.status(200).json({ token });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: "Internal server error." });
+      res.status(500).json({ error: "伺服器發生錯誤" });
     }
   });
 
 // 註冊新用戶
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: User registration
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: The user's chosen username, must be between 3 and 20 characters long
+ *                 example: "john_doe"
+ *               email:
+ *                 type: string
+ *                 description: The user's email address
+ *                 example: "user@example.com"
+ *               password:
+ *                 type: string
+ *                 description: The user's password
+ *                 example: "password123!"
+ *     responses:
+ *       201:
+ *         description: Registration successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                   example: "註冊成功"
+ *       400:
+ *         description: Validation errors
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       msg:
+ *                         type: string
+ *                         example: "User already exists."
+ */
 router.post("/register",
-  [
-    body("userName").notEmpty().withMessage("用戶名不能為空。"),
-    body("email").isEmail().withMessage("請提供有效的郵箱地址。"),
-    body("password").isLength({ min: 6 }).withMessage("密碼長度至少為6位。"),
-  ],
+  registerValidators,
   async (req: Request, res: Response) => {
 
     const errors = validationResult(req);
@@ -67,10 +172,10 @@ router.post("/register",
         password: hashedPassword,
       });
 
-      res.status(201).json({ message: "User registered successfully" });
+      res.status(201).json({ message: "註冊成功" });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ error: "Internal server error." });
+      res.status(500).json({ error: "伺服器發生錯誤" });
     }
   });
 

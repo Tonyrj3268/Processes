@@ -43,18 +43,20 @@ export class UserController {
       }
     } catch (err) {
       console.error(err);
-      res.status(500).send("伺服器發生錯誤");
+      res.status(500);
     }
   }
 
   // 更新用戶資料
   async updateUserProfile(req: Request, res: Response): Promise<void> {
     const user = req.user as IUserDocument;
-    const { userName, email } = req.body;
+    const { userName, email, isPublic, bio } = req.body;
     try {
       const updatedUser = await this.userService.updateUserProfile(user, {
         userName,
         email,
+        isPublic,
+        bio
       });
       if (!updatedUser) {
         res.status(404).json({ msg: "用户不存在" });
@@ -63,7 +65,7 @@ export class UserController {
       res.json({ msg: "使用者資料已更新", user: updatedUser.toObject() });
     } catch (err) {
       console.error(err);
-      res.status(500).send("伺服器發生錯誤");
+      res.status(500);
     }
   }
 
@@ -81,7 +83,7 @@ export class UserController {
       res.status(200).json({ msg: "成功追蹤使用者" });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ msg: "伺服器發生錯誤" });
+      res.status(500);
     }
   }
 
@@ -99,7 +101,7 @@ export class UserController {
       res.status(200).json({ msg: "成功取消追蹤使用者" });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ msg: "伺服器發生錯誤" });
+      res.status(500);
     }
   }
 }
