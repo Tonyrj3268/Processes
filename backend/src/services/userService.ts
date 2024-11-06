@@ -1,7 +1,7 @@
 // services/userService.ts
 import { User, IUserDocument } from "@src/models/user";
 import { Follow } from "@src/models/follow";
-import mongoose, { Error as MongooseError } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { MongoServerError } from "mongodb";
 
 export class UserService {
@@ -11,7 +11,7 @@ export class UserService {
       if (!mongoose.Types.ObjectId.isValid(userId)) {
         return null;
       }
-      return await User.findById(userId).select("-password");
+      return await User.findById(userId).select("-password").lean();
     } catch (err) {
       console.error(err);
       throw new Error("伺服器錯誤");
@@ -20,7 +20,7 @@ export class UserService {
 
   async findUserByEmail(email: string): Promise<IUserDocument | null> {
     try {
-      return await User.findOne({ email }).select("-password");
+      return await User.findOne({ email }).select("-password").lean();
     } catch (err) {
       console.error(err);
       throw new Error("伺服器錯誤");
@@ -29,7 +29,7 @@ export class UserService {
 
   async findUserByEmailWithPassword(email: string): Promise<IUserDocument | null> {
     try {
-      return await User.findOne({ email }).select("+password");
+      return await User.findOne({ email }).select("+password").lean();
     } catch (err) {
       console.error(err);
       throw new Error("伺服器錯誤");
@@ -68,116 +68,90 @@ export class UserService {
   }
 
   // 關注用戶
-  async followUser(user: IUserDocument, followedUser: IUserDocument): Promise<boolean> {
-    // 防止關注自己
-    if (user._id.equals(followedUser._id)) {
+  async followUser(userId: Types.ObjectId, followedUserId: Types.ObjectId): Promise<boolean> {
+    if (userId.equals(followedUserId)) {
       return false;
     }
 
     const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-      await Follow.create([{
-        follower: user._id,
-        following: followedUser._id,
-      }], { session });
+      const result = await session.withTransaction(async () => {
+        // 嘗試創建 Follow 記錄，捕獲重複關注的錯誤
+        await Follow.create([{
+          follower: userId,
+          following: followedUserId,
+        }], { session })
 
-      await Promise.all([
-        User.updateOne(
-          { _id: user._id },
-          { $inc: { followingCount: 1 } },
-          { session }
-        ),
-        User.updateOne(
-          { _id: followedUser._id },
-          { $inc: { followersCount: 1 } },
-          { session }
-        ),
-      ]);
+        // 更新關注者和被關注者的計數器
+        await Promise.all([
+          User.updateOne({ _id: userId }, { $inc: { followingCount: 1 } }, { session }),
+          User.updateOne({ _id: followedUserId }, { $inc: { followersCount: 1 } }, { session }),
+        ]);
 
-      // 提交交易
-      await session.commitTransaction();
-      session.endSession();
+        return true;
+      });
 
-      return true;
+      return result;
     } catch (error: unknown) {
-      await session.abortTransaction();
-      session.endSession();
-      if (error instanceof MongooseError.ValidationError) {
-        console.error("驗證錯誤:", error.message);
+      if (error instanceof MongoServerError && error.code === 11000) {
+        // 重複關注，返回 false
         return false;
-      } else if (error instanceof MongoServerError) {
-        if (error.code === 11000) {
-          // 重複鍵錯誤，表示已經關注過
-          return false;
-        }
-        console.error("MongoServerError:", error.message);
-        throw new Error("伺服器錯誤");
-      } else {
-        console.error("未知錯誤:", error);
-        throw new Error("伺服器錯誤");
       }
+      console.error('Error in followUser:', error);
+      throw new Error("伺服器錯誤");
+    } finally {
+      await session.endSession();
     }
   }
 
+
+
   // 取消關注
-  async unFollowUser(user: IUserDocument, followedUser: IUserDocument) {
+  async unfollowUser(userId: Types.ObjectId, followedUserId: Types.ObjectId): Promise<boolean> {
     // 防止對自己取消關注
-    if (user._id.equals(followedUser._id)) {
+    if (userId.equals(followedUserId)) {
       return false;
     }
 
     const session = await mongoose.startSession();
-    session.startTransaction();
-
     try {
-      const deletedFollow = await Follow.findOneAndDelete({
-        follower: user._id,
-        following: followedUser._id,
-      }).session(session);
+      const result = await session.withTransaction(async () => {
+        // 查找並刪除關注記錄
+        const deletedFollow = await Follow.findOneAndDelete({
+          follower: userId,
+          following: followedUserId,
+        }).session(session);
 
-      // 如果沒有找到關注關係，返回 false
-      if (!deletedFollow) {
-        await session.abortTransaction();
-        session.endSession();
-        return false;
-      }
+        // 如果沒有找到關注關係，返回 false
+        if (!deletedFollow) {
+          await session.abortTransaction();
+          return false;
+        }
 
-      // 同時更新兩個用戶的計數器
-      await Promise.all([
-        User.updateOne(
-          { _id: user._id },
-          { $inc: { followingCount: -1 } },
-          { session }
-        ),
-        User.updateOne(
-          { _id: followedUser._id },
-          { $inc: { followersCount: -1 } },
-          { session }
-        ),
-      ]);
+        // 同時更新兩個用戶的計數器
+        await Promise.all([
+          User.updateOne(
+            { _id: userId },
+            { $inc: { followingCount: -1 } },
+            { session }
+          ),
+          User.updateOne(
+            { _id: followedUserId },
+            { $inc: { followersCount: -1 } },
+            { session }
+          ),
+        ]);
 
-      // 提交交易
-      await session.commitTransaction();
-      session.endSession();
+        return true;
+      });
 
-      return true;
+      return result;
     } catch (error: unknown) {
-      // 回滾交易並結束會話
-      await session.abortTransaction();
+      console.error('Error in unFollowUser:', error);
+      throw new Error("伺服器錯誤");
+    } finally {
+      // 確保 session 被正確結束
       session.endSession();
-
-      if (error instanceof MongooseError.ValidationError) {
-        console.error("驗證錯誤:", error.message);
-        return false;
-      } else if (error instanceof MongoServerError) {
-        console.error("MongoServerError:", error.message);
-        throw new Error("伺服器錯誤");
-      } else {
-        console.error("未知錯誤:", error);
-        throw new Error("伺服器錯誤");
-      }
     }
   }
 }

@@ -2,6 +2,7 @@
 import { Request, Response } from "express";
 import { UserService } from "@src/services/userService";
 import { IUserDocument } from "@src/models/user";
+import { Types } from 'mongoose';
 
 export class UserController {
   constructor(private userService: UserService = new UserService()) { }
@@ -17,8 +18,7 @@ export class UserController {
         return;
       }
 
-      const isOwnProfile = user._id.equals(requestedUser._id);
-      if (isOwnProfile) {
+      if (user._id.equals(requestedUser._id)) {
         res.status(200).json({
           _id: requestedUser._id,
           accountName: requestedUser.accountName,
@@ -34,7 +34,7 @@ export class UserController {
         res.status(200).json({
           _id: requestedUser._id,
           accountName: requestedUser.accountName,
-          username: requestedUser.userName,
+          userName: requestedUser.userName,
           bio: requestedUser.bio,
           avatarUrl: requestedUser.avatarUrl,
           followersCount: requestedUser.followersCount,
@@ -70,16 +70,12 @@ export class UserController {
   // 關注用戶
   async followUser(req: Request, res: Response): Promise<void> {
     const user = req.user as IUserDocument;
-    const { userId } = req.body;
+    const { userId } = req.body as { userId: string };
     try {
-      const followedUser = await this.userService.findUserById(userId);
-      if (!followedUser) {
-        res.status(404).json({ msg: "使用者不存在" });
-        return;
-      }
-      const result = await this.userService.followUser(user, followedUser);
+      const followedId = new Types.ObjectId(userId);
+      const result = await this.userService.followUser(user._id, followedId);
       if (!result) {
-        res.status(409).json({ msg: "已經追蹤該使用者" });
+        res.status(404).json({ msg: "找不到或已經追蹤該使用者" });
         return;
       }
       res.status(200).json({ msg: "成功追蹤使用者" });
@@ -90,18 +86,14 @@ export class UserController {
   }
 
   // 取消關注用戶
-  async unFollowUser(req: Request, res: Response): Promise<void> {
+  async unfollowUser(req: Request, res: Response): Promise<void> {
     const user = req.user as IUserDocument;
-    const { userId } = req.body;
+    const { userId } = req.body as { userId: string };
+    const followedId = new Types.ObjectId(userId);
     try {
-      const followedUser = await this.userService.findUserById(userId);
-      if (!followedUser) {
-        res.status(404).json({ msg: "使用者不存在" });
-        return;
-      }
-      const result = await this.userService.unFollowUser(user, followedUser);
+      const result = await this.userService.unfollowUser(user._id, followedId);
       if (!result) {
-        res.status(409).json({ msg: "尚未追蹤該使用者" });
+        res.status(404).json({ msg: "找不到或尚未追蹤該使用者" });
         return;
       }
       res.status(200).json({ msg: "成功取消追蹤使用者" });

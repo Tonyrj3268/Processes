@@ -137,7 +137,6 @@ describe("UserController", () => {
       } as Request;
 
       const res = mockResponse();
-      jest.spyOn(mockUserService, 'findUserById').mockResolvedValue(anotherUser);
       jest.spyOn(mockUserService, 'followUser').mockResolvedValue(true);
       await controller.followUser(req, res);
       expect(res.status).toHaveBeenCalledWith(200);
@@ -154,13 +153,13 @@ describe("UserController", () => {
       } as Request;
 
       const res = mockResponse();
-      jest.spyOn(mockUserService, 'findUserById').mockResolvedValue(null);
+      jest.spyOn(mockUserService, 'followUser').mockResolvedValue(false);
       await controller.followUser(req, res);
       expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ msg: "使用者不存在" });
+      expect(res.json).toHaveBeenCalledWith({ msg: "找不到或已經追蹤該使用者" });
     });
 
-    it("應該回傳 409，當已經關注該用戶時", async () => {
+    it("應該回傳 404，當已經關注該用戶時", async () => {
 
       const req: Request = {
         body: { userId: anotherUser._id.toString() },
@@ -168,12 +167,11 @@ describe("UserController", () => {
       } as Request;
 
       const res = mockResponse();
-      jest.spyOn(mockUserService, 'findUserById').mockResolvedValue(anotherUser);
       jest.spyOn(mockUserService, 'followUser').mockResolvedValue(false);
       await controller.followUser(req, res);
 
-      expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith({ msg: "已經追蹤該使用者" });
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ msg: "找不到或已經追蹤該使用者" });
     });
 
     it("應該回傳 500，當發生伺服器錯誤時", async () => {
@@ -201,9 +199,8 @@ describe("UserController", () => {
       } as Request;
 
       const res = mockResponse();
-      jest.spyOn(mockUserService, 'findUserById').mockResolvedValue(anotherUser);
-      jest.spyOn(mockUserService, 'unFollowUser').mockResolvedValue(true);
-      await controller.unFollowUser(req, res);
+      jest.spyOn(mockUserService, 'unfollowUser').mockResolvedValue(true);
+      await controller.unfollowUser(req, res);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({ msg: "成功取消追蹤使用者" });
     });
@@ -218,13 +215,13 @@ describe("UserController", () => {
       } as Request;
 
       const res = mockResponse();
-      jest.spyOn(mockUserService, 'findUserById').mockResolvedValue(null);
-      await controller.unFollowUser(req, res);
+      jest.spyOn(mockUserService, 'unfollowUser').mockResolvedValue(false);
+      await controller.unfollowUser(req, res);
       expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ msg: "使用者不存在" });
+      expect(res.json).toHaveBeenCalledWith({ msg: "找不到或尚未追蹤該使用者" });
     });
 
-    it("應該回傳 400，當尚未關注該用戶時", async () => {
+    it("應該回傳 404，當尚未關注該用戶時", async () => {
 
       const req: Request = {
         body: { userId: anotherUser._id.toString() },
@@ -232,12 +229,11 @@ describe("UserController", () => {
       } as Request;
 
       const res = mockResponse();
-      jest.spyOn(mockUserService, "findUserById").mockResolvedValue(anotherUser);
-      jest.spyOn(mockUserService, 'unFollowUser').mockResolvedValue(false);
-      await controller.unFollowUser(req, res);
+      jest.spyOn(mockUserService, 'unfollowUser').mockResolvedValue(false);
+      await controller.unfollowUser(req, res);
 
-      expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith({ msg: "尚未追蹤該使用者" });
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ msg: "找不到或尚未追蹤該使用者" });
     }
     );
 
