@@ -15,7 +15,7 @@ const router = Router();
 // 獲取用戶的所有事件
 /**
  * @swagger
- * /api/events:
+ * /api/event:
  *   get:
  *     summary: Retrieve notifications with pagination
  *     description: Fetch notifications with details about sender, receiver, timestamp, and event information.

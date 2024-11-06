@@ -13,7 +13,7 @@ const router = Router();
 // 獲得個人資訊
 /**
  * @swagger
- * /api/users/{userId}:
+ * /api/user/{userId}:
  *   get:
  *     summary: Get user profile
  *     description: Retrieve a user's profile information. If requesting one's own profile, full information is returned, otherwise limited public information is provided.
@@ -79,11 +79,11 @@ const router = Router();
  *       500:
  *         description: Server error
  */
-router.get("/profile/:userId", authenticateJWT, userController.getUserProfile);
+router.get("/:userId", authenticateJWT, userController.getUserProfile);
 // 更新用戶資料
 /**
  * @swagger
- * /api/users/profile:
+ * /api/user:
  *   patch:
  *     summary: Update user profile
  *     tags: [Users]
@@ -170,7 +170,7 @@ router.get("/profile/:userId", authenticateJWT, userController.getUserProfile);
  *       500:
  *         description: Server error
  */
-router.patch("/profile", authenticateJWT, userController.updateUserProfile);
+router.patch("/", authenticateJWT, userController.updateUserProfile);
 // 關注用戶
 /**
  * @swagger
