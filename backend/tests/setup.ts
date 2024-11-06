@@ -19,11 +19,19 @@ beforeAll(async () => {
 });
 
 // 每個測試結束後清除資料庫中的資料
-beforeEach(async () => {
-  const db = mongoose.connection.db;
-  if (db) {
-    const collections = await db.collections();
-    await Promise.all(collections.map(collection => collection.deleteMany({})));
+// beforeEach(async () => {
+//   const db = mongoose.connection.db;
+//   if (db) {
+//     const collections = await db.collections();
+//     await Promise.all(collections.map(collection => collection.deleteMany({})));
+//   }
+// });
+
+afterEach(async () => {
+  const collections = mongoose.connection.collections;
+  for (const key in collections) {
+    const collection = collections[key];
+    await collection.deleteMany({});
   }
 });
 

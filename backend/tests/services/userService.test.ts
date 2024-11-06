@@ -74,7 +74,7 @@ describe("UserService with MongoMemoryServer", () => {
 
   describe("followUser", () => {
     it("應該成功關注另一個用戶", async () => {
-      const result = await userService.followUser(testUser, anotherUser);
+      const result = await userService.followUser(testUser._id, anotherUser._id);
       expect(result).toBe(true);
 
       const follow = await Follow.findOne({
@@ -90,7 +90,7 @@ describe("UserService with MongoMemoryServer", () => {
     });
 
     it("應該防止用戶關注自己", async () => {
-      const result = await userService.followUser(testUser, testUser);
+      const result = await userService.followUser(testUser._id, testUser._id);
       expect(result).toBe(false);
 
       const followCount = await Follow.countDocuments({
@@ -106,13 +106,11 @@ describe("UserService with MongoMemoryServer", () => {
 
     it("應該防止重複關注", async () => {
       // 首次關注應成功
-      const firstResult = await userService.followUser(testUser, anotherUser);
+      const firstResult = await userService.followUser(testUser._id, anotherUser._id);
       expect(firstResult).toBe(true);
-
       // 第二次關注應失敗
-      const secondResult = await userService.followUser(testUser, anotherUser);
+      const secondResult = await userService.followUser(testUser._id, anotherUser._id);
       expect(secondResult).toBe(false);
-
       const followCount = await Follow.countDocuments({
         follower: testUser._id,
         following: anotherUser._id,
@@ -126,14 +124,14 @@ describe("UserService with MongoMemoryServer", () => {
     });
   });
 
-  describe("unFollowUser", () => {
+  describe("unfollowUser", () => {
     beforeEach(async () => {
       // 建立關注關係
-      await userService.followUser(testUser, anotherUser);
+      await userService.followUser(testUser._id, anotherUser._id);
     });
 
     it("應該成功取消關注另一個用戶", async () => {
-      const result = await userService.unFollowUser(testUser, anotherUser);
+      const result = await userService.unfollowUser(testUser._id, anotherUser._id);
       expect(result).toBe(true);
 
       const follow = await Follow.findOne({
@@ -149,7 +147,7 @@ describe("UserService with MongoMemoryServer", () => {
     });
 
     it("應該防止用戶取消關注自己", async () => {
-      const result = await userService.unFollowUser(testUser, testUser);
+      const result = await userService.unfollowUser(testUser._id, testUser._id);
       expect(result).toBe(false);
 
       const followCount = await Follow.countDocuments({
@@ -165,11 +163,11 @@ describe("UserService with MongoMemoryServer", () => {
 
     it("應該防止取消不存在的關注關係", async () => {
       // 首先取消一次關注
-      const firstResult = await userService.unFollowUser(testUser, anotherUser);
+      const firstResult = await userService.unfollowUser(testUser._id, anotherUser._id);
       expect(firstResult).toBe(true);
 
       // 再次嘗試取消關注
-      const secondResult = await userService.unFollowUser(testUser, anotherUser);
+      const secondResult = await userService.unfollowUser(testUser._id, anotherUser._id);
       expect(secondResult).toBe(false);
 
       const followCount = await Follow.countDocuments({

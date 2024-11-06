@@ -9,5 +9,5 @@ router.get("/profile/:userId", authenticateJWT, userController.getUserProfile);
 router.put("/profile", authenticateJWT, userController.updateUserProfile);
 // 關注用戶
 router.post("/follow", authenticateJWT, userController.followUser);
-router.post("/unfollow", authenticateJWT, userController.unFollowUser);
+router.post("/unfollow", authenticateJWT, userController.unfollowUser);
 export default router;

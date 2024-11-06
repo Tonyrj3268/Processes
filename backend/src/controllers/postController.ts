@@ -10,7 +10,6 @@ export class PostController {
     async getAllPosts(req: Request, res: Response): Promise<void> {
         try {
             const posts = await this.postService.getAllPosts();
-            console.log(posts);
             res.status(200).json({ posts });
         } catch (error) {
             console.error('Error in getAllPosts:', error);
@@ -24,7 +23,6 @@ export class PostController {
             const userId = (req.user as IUserDocument)._id;
 
             const post = await this.postService.createPost(userId, content);
-            console.log(post);
             res.status(201).json({
                 msg: '貼文建立成功',
                 post: {
