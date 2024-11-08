@@ -36,6 +36,6 @@ app.use("/api/user", userRoutes);
 app.use("/api/post", postRoutes);
 app.use("/api/comment", commentRoutes);
 app.use("/api/feed", feedRoutes);
-app.use("/api/events", eventRoutes);
+app.use("/api/event", eventRoutes);
 
 export default app;

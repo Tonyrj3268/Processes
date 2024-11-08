@@ -11,6 +11,7 @@ export class UserController {
   async getUserProfile(req: Request, res: Response): Promise<void> {
     const user = req.user as IUserDocument;
     const requested_userId = req.params.userId;
+
     try {
       const requestedUser = await this.userService.findUserById(requested_userId);
       if (!requestedUser) {
@@ -107,4 +108,4 @@ export class UserController {
 }
 
 // 預設導出一個實例，方便直接使用
-export const userController = new UserController();
+export const userController = new UserController(new UserService());

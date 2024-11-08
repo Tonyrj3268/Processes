@@ -13,7 +13,7 @@ const router = Router();
 
 /**
  * @swagger
- * /api/posts:
+ * /api/post:
  *   get:
  *     summary: Retrieve all posts
  *     tags: [Posts]
@@ -72,7 +72,7 @@ router.get("/", authenticateJWT, (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /api/posts:
+ * /api/post:
  *   post:
  *     summary: Create a new post
  *     tags: [Posts]
@@ -98,7 +98,7 @@ router.post("/", authenticateJWT, postValidator, (req: Request, res: Response) =
 
 /**
  * @swagger
- * /api/posts/{postId}:
+ * /api/post/{postId}:
  *   patch:
  *     summary: Update a post
  *     tags: [Posts]
@@ -131,7 +131,7 @@ router.patch("/:postId", authenticateJWT, postId_postValidator, (req: Request, r
 
 /**
  * @swagger
- * /api/posts/{postId}:
+ * /api/post/{postId}:
  *   delete:
  *     summary: Delete a post
  *     tags: [Posts]
@@ -162,7 +162,7 @@ router.delete("/:postId", authenticateJWT, postIdValidator, (req: Request, res: 
 
 /**
  * @swagger
- * /api/posts/{postId}/like:
+ * /api/post/{postId}/like:
  *   post:
  *     summary: Like a post
  *     tags: [Posts]
@@ -193,7 +193,7 @@ router.post("/:postId/like", authenticateJWT, postIdValidator, (req: Request, re
 
 /**
  * @swagger
- * /api/posts/{postId}/like:
+ * /api/post/{postId}/like:
  *   delete:
  *     summary: Unlike a post
  *     tags: [Posts]
@@ -224,7 +224,7 @@ router.delete("/:postId/like", authenticateJWT, postIdValidator, (req: Request, 
 
 /**
  * @swagger
- * /api/posts/{postId}/comments:
+ * /api/post/{postId}/comments:
  *   post:
  *     summary: Add a comment to a post
  *     tags: [Posts]
