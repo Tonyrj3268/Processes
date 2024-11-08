@@ -47,7 +47,6 @@ const commentSchema = new Schema<ICommentDocument>(
       },
     ],
   },
-  { discriminatorKey: "kind", timestamps: true }
 );
 
 // 複合索引，適用於按用戶查詢並按創建時間排序
