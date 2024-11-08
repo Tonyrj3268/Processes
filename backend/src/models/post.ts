@@ -3,6 +3,7 @@
 import { Schema, Types, model, HydratedDocument } from "mongoose";
 
 export interface IPost {
+  _id: Types.ObjectId;
   user: Types.ObjectId;
   content: string;
   createdAt: Date;
