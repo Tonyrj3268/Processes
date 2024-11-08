@@ -1,4 +1,4 @@
-// src/models/comment.ts
+// src/models/post.ts
 
 import { Schema, Types, model, HydratedDocument } from "mongoose";
 

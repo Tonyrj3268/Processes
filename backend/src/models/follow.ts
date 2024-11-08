@@ -1,4 +1,4 @@
-// src/models/Follow.ts
+// src/models/follow.ts
 
 import { Schema, Types, model, HydratedDocument } from "mongoose";
 
