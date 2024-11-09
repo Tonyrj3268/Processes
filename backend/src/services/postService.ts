@@ -160,110 +160,118 @@ export class PostService {
     }
 
     /**
-     * 對貼文按讚
+     * 處理貼文按讚功能
      * 
-     * @param postId - 貼文ID
-     * @param userId - 當前用戶ID
+     * @param postId - 要按讚的貼文ID
+     * @param userId - 執行按讚的使用者ID
+     * @returns Promise<boolean> - 如果按讚成功返回true，如果貼文不存在或已經按過讚則返回false
      * 
-     * 實現要點：
-     * 1. 使用 findOneAndUpdate 配合 upsert 實現原子性操作
-     * 2. 通過 createdAt 時間判斷是否為新建立的按讚
-     * 3. 只在新建立按讚時更新計數和建立通知
+     * 實作重點：
+     * 1. 使用 MongoDB 事務確保資料一致性
+     * 2. 避免重複按讚
+     * 3. 同時處理：
+     *    - 建立按讚記錄
+     *    - 更新貼文的按讚計數
+     *    - 建立通知（如果不是自己的貼文）
      */
     async likePost(postId: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
+        // 開始一個新的資料庫事務
         const session = await mongoose.startSession();
         try {
             return await session.withTransaction(async () => {
-                // 檢查貼文是否存在
-                const post = await Post.findById(postId).session(session);
-                if (!post) return false;
-
-                // 使用 findOneAndUpdate 搭配 upsert 處理按讚
-                const like = await Like.findOneAndUpdate(
-                    {
+                // 同時檢查貼文是否存在和是否已經按過讚
+                // 使用 Promise.all 平行處理兩個查詢以提升效能
+                const [post, existingLike] = await Promise.all([
+                    Post.findById(postId).session(session),
+                    Like.findOne({
                         user: userId,
                         target: postId,
                         targetModel: 'Post'
-                    },
-                    {
-                        $setOnInsert: {
-                            user: userId,
-                            target: postId,
-                            targetModel: 'Post'
-                        }
-                    },
-                    {
-                        upsert: true, // 若不存在則創建
-                        new: true,    // 返回更新後的文檔
-                        session
-                    }
-                );
+                    }).session(session)
+                ]);
 
-                // 判斷是否為新建立的按讚
-                if (like && like.createdAt.getTime() === new Date().getTime()) {
-                    // 更新貼文的按讚計數
-                    await Post.updateOne(
-                        { _id: postId },
-                        { $inc: { likesCount: 1 } },
-                        { session }
-                    );
-
-                    // 如果不是自己的貼文，建立通知
-                    if (!post.user.equals(userId)) {
-                        await new Event({
-                            sender: userId,
-                            receiver: post.user,
-                            eventType: 'like',
-                            details: new Map([['postId', postId]])
-                        }).save({ session });
-                    }
-
-                    return true;
+                // 如果貼文不存在或已經按過讚，返回 false
+                if (!post || existingLike) {
+                    return false;
                 }
 
-                return false; // 已經按過讚了
+                // 同時處理建立按讚記錄和更新貼文的按讚計數
+                // 使用 Promise.all 確保兩個操作同時完成
+                await Promise.all([
+                    // 建立新的按讚記錄
+                    Like.create([{
+                        user: userId,
+                        target: postId,
+                        targetModel: 'Post'
+                    }], { session }),
+                    // 增加貼文的按讚計數
+                    Post.updateOne(
+                        { _id: postId },
+                        { $inc: { likesCount: 1 } }
+                    ).session(session)
+                ]);
+
+                // 如果不是自己的貼文，建立通知
+                if (!post.user.equals(userId)) {
+                    await Event.create([{
+                        sender: userId,
+                        receiver: post.user,
+                        eventType: 'like',
+                        details: new Map([['postId', postId]])
+                    }], { session });
+                }
+
+                return true;
             });
         } catch (error) {
             console.error('Error in likePost:', error);
-            throw error;
+            throw error;  // 向上拋出錯誤，由 controller 處理
         } finally {
+            // 確保事務結束，釋放資源
             session.endSession();
         }
     }
 
     /**
-     * 取消貼文按讚
+     * 處理取消貼文按讚功能
      * 
-     * @param postId - 貼文ID
-     * @param userId - 當前用戶ID
+     * @param postId - 要取消按讚的貼文ID
+     * @param userId - 執行取消按讚的使用者ID
+     * @returns Promise<boolean> - 如果取消按讚成功返回true，如果找不到按讚記錄則返回false
      * 
-     * 實現要點：
-     * 1. 使用 findOneAndDelete 一次完成查詢和刪除
-     * 2. 並行處理計數更新和通知刪除
-     * 3. 使用事務確保資料一致性
+     * 實作重點：
+     * 1. 使用 MongoDB 事務確保資料一致性
+     * 2. 使用 findOneAndDelete 一次性完成查詢和刪除
+     * 3. 同時處理：
+     *    - 刪除按讚記錄
+     *    - 更新貼文的按讚計數
+     *    - 刪除相關通知
      */
     async unlikePost(postId: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
         const session = await mongoose.startSession();
         try {
             return await session.withTransaction(async () => {
-                // 查找並刪除按讚記錄
+                // 使用 findOneAndDelete 一次性完成查詢和刪除按讚記錄
+                // 這比分開查詢和刪除更有效率
                 const like = await Like.findOneAndDelete({
                     user: userId,
                     target: postId,
                     targetModel: 'Post'
                 }).session(session);
 
-                if (!like) return false;
+                // 如果找不到按讚記錄，表示之前沒有按過讚
+                if (!like) {
+                    return false;
+                }
 
-                // 並行處理相關更新
+                // 同時處理更新貼文計數和刪除通知
                 await Promise.all([
-                    // 更新貼文按讚計數
+                    // 減少貼文的按讚計數
                     Post.updateOne(
                         { _id: postId },
-                        { $inc: { likesCount: -1 } },
-                        { session }
-                    ),
-                    // 刪除相關通知
+                        { $inc: { likesCount: -1 } }
+                    ).session(session),
+                    // 刪除相關的通知記錄
                     Event.deleteOne({
                         sender: userId,
                         'details.postId': postId,
