@@ -2,7 +2,7 @@
 import { Types } from 'mongoose';
 import { Comment, ICommentDocument } from '@src/models/comment';
 import { Like } from '@src/models/like';
-import { Event } from '@src/models/events';
+import { Event } from '@src/models/event';
 
 export class CommentService {
     /**
@@ -18,11 +18,7 @@ export class CommentService {
         try {
             const comment = await Comment.create({
                 user: userId,
-                content,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                likesCount: 0,
-                comments: []
+                content
             });
 
             return !!comment;

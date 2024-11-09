@@ -1,4 +1,4 @@
-// src/models/events.ts
+// src/models/event.ts
 
 import { Schema, Types, model, HydratedDocument } from "mongoose";
 

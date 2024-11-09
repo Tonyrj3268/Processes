@@ -3,13 +3,12 @@
 import { Schema, Types, model, HydratedDocument } from "mongoose";
 
 export interface IPost {
-  _id: Types.ObjectId;
   user: Types.ObjectId;
   content: string;
   createdAt: Date;
   updatedAt: Date;
   likesCount: number;
-  comments?: Types.ObjectId[];
+  comments: Types.ObjectId[];
 }
 
 export type IPostDocument = HydratedDocument<IPost>;
@@ -45,6 +44,7 @@ const postSchema = new Schema<IPostDocument>(
       {
         type: Schema.Types.ObjectId,
         ref: "Comment",
+        default: [], // 預設值為空陣列
       },
     ],
   },

@@ -8,42 +8,53 @@ export class PostController {
     constructor(private postService: PostService = new PostService()) { }
 
     /**
-     * 獲取所有貼文
+     * 獲取所有貼文列表
      * GET /api/post
-     * 
-     * 實作重點：
-     * 1. 支援分頁機制，透過 page 和 limit 參數控制
-     * 2. 回傳資料結構經過重新整理，只回傳必要資訊
-     * 3. 額外計算並回傳分頁相關資訊，方便前端實作分頁UI
+     *
+     * @param {string} [req.query.cursor] - 時間戳記，用於實現無限捲動分頁
+     * @param {number} [req.query.limit] - 每頁返回的貼文數量，預設值為 10
+     * @returns {Promise<void>} 回傳貼文列表、下一頁游標及是否還有更多資料
+     *
+     * 功能說明：
+     * - 採用游標分頁機制實現無限捲動
+     * - 只回傳公開用戶的貼文和當前用戶自己的貼文
+     * - 優化回傳資料結構，減少不必要的資料傳輸
      */
     async getAllPosts(req: Request, res: Response): Promise<void> {
         try {
-            const page = parseInt(req.query.page as string) || 1;
             const limit = parseInt(req.query.limit as string) || 10;
+            const cursor = req.query.cursor as string;  // 上一次請求的最後一篇貼文的 createdAt
+            const currentUserId = (req.user as IUserDocument)._id;  // currentUserId 由 authenticateJWT 中間件注入
 
-            if (page < 1 || limit < 1) {
-                res.status(400).json({ msg: '無效的分頁參數' });
+            if (limit < 1) {
+                res.status(400).json({ msg: '無效的參數' });
                 return;
             }
 
-            const { posts, total } = await this.postService.getAllPosts(page, limit);
+            const posts = await this.postService.getAllPosts(limit, cursor, currentUserId);
 
-            // 重新整理回傳資料結構，只保留必要資訊
+            // 如果有貼文，取得最後一篇的時間戳作為下一個 cursor）
+            const nextCursor = posts.length > 0
+                ? posts[posts.length - 1].createdAt.toISOString()
+                : null;
+
+            // 重新整理回傳資料結構
             res.status(200).json({
                 posts: posts.map(post => ({
                     postId: post._id,
-                    author: post.user._id,
+                    author: {
+                        id: post.user._id,
+                        userName: (post.user as unknown as IUserDocument).userName,
+                        accountName: (post.user as unknown as IUserDocument).accountName,
+                        avatarUrl: (post.user as unknown as IUserDocument).avatarUrl
+                    },
                     content: post.content,
                     likesCount: post.likesCount,
                     commentCount: post.comments?.length || 0,
                     createdAt: post.createdAt
                 })),
-                pagination: {
-                    currentPage: page,
-                    totalPages: Math.ceil(total / limit),
-                    totalPosts: total,
-                    postsPerPage: limit
-                }
+                nextCursor,  // 提供給前端下次請求使用
+                hasMore: posts.length === limit  // 如果回傳的貼文數量等於 limit，表示還有更多貼文
             });
         } catch (error) {
             console.error('Error in getAllPosts:', error);
@@ -65,8 +76,18 @@ export class PostController {
             // 透過 req.user 取得已認證的使用者資訊，這裡的型別斷言是必要的
             const userId = (req.user as IUserDocument)._id;
 
-            await this.postService.createPost(userId, content);
-            res.status(201).json({ msg: "Post created successfully" });
+            // 這樣可以讓前端立即獲得新建立的貼文資料，不需要再次請求。
+            const newPost = await this.postService.createPost(userId, content);
+            res.status(201).json({
+                msg: "Post created successfully",
+                post: {
+                    postId: newPost._id,
+                    content: newPost.content,
+                    createdAt: newPost.createdAt,
+                    likesCount: 0,
+                    commentCount: 0
+                }
+            });
         } catch (error) {
             console.error('Error in createPost:', error);
             res.status(500).json({ msg: '伺服器錯誤' });

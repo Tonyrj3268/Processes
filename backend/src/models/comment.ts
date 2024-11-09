@@ -44,6 +44,7 @@ const commentSchema = new Schema<ICommentDocument>(
       {
         type: Schema.Types.ObjectId,
         ref: "Comment",
+        default: [], // 預設值為空陣列
       },
     ],
   },

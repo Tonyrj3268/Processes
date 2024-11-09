@@ -1,46 +1,48 @@
 // services/postService.ts
-import { Types } from 'mongoose';
-import { Post, IPost, IPostDocument } from '@src/models/post';
+import { FilterQuery, Types } from 'mongoose';
+import { Post, IPostDocument } from '@src/models/post';
 import { Comment } from '@src/models/comment';
 import { Like } from '@src/models/like';
-import { Event } from '@src/models/events';
+import { Event } from '@src/models/event';
 import mongoose from 'mongoose';
+import { User } from '@src/models/user';
 
 export class PostService {
     /**
-     * 獲取所有貼文，支援分頁
+     * 獲取所有貼文，支援無限捲動分頁
+     *
+     * @param {number} limit - 單次請求返回的貼文數量上限
+     * @param {string} [cursor] - 上次請求最後一篇貼文的時間戳記
+     * @param {Types.ObjectId} [userId] - 當前登入用戶的 ID，用於存取私人貼文
+     * @returns {Promise<IPostDocument[]>} 符合條件的貼文列表
      * 
-     * 實作重點：
-     * 1. 使用 Promise.all 同時執行兩個查詢，提升效能
-     * 2. 使用 populate 預先載入關聯資料，減少額外查詢
-     * 3. 使用 lean() 將結果轉為純 JavaScript 物件，提升效能
+     * 查詢條件：
+     * - 依據時間戳記進行分頁
+     * - 只返回公開用戶和當前用戶的貼文
+     * - 按創建時間降序排序
      */
-    async getAllPosts(page: number = 1, limit: number = 10): Promise<{ posts: IPost[]; total: number }> {
+    async getAllPosts(limit: number, cursor?: string, userId?: Types.ObjectId): Promise<IPostDocument[]> {
         try {
-            const skip = (page - 1) * limit;
+            const query: FilterQuery<IPostDocument> = {};
 
-            // 同時執行兩個資料庫操作，提升效能
-            const [total, posts] = await Promise.all([
-                Post.countDocuments(),
-                Post.find()
-                    .sort({ createdAt: -1 })
-                    .skip(skip)
-                    .limit(limit)
-                    // 預先載入使用者資料，減少額外查詢
-                    .populate('user', 'userName accountName avatarUrl bio followersCount followingCount')
-                    // 預先載入評論資料及其相關使用者資料
-                    .populate({
-                        path: 'comments',
-                        populate: {
-                            path: 'user',
-                            select: 'userName accountName avatarUrl'
-                        }
-                    })
-                    // 使用 lean() 優化效能
-                    .lean()
-            ]);
+            // 時間戳記條件
+            if (cursor) {
+                query.createdAt = { $lt: new Date(cursor) };
+            }
 
-            return { posts, total };
+            // 查詢條件：公開用戶的貼文或自己的貼文
+            query.$or = [
+                { user: userId }, // 自己的貼文
+                { user: { $in: await User.find({ isPublic: true }).select('_id') } } // 公開用戶的貼文
+            ];
+
+            return await Post.find(query)
+                .sort({ createdAt: -1 })
+                .limit(limit)
+                .populate('user', 'userName accountName avatarUrl isPublic')
+                .select('-comments')
+                .lean();
+
         } catch (error) {
             console.error('Error in getAllPosts:', error);
             throw error;
@@ -62,9 +64,7 @@ export class PostService {
 
             const post = new Post({
                 user: userId,
-                content,
-                comments: [],  // 初始化空評論陣列
-                likesCount: 0  // 初始化按讚計數
+                content
             });
 
             return await post.save();
