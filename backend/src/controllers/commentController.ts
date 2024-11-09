@@ -85,54 +85,86 @@ export class CommentController {
     }
 
     /**
-     * 對評論按讚
+     * 處理評論按讚
      * POST /api/comments/:commentId/like
+     * 
+     * 使用場景：
+     * - 當用戶點擊空心愛心時調用
+     * - 前端需確保只在未按讚狀態下調用
+     * 
+     * @param req - 請求物件，需包含 commentId 參數和認證用戶資訊
+     * @param res - 回應物件
      */
     async likeComment(req: Request, res: Response): Promise<void> {
         try {
             const { commentId } = req.params;
             const userId = (req.user as IUserDocument)._id;
 
-            const result = await this.commentService.likeComment(
+            const success = await this.commentService.likeComment(
                 new Types.ObjectId(commentId),
                 userId
             );
 
-            if (!result) {
-                res.status(409).json({ msg: "已經按讚過或評論不存在" });
+            if (!success) {
+                res.status(404).json({
+                    success: false,
+                    message: "評論不存在"
+                });
                 return;
             }
 
-            res.status(200).json({ msg: "Comment liked successfully" });
+            res.status(200).json({
+                success: true,
+                message: "已按讚"
+            });
         } catch (error) {
-            console.error('Error in likeComment:', error);
-            res.status(500).json({ msg: "伺服器錯誤" });
+            console.error('Error in likeComment controller:', error);
+            res.status(500).json({
+                success: false,
+                message: '伺服器錯誤'
+            });
         }
     }
 
     /**
-     * 取消評論按讚
+     * 處理取消評論按讚
      * DELETE /api/comments/:commentId/like
+     * 
+     * 使用場景：
+     * - 當用戶點擊紅色愛心時調用
+     * - 前端需確保只在已按讚狀態下調用
+     * 
+     * @param req - 請求物件，需包含 commentId 參數和認證用戶資訊
+     * @param res - 回應物件
      */
     async unlikeComment(req: Request, res: Response): Promise<void> {
         try {
             const { commentId } = req.params;
             const userId = (req.user as IUserDocument)._id;
 
-            const result = await this.commentService.unlikeComment(
+            const success = await this.commentService.unlikeComment(
                 new Types.ObjectId(commentId),
                 userId
             );
 
-            if (!result) {
-                res.status(409).json({ msg: "尚未按讚或評論不存在" });
+            if (!success) {
+                res.status(404).json({
+                    success: false,
+                    message: "找不到按讚記錄"
+                });
                 return;
             }
 
-            res.status(200).json({ msg: "Comment unliked successfully" });
+            res.status(200).json({
+                success: true,
+                message: "已取消按讚"
+            });
         } catch (error) {
-            console.error('Error in unlikeComment:', error);
-            res.status(500).json({ msg: "伺服器錯誤" });
+            console.error('Error in unlikeComment controller:', error);
+            res.status(500).json({
+                success: false,
+                message: '伺服器錯誤'
+            });
         }
     }
 }

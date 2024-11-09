@@ -133,58 +133,34 @@ export class CommentService {
      * 
      * @param commentId - 要按讚的評論ID
      * @param userId - 執行按讚的使用者ID
-     * @returns Promise<boolean> - 如果按讚成功返回true，如果評論不存在或已經按過讚則返回false
+     * @returns Promise<boolean> - 按讚處理結果
      * 
-     * 實作重點：
-     * 1. 使用 MongoDB 事務確保資料一致性
-     * 2. 避免重複按讚
-     * 3. 同時處理：
-     *    - 建立按讚記錄
-     *    - 更新評論的按讚計數
-     *    - 建立互動通知（如果不是自己的評論）
-     * 
-     * 可能的失敗情況：
-     * 1. 評論不存在
-     * 2. 已經按過讚
-     * 3. 資料庫操作異常
+     * 使用場景：
+     * - 當用戶點擊空心愛心時調用
+     * - 前端需要維護愛心的狀態，只在未按讚狀態下調用此API
      */
     async likeComment(commentId: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
-        // 開始一個新的資料庫事務
         const session = await mongoose.startSession();
         try {
             return await session.withTransaction(async () => {
-                // 同時查詢評論是否存在和是否已按讚
-                // 使用 Promise.all 提升查詢效能
-                const [comment, existingLike] = await Promise.all([
-                    Comment.findById(commentId).session(session),
-                    Like.findOne({
-                        user: userId,
-                        target: commentId,
-                        targetModel: 'Comment'
-                    }).session(session)
-                ]);
+                // 只檢查評論是否存在
+                const comment = await Comment.findById(commentId).session(session);
+                if (!comment) return false;
 
-                // 如果評論不存在或已經按過讚，返回 false
-                if (!comment || existingLike) {
-                    return false;
-                }
-
-                // 同時處理按讚記錄的建立和評論按讚數的更新
+                // 直接建立按讚記錄和更新計數
                 await Promise.all([
-                    // 建立新的按讚記錄
                     Like.create([{
                         user: userId,
                         target: commentId,
-                        targetModel: 'Comment'  // 指定目標類型為評論
+                        targetModel: 'Comment'
                     }], { session }),
-                    // 增加評論的按讚計數
                     Comment.updateOne(
                         { _id: commentId },
                         { $inc: { likesCount: 1 } }
                     ).session(session)
                 ]);
 
-                // 如果不是自己的評論，則建立通知
+                // 建立通知（如果不是自己的評論）
                 if (!comment.user.equals(userId)) {
                     await Event.create([{
                         sender: userId,
@@ -192,7 +168,7 @@ export class CommentService {
                         eventType: 'like',
                         details: new Map([
                             ['commentId', commentId.toString()],
-                            ['type', 'comment']  // 標記這是評論的按讚
+                            ['type', 'comment']
                         ])
                     }], { session });
                 }
@@ -201,9 +177,8 @@ export class CommentService {
             });
         } catch (error) {
             console.error('Error in likeComment:', error);
-            throw error;  // 向上拋出錯誤，由 controller 統一處理
+            throw error;
         } finally {
-            // 確保事務結束，釋放資源
             session.endSession();
         }
     }
@@ -213,49 +188,33 @@ export class CommentService {
      * 
      * @param commentId - 要取消按讚的評論ID
      * @param userId - 執行取消按讚的使用者ID
-     * @returns Promise<boolean> - 如果取消按讚成功返回true，如果找不到按讚記錄則返回false
+     * @returns Promise<boolean> - 取消按讚處理結果
      * 
-     * 實作重點：
-     * 1. 使用 MongoDB 事務確保資料一致性
-     * 2. 使用 findOneAndDelete 高效處理按讚記錄
-     * 3. 同時處理：
-     *    - 刪除按讚記錄
-     *    - 更新評論的按讚計數
-     *    - 刪除相關通知
-     * 
-     * 可能的失敗情況：
-     * 1. 找不到按讚記錄（可能從未按讚）
-     * 2. 資料庫操作異常
-     * 
-     * 注意：這個方法不需要先檢查評論是否存在，
-     * 因為如果找到了按讚記錄，就表示評論必定存在過
+     * 使用場景：
+     * - 當用戶點擊紅色愛心時調用
+     * - 前端需要維護愛心的狀態，只在已按讚狀態下調用此API
      */
     async unlikeComment(commentId: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
         const session = await mongoose.startSession();
         try {
             return await session.withTransaction(async () => {
-                // 一次性查找並刪除按讚記錄
-                // 這比分開查詢和刪除更有效率
-                const like = await Like.findOneAndDelete({
+                // 直接刪除按讚記錄
+                const result = await Like.deleteOne({
                     user: userId,
                     target: commentId,
                     targetModel: 'Comment'
                 }).session(session);
 
-                // 如果找不到按讚記錄，表示之前沒有按過讚
-                if (!like) {
+                if (result.deletedCount === 0) {
                     return false;
                 }
 
-                // 同時處理評論計數更新和通知刪除
-                // 使用 Promise.all 並行處理以提升效能
+                // 更新計數和刪除通知
                 await Promise.all([
-                    // 減少評論的按讚計數
                     Comment.updateOne(
                         { _id: commentId },
                         { $inc: { likesCount: -1 } }
                     ).session(session),
-                    // 刪除相關的通知記錄
                     Event.deleteOne({
                         sender: userId,
                         'details.commentId': commentId.toString(),
@@ -267,9 +226,8 @@ export class CommentService {
             });
         } catch (error) {
             console.error('Error in unlikeComment:', error);
-            throw error;  // 向上拋出錯誤，由 controller 統一處理
+            throw error;
         } finally {
-            // 確保事務結束，釋放資源
             session.endSession();
         }
     }

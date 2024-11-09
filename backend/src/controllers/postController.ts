@@ -160,63 +160,86 @@ export class PostController {
     }
 
     /**
-     * 對貼文按讚
-     * POST /api/post/:postId/like
+     * 處理貼文按讚
+     * POST /api/posts/:postId/like
      * 
-     * 特點：
-     * - 使用 409 狀態碼表示已經按讚的衝突情況
-     * - 回傳簡潔的訊息，符合 REST API 設計原則
+     * 使用場景：
+     * - 當用戶點擊空心愛心時調用
+     * - 前端需確保只在未按讚狀態下調用
+     * 
+     * @param req - 請求物件，需包含 postId 參數和認證用戶資訊
+     * @param res - 回應物件
      */
     async likePost(req: Request, res: Response): Promise<void> {
         try {
             const { postId } = req.params;
             const userId = (req.user as IUserDocument)._id;
 
-            const result = await this.postService.likePost(
+            const success = await this.postService.likePost(
                 new Types.ObjectId(postId),
                 userId
             );
 
-            // 使用 409 Conflict 狀態碼表示重複按讚的情況
-            if (!result) {
-                res.status(409).json({ msg: "Post already liked or not found" });
+            if (!success) {
+                res.status(404).json({
+                    success: false,
+                    message: "貼文不存在"
+                });
                 return;
             }
 
-            res.status(200).json({ msg: "Post liked successfully" });
+            res.status(200).json({
+                success: true,
+                message: "已按讚"
+            });
         } catch (error) {
-            console.error('Error in likePost:', error);
-            res.status(500).json({ msg: '伺服器錯誤' });
+            console.error('Error in likePost controller:', error);
+            res.status(500).json({
+                success: false,
+                message: '伺服器錯誤'
+            });
         }
     }
 
     /**
-     * 取消貼文按讚
-     * DELETE /api/post/:postId/like
+     * 處理取消貼文按讚
+     * DELETE /api/posts/:postId/like
      * 
-     * 特點：
-     * - 使用 DELETE 方法符合 REST 設計原則
-     * - 狀態碼的使用與 likePost 一致，保持 API 行為一致性
+     * 使用場景：
+     * - 當用戶點擊紅色愛心時調用
+     * - 前端需確保只在已按讚狀態下調用
+     * 
+     * @param req - 請求物件，需包含 postId 參數和認證用戶資訊
+     * @param res - 回應物件
      */
     async unlikePost(req: Request, res: Response): Promise<void> {
         try {
             const { postId } = req.params;
             const userId = (req.user as IUserDocument)._id;
 
-            const result = await this.postService.unlikePost(
+            const success = await this.postService.unlikePost(
                 new Types.ObjectId(postId),
                 userId
             );
 
-            if (!result) {
-                res.status(409).json({ msg: "Post not liked or not found" });
+            if (!success) {
+                res.status(404).json({
+                    success: false,
+                    message: "找不到按讚記錄"
+                });
                 return;
             }
 
-            res.status(200).json({ msg: "Post unliked successfully" });
+            res.status(200).json({
+                success: true,
+                message: "已取消按讚"
+            });
         } catch (error) {
-            console.error('Error in unlikePost:', error);
-            res.status(500).json({ msg: '伺服器錯誤' });
+            console.error('Error in unlikePost controller:', error);
+            res.status(500).json({
+                success: false,
+                message: '伺服器錯誤'
+            });
         }
     }
 

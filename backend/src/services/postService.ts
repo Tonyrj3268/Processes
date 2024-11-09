@@ -164,39 +164,30 @@ export class PostService {
      * 
      * @param postId - 要按讚的貼文ID
      * @param userId - 執行按讚的使用者ID
-     * @returns Promise<boolean> - 如果按讚成功返回true，如果貼文不存在或已經按過讚則返回false
+     * @returns Promise<boolean> - 按讚處理結果
+     * 
+     * 使用場景：
+     * - 當用戶點擊空心愛心時調用此 API
+     * - 前端需要維護愛心的狀態
+     * - 只在未按讚狀態下調用此 API
      * 
      * 實作重點：
      * 1. 使用 MongoDB 事務確保資料一致性
-     * 2. 避免重複按讚
+     * 2. 不檢查重複按讚（由前端控制）
      * 3. 同時處理：
      *    - 建立按讚記錄
      *    - 更新貼文的按讚計數
-     *    - 建立通知（如果不是自己的貼文）
+     *    - 建立通知（若非自己的貼文）
      */
     async likePost(postId: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
-        // 開始一個新的資料庫事務
         const session = await mongoose.startSession();
         try {
             return await session.withTransaction(async () => {
-                // 同時檢查貼文是否存在和是否已經按過讚
-                // 使用 Promise.all 平行處理兩個查詢以提升效能
-                const [post, existingLike] = await Promise.all([
-                    Post.findById(postId).session(session),
-                    Like.findOne({
-                        user: userId,
-                        target: postId,
-                        targetModel: 'Post'
-                    }).session(session)
-                ]);
+                // 只檢查貼文是否存在
+                const post = await Post.findById(postId).session(session);
+                if (!post) return false;
 
-                // 如果貼文不存在或已經按過讚，返回 false
-                if (!post || existingLike) {
-                    return false;
-                }
-
-                // 同時處理建立按讚記錄和更新貼文的按讚計數
-                // 使用 Promise.all 確保兩個操作同時完成
+                // 同時處理按讚記錄和計數更新
                 await Promise.all([
                     // 建立新的按讚記錄
                     Like.create([{
@@ -225,9 +216,8 @@ export class PostService {
             });
         } catch (error) {
             console.error('Error in likePost:', error);
-            throw error;  // 向上拋出錯誤，由 controller 處理
+            throw error;
         } finally {
-            // 確保事務結束，釋放資源
             session.endSession();
         }
     }
@@ -237,11 +227,16 @@ export class PostService {
      * 
      * @param postId - 要取消按讚的貼文ID
      * @param userId - 執行取消按讚的使用者ID
-     * @returns Promise<boolean> - 如果取消按讚成功返回true，如果找不到按讚記錄則返回false
+     * @returns Promise<boolean> - 取消按讚處理結果
+     * 
+     * 使用場景：
+     * - 當用戶點擊紅色愛心時調用此 API
+     * - 前端需要維護愛心的狀態
+     * - 只在已按讚狀態下調用此 API
      * 
      * 實作重點：
      * 1. 使用 MongoDB 事務確保資料一致性
-     * 2. 使用 findOneAndDelete 一次性完成查詢和刪除
+     * 2. 使用 deleteOne 直接刪除按讚記錄
      * 3. 同時處理：
      *    - 刪除按讚記錄
      *    - 更新貼文的按讚計數
@@ -251,20 +246,19 @@ export class PostService {
         const session = await mongoose.startSession();
         try {
             return await session.withTransaction(async () => {
-                // 使用 findOneAndDelete 一次性完成查詢和刪除按讚記錄
-                // 這比分開查詢和刪除更有效率
-                const like = await Like.findOneAndDelete({
+                // 直接刪除按讚記錄
+                const result = await Like.deleteOne({
                     user: userId,
                     target: postId,
                     targetModel: 'Post'
                 }).session(session);
 
-                // 如果找不到按讚記錄，表示之前沒有按過讚
-                if (!like) {
+                // 如果沒有刪除任何記錄，表示操作失敗
+                if (result.deletedCount === 0) {
                     return false;
                 }
 
-                // 同時處理更新貼文計數和刪除通知
+                // 同時處理計數更新和通知刪除
                 await Promise.all([
                     // 減少貼文的按讚計數
                     Post.updateOne(
