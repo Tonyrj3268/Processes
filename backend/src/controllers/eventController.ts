@@ -1,46 +1,38 @@
 import { Request, Response } from "express";
+import { IUserDocument } from "@src/models/user";
+import { EventService } from "@src/services/eventService";
+import { Types } from "mongoose";
 
 export class EventController {
+
+    constructor(private eventService: EventService = new EventService()) { }
+
     async getEvents(req: Request, res: Response): Promise<void> {
-        const mockEvents = [
-            {
-                sender: "5f8f8c44b54764421b7156c9",
-                timestamp: "2024-10-30T10:15:30Z",
-                event: {
-                    type: "like",
-                    content: "User xxx liked your post",
-                },
+
+        const { cursor, limit = 10 } = req.query;
+        const user = req.user as IUserDocument;
+        const { notifications, newCursor } = await this.eventService.getEvents(user, new Types.ObjectId(cursor as string), Number(limit));
+
+        const formattedNotifications = notifications.map(notification => ({
+            _id: notification._id.toString(),
+            eventType: notification.eventType,
+            timestamp: notification.timestamp.toISOString(),  // 格式化為 ISO 日期字符串
+            sender: {
+                _id: notification.sender._id.toString(),
+                accountName: (notification.sender as IUserDocument).accountName,
+                avatarUrl: (notification.sender as IUserDocument).avatarUrl,
             },
-            {
-                sender: "5f8f8c44b54764421b7156c9",
-                timestamp: "2024-10-30T10:11:30Z",
-                event: {
-                    type: "follow",
-                    content: "User xxx commented on your post",
-                },
+            receiver: {
+                _id: notification.receiver._id.toString(),
+                accountName: (notification.receiver as IUserDocument).accountName,
+                avatarUrl: (notification.receiver as IUserDocument).avatarUrl,
             },
-            // Add more events as needed
-        ];
-
-        // Get query parameters for pagination
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 20;
-
-        // Calculate total items and total pages
-        const totalItems = mockEvents.length;
-        const totalPages = Math.ceil(totalItems / limit);
-
-        // Validate page number
-        if (page < 1 || page > totalPages) {
-            res.status(400).json({ message: "Invalid page number." });
-            return;
-        }
+            details: notification.details,
+        }));
 
         res.status(200).json({
-            totalItems,
-            totalPages,
-            currentPage: page,
-            mockEvents,
+            events: formattedNotifications,
+            newCursor: newCursor ? newCursor.toString() : null,
         });
 
     }

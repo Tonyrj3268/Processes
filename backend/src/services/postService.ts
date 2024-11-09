@@ -3,7 +3,7 @@ import { Types } from 'mongoose';
 import { Post } from '@src/models/post';
 import { Comment } from '@src/models/comment';
 import { Like } from '@src/models/like';
-import { Event } from '@src/models/events';
+import { Event } from '@src/models/event';
 import mongoose from 'mongoose';
 
 export class PostService {

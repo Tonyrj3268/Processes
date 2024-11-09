@@ -1,21 +1,21 @@
-// src/models/comment.ts
+// src/models/event.ts
 
 import { Schema, Types, model, HydratedDocument } from "mongoose";
+import { IUserDocument } from "@src/models/user";
 
 export interface IEvent {
-    sender: Types.ObjectId;
-    receiver: Types.ObjectId;
+    sender: Types.ObjectId | IUserDocument;
+    receiver: Types.ObjectId | IUserDocument;
     eventType: "follow" | "comment" | "like" | "friend_request";
     details: Map<string, unknown>;
     timestamp: Date;
-
 }
 
 export type IEventDocument = HydratedDocument<IEvent>;
 
 const eventSchema: Schema = new Schema({
-    sender: { type: Types.ObjectId, required: true },
-    receiver: { type: Types.ObjectId, required: true },
+    sender: { type: Types.ObjectId, ref: "User", required: true },
+    receiver: { type: Types.ObjectId, ref: "User", required: true },
     eventType: { type: String, enum: ["follow", "comment", "like", "friend_request"], required: true },
     details: {
         type: Map,
