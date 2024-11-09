@@ -1,4 +1,3 @@
-// services/postService.ts
 import { FilterQuery, Types } from 'mongoose';
 import { Post, IPostDocument } from '@src/models/post';
 import { Comment } from '@src/models/comment';
@@ -10,29 +9,28 @@ import { User } from '@src/models/user';
 export class PostService {
     /**
      * 獲取所有貼文，支援無限捲動分頁
-     *
-     * @param {number} limit - 單次請求返回的貼文數量上限
-     * @param {string} [cursor] - 上次請求最後一篇貼文的時間戳記
-     * @param {Types.ObjectId} [userId] - 當前登入用戶的 ID，用於存取私人貼文
-     * @returns {Promise<IPostDocument[]>} 符合條件的貼文列表
      * 
-     * 查詢條件：
-     * - 依據時間戳記進行分頁
-     * - 只返回公開用戶和當前用戶的貼文
-     * - 按創建時間降序排序
+     * @param limit - 每頁返回的貼文數量
+     * @param cursor - 分頁游標，為上一頁最後一篇貼文的時間戳
+     * @param userId - 當前用戶ID，用於獲取私密貼文
+     * 
+     * 實現要點：
+     * 1. 使用 lean() 提升查詢效能，因為不需要完整的 Mongoose 文檔
+     * 2. 只選擇必要的欄位，減少資料傳輸量
+     * 3. 同時獲取公開用戶的貼文和用戶自己的貼文
      */
     async getAllPosts(limit: number, cursor?: string, userId?: Types.ObjectId): Promise<IPostDocument[]> {
         try {
             const query: FilterQuery<IPostDocument> = {};
 
-            // 時間戳記條件
+            // 添加游標條件，實現分頁
             if (cursor) {
                 query.createdAt = { $lt: new Date(cursor) };
             }
 
-            // 查詢條件：公開用戶的貼文或自己的貼文
+            // 構建訪問權限查詢條件
             query.$or = [
-                { user: userId }, // 自己的貼文
+                { user: userId }, // 用戶自己的貼文
                 { user: { $in: await User.find({ isPublic: true }).select('_id') } } // 公開用戶的貼文
             ];
 
@@ -40,9 +38,8 @@ export class PostService {
                 .sort({ createdAt: -1 })
                 .limit(limit)
                 .populate('user', 'userName accountName avatarUrl isPublic')
-                .select('-comments')
-                .lean();
-
+                .select('-comments') // 排除 comments 欄位，減少資料量
+                .lean(); // 使用 lean() 提升效能
         } catch (error) {
             console.error('Error in getAllPosts:', error);
             throw error;
@@ -52,9 +49,12 @@ export class PostService {
     /**
      * 建立新貼文
      * 
-     * 特點：
-     * 1. 檢查內容長度限制（280字）
-     * 2. 初始化評論陣列和按讚計數
+     * @param userId - 發文用戶ID
+     * @param content - 貼文內容
+     * 
+     * 實現要點：
+     * 1. 驗證內容長度限制
+     * 2. 初始化必要欄位，確保資料完整性
      */
     async createPost(userId: Types.ObjectId, content: string): Promise<IPostDocument> {
         try {
@@ -64,7 +64,7 @@ export class PostService {
 
             const post = new Post({
                 user: userId,
-                content
+                content,
             });
 
             return await post.save();
@@ -75,12 +75,16 @@ export class PostService {
     }
 
     /**
-     * 更新貼文
+     * 更新貼文內容
      * 
-     * 特點：
-     * 1. 檢查內容長度限制
-     * 2. 使用 findOneAndUpdate 確保只有貼文作者可以更新
-     * 3. 使用 new: true 取得更新後的文件
+     * @param postId - 貼文ID
+     * @param userId - 當前用戶ID
+     * @param content - 新的貼文內容
+     * 
+     * 實現要點：
+     * 1. 使用 updateOne 而非 findOneAndUpdate，因為不需要返回更新後的文檔
+     * 2. 通過 modifiedCount 判斷更新是否成功
+     * 3. 確保只有貼文作者可以更新內容
      */
     async updatePost(
         postId: Types.ObjectId,
@@ -92,14 +96,14 @@ export class PostService {
                 throw new Error('貼文內容超過長度限制');
             }
 
-            // 使用複合條件確保只有作者可以更新貼文
-            const result = await Post.findOneAndUpdate(
-                { _id: postId, user: userId },
+            // 使用 updateOne 進行高效更新
+            const result = await Post.updateOne(
+                { _id: postId, user: userId }, // 確保只有作者可以更新
                 { content },
                 { new: true }
             );
 
-            return !!result;  // 轉換為布林值
+            return result.modifiedCount > 0; // 根據實際修改數判斷是否成功
         } catch (error) {
             console.error('Error in updatePost:', error);
             throw error;
@@ -107,38 +111,38 @@ export class PostService {
     }
 
     /**
-     * 刪除貼文
+     * 刪除貼文及相關資料
      * 
-     * 實作重點：
-     * 1. 使用 MongoDB 事務確保資料一致性
-     * 2. 同時刪除相關的評論、按讚和通知
-     * 3. 使用 Promise.all 平行處理多個刪除操作
+     * @param postId - 貼文ID
+     * @param userId - 當前用戶ID
+     * 
+     * 實現要點：
+     * 1. 使用事務確保資料一致性
+     * 2. 同時刪除貼文相關的所有資料（評論、按讚、通知）
+     * 3. 確保只有作者可以刪除貼文
      */
     async deletePost(postId: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
-        // 開始一個新的資料庫事務
         const session = await mongoose.startSession();
         try {
-            const result = await session.withTransaction(async () => {
-                // 查找並刪除貼文，確保只有作者可以刪除
+            return await session.withTransaction(async () => {
+                // 刪除貼文並確認作者身份
                 const post = await Post.findOneAndDelete(
                     { _id: postId, user: userId },
                     { session }
                 );
 
-                if (!post) {
-                    return false;
-                }
+                if (!post) return false;
 
-                // 同時處理所有相關資料的刪除
+                // 並行處理相關資料的刪除
                 await Promise.all([
-                    // 刪除該貼文的所有評論
+                    // 刪除所有相關評論
                     Comment.deleteMany({ post: postId }).session(session),
-                    // 刪除與該貼文相關的所有按讚記錄
+                    // 刪除所有相關按讚記錄
                     Like.deleteMany({
                         target: postId,
                         targetModel: 'Post'
                     }).session(session),
-                    // 刪除相關的事件通知
+                    // 刪除所有相關通知
                     Event.deleteMany({
                         'details.postId': postId,
                         eventType: { $in: ['like', 'comment'] }
@@ -147,13 +151,10 @@ export class PostService {
 
                 return true;
             });
-
-            return result;
         } catch (error) {
             console.error('Error in deletePost:', error);
             throw error;
         } finally {
-            // 確保事務結束
             session.endSession();
         }
     }
@@ -161,58 +162,67 @@ export class PostService {
     /**
      * 對貼文按讚
      * 
-     * 實作重點：
-     * 1. 使用事務確保資料一致性
-     * 2. 檢查是否已經按過讚
-     * 3. 同時更新按讚記錄和貼文的按讚計數
-     * 4. 建立通知（如果不是自己的貼文）
+     * @param postId - 貼文ID
+     * @param userId - 當前用戶ID
+     * 
+     * 實現要點：
+     * 1. 使用 findOneAndUpdate 配合 upsert 實現原子性操作
+     * 2. 通過 createdAt 時間判斷是否為新建立的按讚
+     * 3. 只在新建立按讚時更新計數和建立通知
      */
     async likePost(postId: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
         const session = await mongoose.startSession();
         try {
-            const result = await session.withTransaction(async () => {
-                // 同時查詢貼文和現有的按讚記錄
-                const [post, existingLike] = await Promise.all([
-                    Post.findById(postId).session(session),
-                    Like.findOne({
+            return await session.withTransaction(async () => {
+                // 檢查貼文是否存在
+                const post = await Post.findById(postId).session(session);
+                if (!post) return false;
+
+                // 使用 findOneAndUpdate 搭配 upsert 處理按讚
+                const like = await Like.findOneAndUpdate(
+                    {
                         user: userId,
                         target: postId,
                         targetModel: 'Post'
-                    }).session(session)
-                ]);
+                    },
+                    {
+                        $setOnInsert: {
+                            user: userId,
+                            target: postId,
+                            targetModel: 'Post'
+                        }
+                    },
+                    {
+                        upsert: true, // 若不存在則創建
+                        new: true,    // 返回更新後的文檔
+                        session
+                    }
+                );
 
-                if (!post || existingLike) {
-                    return false;
-                }
-
-                // 同時建立按讚記錄和更新按讚計數
-                await Promise.all([
-                    new Like({
-                        user: userId,
-                        target: postId,
-                        targetModel: 'Post'
-                    }).save({ session }),
-                    Post.findByIdAndUpdate(
-                        postId,
-                        { $inc: { likesCount: 1 } },  // 使用 $inc 遞增按讚數
+                // 判斷是否為新建立的按讚
+                if (like && like.createdAt.getTime() === new Date().getTime()) {
+                    // 更新貼文的按讚計數
+                    await Post.updateOne(
+                        { _id: postId },
+                        { $inc: { likesCount: 1 } },
                         { session }
-                    )
-                ]);
+                    );
 
-                // 如果不是自己的貼文，建立通知
-                if (!post.user.equals(userId)) {
-                    await new Event({
-                        sender: userId,
-                        receiver: post.user,
-                        eventType: 'like',
-                        details: new Map([['postId', postId]])
-                    }).save({ session });
+                    // 如果不是自己的貼文，建立通知
+                    if (!post.user.equals(userId)) {
+                        await new Event({
+                            sender: userId,
+                            receiver: post.user,
+                            eventType: 'like',
+                            details: new Map([['postId', postId]])
+                        }).save({ session });
+                    }
+
+                    return true;
                 }
 
-                return true;
+                return false; // 已經按過讚了
             });
-
-            return result;
         } catch (error) {
             console.error('Error in likePost:', error);
             throw error;
@@ -224,52 +234,45 @@ export class PostService {
     /**
      * 取消貼文按讚
      * 
-     * 實作重點：
-     * 1. 使用事務確保資料一致性
-     * 2. 同時處理按讚記錄的刪除、計數更新和通知刪除
-     * 3. 確保所有相關操作都在同一個事務中完成
+     * @param postId - 貼文ID
+     * @param userId - 當前用戶ID
+     * 
+     * 實現要點：
+     * 1. 使用 findOneAndDelete 一次完成查詢和刪除
+     * 2. 並行處理計數更新和通知刪除
+     * 3. 使用事務確保資料一致性
      */
     async unlikePost(postId: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
         const session = await mongoose.startSession();
         try {
-            const result = await session.withTransaction(async () => {
-                // 同時查詢貼文和按讚記錄
-                const [post, like] = await Promise.all([
-                    Post.findById(postId).session(session),
-                    Like.findOne({
-                        user: userId,
-                        target: postId,
-                        targetModel: 'Post'
-                    }).session(session)
-                ]);
+            return await session.withTransaction(async () => {
+                // 查找並刪除按讚記錄
+                const like = await Like.findOneAndDelete({
+                    user: userId,
+                    target: postId,
+                    targetModel: 'Post'
+                }).session(session);
 
-                if (!post || !like) {
-                    return false;
-                }
+                if (!like) return false;
 
-                // 同時處理所有相關操作
+                // 並行處理相關更新
                 await Promise.all([
-                    // 刪除按讚記錄
-                    Like.deleteOne({ _id: like._id }).session(session),
-                    // 更新貼文的按讚計數
-                    Post.findByIdAndUpdate(
-                        postId,
+                    // 更新貼文按讚計數
+                    Post.updateOne(
+                        { _id: postId },
                         { $inc: { likesCount: -1 } },
                         { session }
                     ),
                     // 刪除相關通知
                     Event.deleteOne({
                         sender: userId,
-                        receiver: post.user,
-                        eventType: 'like',
-                        'details.postId': postId
+                        'details.postId': postId,
+                        eventType: 'like'
                     }).session(session)
                 ]);
 
                 return true;
             });
-
-            return result;
         } catch (error) {
             console.error('Error in unlikePost:', error);
             throw error;
@@ -281,11 +284,14 @@ export class PostService {
     /**
      * 新增評論到貼文
      * 
-     * 實作重點：
-     * 1. 使用事務確保資料一致性
-     * 2. 檢查評論內容長度限制
-     * 3. 同時更新評論和貼文的評論列表
-     * 4. 建立通知（如果不是自己的貼文）
+     * @param postId - 貼文ID
+     * @param userId - 當前用戶ID
+     * @param content - 評論內容
+     * 
+     * 實現要點：
+     * 1. 使用 updateOne 高效更新貼文的評論列表
+     * 2. 只在真正需要時建立通知
+     * 3. 使用事務確保資料一致性
      */
     async addComment(
         postId: Types.ObjectId,
@@ -294,30 +300,28 @@ export class PostService {
     ): Promise<boolean> {
         const session = await mongoose.startSession();
         try {
-            const result = await session.withTransaction(async () => {
+            return await session.withTransaction(async () => {
                 if (content.length > 280) {
                     throw new Error('評論內容超過長度限制');
                 }
 
                 // 檢查貼文是否存在
                 const post = await Post.findById(postId).session(session);
-                if (!post) {
-                    return false;
-                }
+                if (!post) return false;
 
                 // 建立新評論
                 const comment = await new Comment({
                     user: userId,
                     content,
                     post: postId,
-                    comments: [],  // 支援巢狀評論
+                    comments: [],    // 支援巢狀評論
                     likesCount: 0
                 }).save({ session });
 
                 // 更新貼文的評論列表
-                await Post.findByIdAndUpdate(
-                    postId,
-                    { $push: { comments: comment._id } },  // 使用 $push 添加新評論
+                await Post.updateOne(
+                    { _id: postId },
+                    { $push: { comments: comment._id } },
                     { session }
                 );
 
@@ -336,8 +340,6 @@ export class PostService {
 
                 return true;
             });
-
-            return result;
         } catch (error) {
             console.error('Error in addComment:', error);
             throw error;
