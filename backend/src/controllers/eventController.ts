@@ -11,7 +11,7 @@ export class EventController {
 
         const { cursor, limit = 10 } = req.query;
         const user = req.user as IUserDocument;
-        const { notifications, newCursor } = await this.eventService.getEvents(user, new Types.ObjectId(cursor as string), Number(limit));
+        const { notifications, newCursor } = await this.eventService.getEvents(user._id, new Types.ObjectId(cursor as string), Number(limit));
 
         const formattedNotifications = notifications.map(notification => ({
             _id: notification._id.toString(),
