@@ -39,10 +39,6 @@ describe('PostController', () => {
         // 根據事件類型填充 `details`
         let details = new Map<string, unknown>();
         switch (eventType) {
-            case "follow":
-                details.set("followerId", sender._id.toString());
-                details.set("followerName", sender.userName);
-                break;
             case "comment":
                 details.set("commentId", new Types.ObjectId().toString());
                 details.set("postId", new Types.ObjectId().toString());
@@ -51,10 +47,6 @@ describe('PostController', () => {
             case "like":
                 details.set("postId", new Types.ObjectId().toString());
                 details.set("likeType", "post");
-                break;
-            case "friend_request":
-                details.set("senderId", sender._id.toString());
-                details.set("senderName", sender.userName);
                 break;
             default:
                 break;
@@ -106,7 +98,6 @@ describe('PostController', () => {
             await eventController.getEvents(req, res);
 
             expect(res.status).toHaveBeenCalledWith(200);
-
             // 修改測試預期結果以匹配實際回傳格式
             expect(res.json).toHaveBeenCalledWith({
                 events: expect.arrayContaining([
@@ -124,10 +115,7 @@ describe('PostController', () => {
                             accountName: "receiverAccountName",
                             avatarUrl: "https://example.com/avatar.jpg",
                         },
-                        details: {
-                            followerId: sender._id.toString(),
-                            followerName: "sender",
-                        },
+                        details: {},
                     }),
                 ]),
                 newCursor: expect.any(String),

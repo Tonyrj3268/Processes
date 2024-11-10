@@ -5,7 +5,7 @@ import { FilterQuery, Types } from 'mongoose';
 export class EventService {
     // Type 如果是 comment, details 應該包含 commentText, postId, commentId
     // Type 如果是 like, details 應該包含 contentId, contentType
-    // 其他事件不需要特別驗證 details, 但是 get 後 details 會是 undefined
+    // 其他事件不需要特別驗證 details, 但是 get 後 details 會是 {}
     async getEvents(user: Types.ObjectId, cursor: Types.ObjectId | null, limit: number = 10) {
         const query: FilterQuery<IEventDocument> = { receiver: user };
         if (cursor) {
@@ -26,7 +26,7 @@ export class EventService {
     // Event種類：follow, comment, like, friend_request
     // 如果eventType是comment，details應該包含commentText, postId, commentId
     // 如果eventType是like，details應該包含contentId, contentType
-    // 其他事件不需要特別驗證details，但是get後details會是undefined
+    // 其他事件不需要特別驗證details，但是get後details會是{}
     async createEvent(
         sender: Types.ObjectId,
         receiver: Types.ObjectId,
