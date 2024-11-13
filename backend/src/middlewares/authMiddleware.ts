@@ -22,6 +22,12 @@ export const registerValidators = [
         .isLength({ min: 3, max: 20 })
         .withMessage('使用者名稱長度需在 3 到 20 位之間'),
 
+    body("accountName")
+        .notEmpty()
+        .withMessage("帳號名稱 必填")
+        .isLength({ min: 3, max: 20 })
+        .withMessage("帳號名稱長度需在 3 到 20 位之間"),
+
     body('email')
         .notEmpty()
         .withMessage('Email 欄位必填')
