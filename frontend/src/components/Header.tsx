@@ -9,8 +9,12 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ title }) => {
   const navigate = useNavigate();
 
-  const handleClick = () => {
+  const handleLogoClick = () => {
     navigate("/");
+  };
+
+  const handleLoginClick = () => {
+    navigate("/login");
   };
 
   return (
@@ -28,7 +32,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
           alignItems: "center",
         }}
       >
-        <IconButton edge="start" aria-label="menu" onClick={handleClick}>
+        <IconButton edge="start" aria-label="menu" onClick={handleLogoClick}>
           <img
             src="/favicon.jpg"
             alt="logo"
@@ -50,6 +54,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
         <Button
           variant="contained"
           sx={{ backgroundColor: "black", borderRadius: 3 }}
+          onClick={handleLoginClick}
         >
           登入
         </Button>

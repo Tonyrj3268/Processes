@@ -13,17 +13,20 @@ import eventRoutes from "@src/routes/eventRoutes";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import swaggerOptions from "@src/swaggerOptions";
+import cors from "cors";
 
 const app = express();
 
 // middleware
 app.use(express.json());
+app.use(cors());
+
 initializePassport(passport); // 初始化 Passport
 app.use(passport.initialize());
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 mongoose
   .connect(MONGO_URI)
