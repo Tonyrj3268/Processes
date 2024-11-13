@@ -39,6 +39,7 @@ export class UserService {
   // 創建用戶
   async createUser(data: {
     userName: string;
+    accountName: string;
     email: string;
     password: string;
   }): Promise<IUserDocument> {
