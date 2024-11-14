@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Button, Slide, TextField, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -8,7 +9,7 @@ const Login: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showError, setShowError] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email) {
       setErrorMessage("請輸入電子郵件地址");
       setShowError(true);
@@ -21,7 +22,27 @@ const Login: React.FC = () => {
     }
     setErrorMessage(null);
     setShowError(false);
-    console.log("Logging in with", email, password);
+
+    try {
+      const response = await axios.post<{ token: string }>("/api/auth/login", {
+        email,
+        password,
+      });
+
+      if (response.status === 200) {
+        alert("登入成功！");
+        localStorage.setItem("token", response.data.token);
+        navigate("/");
+      }
+    } catch (error: any) {
+      if (error.response && error.response.data.error) {
+        setErrorMessage(error.response.data.error);
+      } else {
+        console.error(error);
+        setErrorMessage("登入過程中發生錯誤，請稍後再試");
+      }
+      setShowError(true);
+    }
   };
 
   useEffect(() => {
@@ -124,7 +145,7 @@ const Login: React.FC = () => {
           cursor: "pointer",
           fontSize: "16px",
           "&:hover": {
-            color: "333",
+            color: "#333",
           },
         }}
         onClick={() => navigate("/register")}

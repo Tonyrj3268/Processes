@@ -94,7 +94,7 @@ const Register: React.FC = () => {
 
       <TextField
         variant="outlined"
-        placeholder="帳號"
+        placeholder="帳號名稱（長度 3 至 20 位）"
         value={accountName}
         onChange={(e) => setAccountName(e.target.value)}
         fullWidth
@@ -113,7 +113,7 @@ const Register: React.FC = () => {
 
       <TextField
         variant="outlined"
-        placeholder="用戶名稱"
+        placeholder="使用者名稱（長度 3 至 20 位）"
         value={userName}
         onChange={(e) => setUserName(e.target.value)}
         fullWidth
@@ -151,7 +151,7 @@ const Register: React.FC = () => {
 
       <TextField
         variant="outlined"
-        placeholder="密碼"
+        placeholder="密碼（長度至少 6 位）"
         type="password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
@@ -195,7 +195,7 @@ const Register: React.FC = () => {
           cursor: "pointer",
           fontSize: "16px",
           "&:hover": {
-            color: "333",
+            color: "#333",
           },
         }}
         onClick={() => navigate("/login")}
