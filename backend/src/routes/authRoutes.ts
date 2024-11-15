@@ -50,6 +50,21 @@ const router = Router();
  *                   type: string
  *                   description: JWT token for authorization
  *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       msg:
+ *                         type: string
+ *                         example: "找不到使用者"
  *       400:
  *         description: Validation errors
  *         content:
@@ -64,7 +79,7 @@ const router = Router();
  *                     properties:
  *                       msg:
  *                         type: string
- *                         example: "Invalid email or password."
+ *                         example: "密碼錯誤"
  *       500:
  *         description: Server error
  * 
@@ -77,12 +92,12 @@ router.post("/login",
     try {
       const user = await userService.findUserByEmailWithPassword(email);
       if (!user) {
-        res.status(400).json({ error: "Invalid email or password." });
+        res.status(404).json({ error: "找不到使用者" });
         return;
       }
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        res.status(400).json({ error: "Invalid email or password." });
+        res.status(400).json({ error: "密碼錯誤" });
         return;
       }
 
@@ -145,7 +160,7 @@ router.post("/login",
  *                     properties:
  *                       msg:
  *                         type: string
- *                         example: "User already exists."
+ *                         example: "此信箱已被註冊"
  */
 router.post("/register",
   registerValidators,
@@ -161,7 +176,7 @@ router.post("/register",
     try {
       const existingUser = await userService.findUserByEmail(email);
       if (existingUser) {
-        res.status(400).json({ error: "User already exists." });
+        res.status(400).json({ error: "此信箱已被註冊" });
         return;
       }
 
