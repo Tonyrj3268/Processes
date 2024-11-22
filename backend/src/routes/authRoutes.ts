@@ -171,7 +171,7 @@ router.post("/register",
       res.status(400).json({ errors: errors.array() });
       return;
     }
-    const { userName, email, password } = req.body;
+    const { userName, accountName, email, password } = req.body;
 
     try {
       const existingUser = await userService.findUserByEmail(email);
@@ -183,6 +183,7 @@ router.post("/register",
       const hashedPassword = await bcrypt.hash(password, 10);
       await userService.createUser({
         userName,
+        accountName,
         email,
         password: hashedPassword,
       });
