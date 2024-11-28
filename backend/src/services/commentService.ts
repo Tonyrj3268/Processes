@@ -19,27 +19,22 @@ export class CommentService {
         userId: Types.ObjectId,
         content: string
     ): Promise<boolean> {
-        const session = await mongoose.startSession();
         try {
-            return await session.withTransaction(async () => {
-                if (content.length > 280) {
-                    throw new Error('評論內容超過長度限制');
-                }
+            if (content.length > 280) {
+                throw new Error('評論內容超過長度限制');
+            }
 
-                const comment = await Comment.create([{
-                    user: userId,
-                    content,
-                    likesCount: 0,
-                    comments: []
-                }], { session });
+            const comment = await Comment.create([{
+                user: userId,
+                content,
+                likesCount: 0,
+                comments: []
+            }]);
 
-                return !!comment;
-            });
+            return !!comment;
         } catch (error) {
             console.error('Error in createComment service:', error);
             throw error;
-        } finally {
-            session.endSession();
         }
     }
 

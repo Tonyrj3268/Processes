@@ -156,6 +156,20 @@ export class UserService {
       session.endSession();
     }
   }
+
+  async getPublicUserIds(): Promise<Types.ObjectId[]> {
+    const now = Date.now();
+    const CACHE_DURATION = 60 * 1000; // 1 分鐘
+    let cacheTimestamp = 0;
+    let cachedPublicUserIds: Types.ObjectId[] = [];
+
+    if (now - cacheTimestamp > CACHE_DURATION) {
+      const publicUsers = await User.find({ isPublic: true }).select('_id').lean();
+      cachedPublicUserIds = publicUsers.map(user => user._id);
+      cacheTimestamp = now;
+    }
+    return cachedPublicUserIds;
+  }
 }
 
 export const userService = new UserService();

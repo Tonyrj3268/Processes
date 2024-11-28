@@ -23,7 +23,7 @@ export class PostController {
     async getAllPosts(req: Request, res: Response): Promise<void> {
         try {
             const limit = parseInt(req.query.limit as string) || 10;
-            const cursor = req.query.cursor as string;  // 上一次請求的最後一篇貼文的 createdAt
+            const cursor = req.query.cursor as string;  // 上一次請求的最後一篇貼文的 _id
             const currentUserId = (req.user as IUserDocument)._id;  // currentUserId 由 authenticateJWT 中間件注入
 
             if (limit < 1) {
@@ -33,9 +33,9 @@ export class PostController {
 
             const posts = await this.postService.getAllPosts(limit, cursor, currentUserId);
 
-            // 如果有貼文，取得最後一篇的時間戳作為下一個 cursor）
+            // 如果有貼文，取得最後一篇的_id作為下一個 cursor）
             const nextCursor = posts.length > 0
-                ? posts[posts.length - 1].createdAt.toISOString()
+                ? posts[posts.length - 1]._id
                 : null;
 
             // 重新整理回傳資料結構
@@ -54,7 +54,6 @@ export class PostController {
                     createdAt: post.createdAt
                 })),
                 nextCursor,  // 提供給前端下次請求使用
-                hasMore: posts.length === limit  // 如果回傳的貼文數量等於 limit，表示還有更多貼文
             });
         } catch (error) {
             console.error('Error in getAllPosts:', error);

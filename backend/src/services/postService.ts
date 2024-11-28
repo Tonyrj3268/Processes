@@ -25,8 +25,17 @@ export class PostService {
 
             // 添加游標條件，實現分頁
             if (cursor) {
-                query.createdAt = { $lt: new Date(cursor) };
+                query._id = { $lt: cursor }; // _id 必須小於游標
             }
+
+            // 限制只回傳一天內的貼文
+            const oneDayAgo = new Date();
+            oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+            query.createdAt = {
+                ...query.createdAt,
+                $gte: oneDayAgo // createdAt 必須在一天以內
+            };
+
 
             // 構建訪問權限查詢條件
             query.$or = [
@@ -34,12 +43,14 @@ export class PostService {
                 { user: { $in: await User.find({ isPublic: true }).select('_id') } } // 公開用戶的貼文
             ];
 
-            return await Post.find(query)
-                .sort({ createdAt: -1 })
+            const posts = await Post.find(query)
+                .sort({ createdAt: -1, _id: -1 }) // 按 createdAt 和 _id 排序
                 .limit(limit)
                 .populate('user', 'userName accountName avatarUrl isPublic')
                 .select('-comments') // 排除 comments 欄位，減少資料量
                 .lean(); // 使用 lean() 提升效能
+
+            return posts;
         } catch (error) {
             console.error('Error in getAllPosts:', error);
             throw error;
@@ -133,21 +144,18 @@ export class PostService {
 
                 if (!post) return false;
 
-                // 並行處理相關資料的刪除
-                await Promise.all([
-                    // 刪除所有相關評論
-                    Comment.deleteMany({ post: postId }).session(session),
-                    // 刪除所有相關按讚記錄
-                    Like.deleteMany({
-                        target: postId,
-                        targetModel: 'Post'
-                    }).session(session),
-                    // 刪除所有相關通知
-                    Event.deleteMany({
-                        'details.postId': postId,
-                        eventType: { $in: ['like', 'comment'] }
-                    }).session(session)
-                ]);
+                // 刪除所有相關評論
+                Comment.deleteMany({ post: postId }).session(session)
+                // 刪除所有相關按讚記錄
+                Like.deleteMany({
+                    target: postId,
+                    targetModel: 'Post'
+                }).session(session)
+                // 刪除所有相關通知
+                Event.deleteMany({
+                    'details.postId': postId,
+                    eventType: { $in: ['like', 'comment'] }
+                }).session(session)
 
                 return true;
             });
@@ -187,20 +195,11 @@ export class PostService {
                 const post = await Post.findById(postId).session(session);
                 if (!post) return false;
 
-                // 同時處理按讚記錄和計數更新
-                await Promise.all([
-                    // 建立新的按讚記錄
-                    Like.create([{
-                        user: userId,
-                        target: postId,
-                        targetModel: 'Post'
-                    }], { session }),
-                    // 增加貼文的按讚計數
-                    Post.updateOne(
-                        { _id: postId },
-                        { $inc: { likesCount: 1 } }
-                    ).session(session)
-                ]);
+                // 建立新的按讚記錄
+                Post.updateOne(
+                    { _id: postId },
+                    { $inc: { likesCount: 1 }, $push: { likes: userId } }
+                ).session(session);
 
                 // 如果不是自己的貼文，建立通知
                 if (!post.user.equals(userId)) {
@@ -208,7 +207,7 @@ export class PostService {
                         sender: userId,
                         receiver: post.user,
                         eventType: 'like',
-                        details: new Map([['postId', postId]])
+                        details: { postId }
                     }], { session });
                 }
 
@@ -246,32 +245,40 @@ export class PostService {
         const session = await mongoose.startSession();
         try {
             return await session.withTransaction(async () => {
-                // 直接刪除按讚記錄
-                const result = await Like.deleteOne({
+                // 檢查按讚記錄是否存在
+                const likeRecord = await Like.findOne({
                     user: userId,
                     target: postId,
                     targetModel: 'Post'
                 }).session(session);
 
-                // 如果沒有刪除任何記錄，表示操作失敗
-                if (result.deletedCount === 0) {
+                // 如果按讚記錄不存在，直接返回 false
+                if (!likeRecord) {
                     return false;
                 }
 
-                // 同時處理計數更新和通知刪除
-                await Promise.all([
-                    // 減少貼文的按讚計數
-                    Post.updateOne(
-                        { _id: postId },
-                        { $inc: { likesCount: -1 } }
-                    ).session(session),
-                    // 刪除相關的通知記錄
-                    Event.deleteOne({
-                        sender: userId,
-                        'details.postId': postId,
-                        eventType: 'like'
-                    }).session(session)
-                ]);
+                // 刪除按讚記錄
+                await Like.deleteOne({
+                    _id: likeRecord._id
+                }).session(session);
+
+                // 更新貼文按讚計數
+                const postUpdateResult = await Post.updateOne(
+                    { _id: postId },
+                    { $inc: { likesCount: -1 } }
+                ).session(session);
+
+                // 如果貼文不存在或更新失敗，拋出錯誤回滾事務
+                if (postUpdateResult.modifiedCount === 0) {
+                    throw new Error('Failed to decrement like count');
+                }
+
+                // 刪除通知（如果存在）
+                await Event.deleteOne({
+                    sender: userId,
+                    'details.postId': postId,
+                    eventType: 'like'
+                }).session(session);
 
                 return true;
             });
@@ -333,10 +340,7 @@ export class PostService {
                         sender: userId,
                         receiver: post.user,
                         eventType: 'comment',
-                        details: new Map([
-                            ['postId', postId],
-                            ['commentId', comment._id]
-                        ])
+                        details: { postId, commentId: comment._id }
                     }).save({ session });
                 }
 

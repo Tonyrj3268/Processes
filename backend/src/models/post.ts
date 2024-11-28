@@ -53,6 +53,6 @@ const postSchema = new Schema<IPostDocument>(
 
 // 複合索引，適用於按用戶查詢並按創建時間排序
 postSchema.index({ user: 1, createdAt: -1 });
-postSchema.index({ createdAt: -1 });
+postSchema.index({ createdAt: -1, _id: -1 });
 
 export const Post = model<IPostDocument>("Post", postSchema);
