@@ -44,10 +44,10 @@ const commentSchema = new Schema<ICommentDocument>(
       {
         type: Schema.Types.ObjectId,
         ref: "Comment",
+        default: [], // 預設值為空陣列
       },
     ],
   },
-  { discriminatorKey: "kind", timestamps: true }
 );
 
 // 複合索引，適用於按用戶查詢並按創建時間排序
