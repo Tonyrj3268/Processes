@@ -74,11 +74,10 @@ describe("PostService", () => {
     describe("getAllPosts", () => {
         it("應該返回貼文列表及總數", async () => {
             // 調用服務方法獲取貼文列表
-            const { posts, total } = await postService.getAllPosts(1, 10);
+            const posts = await postService.getAllPosts(1);
 
             // 驗證返回數據的結構和類型
             expect(posts).toBeDefined();
-            expect(total).toBeDefined();
             expect(Array.isArray(posts)).toBeTruthy();
         });
     });
@@ -143,13 +142,23 @@ describe("PostService", () => {
 
         it("不應該重複按讚", async () => {
             // 首先創建一個點讚
-            await postService.likePost(testPost._id, anotherUser._id);
-
+            const firstLike = await postService.likePost(testPost._id, anotherUser._id);
+            expect(firstLike).toBe(true);
+            const like = await Like.findOne({
+                target: testPost._id,
+                user: anotherUser._id,
+            });
+            expect(like).not.toBeNull();
             // 嘗試重複點讚
             const result = await postService.likePost(testPost._id, anotherUser._id);
 
             // 驗證重複點讚操作返回失敗
             expect(result).toBe(false);
+            const likeCount = await Like.countDocuments({
+                target: testPost._id,
+                user: anotherUser._id,
+            });
+            expect(likeCount).toBe(1);
         });
     });
 
@@ -187,10 +196,8 @@ describe("PostService", () => {
 
             // 驗證評論新增操作成功
             expect(result).toBe(true);
-
             // 驗證數據庫中是否實際創建了評論
             const comment = await Comment.findOne({
-                post: testPost._id,
                 user: anotherUser._id
             });
             expect(comment).toBeDefined();

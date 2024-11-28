@@ -5,6 +5,7 @@ import { Like } from '@src/models/like';
 import { Event } from '@src/models/event';
 import mongoose from 'mongoose';
 import { User } from '@src/models/user';
+import { MongoServerError } from "mongodb";
 
 export class PostService {
     /**
@@ -190,34 +191,60 @@ export class PostService {
     async likePost(postId: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
         const session = await mongoose.startSession();
         try {
-            return await session.withTransaction(async () => {
-                // 只檢查貼文是否存在
+            const result = await session.withTransaction(async () => {
+                // 檢查貼文是否存在
                 const post = await Post.findById(postId).session(session);
-                if (!post) return false;
+                if (!post) {
+                    throw new Error("Post not found");
+                }
 
-                // 建立新的按讚記錄
-                Post.updateOne(
+                // 嘗試插入按讚記錄
+                await Like.create(
+                    [{
+                        user: userId,
+                        target: postId,
+                        targetModel: 'Post'
+                    }],
+                    { session }
+                );
+
+                // 更新貼文按讚計數
+                const postUpdateResult = await Post.updateOne(
                     { _id: postId },
-                    { $inc: { likesCount: 1 }, $push: { likes: userId } }
+                    { $inc: { likesCount: 1 } }
                 ).session(session);
+
+                if (postUpdateResult.modifiedCount === 0) {
+                    throw new Error("Failed to increment like count");
+                }
 
                 // 如果不是自己的貼文，建立通知
                 if (!post.user.equals(userId)) {
-                    await Event.create([{
-                        sender: userId,
-                        receiver: post.user,
-                        eventType: 'like',
-                        details: { postId }
-                    }], { session });
+                    await Event.create(
+                        [{
+                            sender: userId,
+                            receiver: post.user,
+                            eventType: 'like',
+                            details: { postId }
+                        }],
+                        { session }
+                    );
                 }
 
+                // 所有操作成功，返回 true
                 return true;
             });
-        } catch (error) {
-            console.error('Error in likePost:', error);
+
+            return result; // 返回事務結果
+        } catch (error: unknown) {
+            if (error instanceof MongoServerError && error.code === 11000) {
+                // 重複點讚，返回 false
+                return false;
+            }
+            // 其他錯誤
             throw error;
         } finally {
-            session.endSession();
+            session.endSession(); // 確保 session 始終關閉
         }
     }
 
