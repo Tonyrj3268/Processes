@@ -4,7 +4,6 @@ import { Post, IPostDocument } from "@src/models/post";
 import { User, IUserDocument } from "@src/models/user";
 import { Comment } from "@src/models/comment";
 import { Like } from "@src/models/like";
-import { Event } from "@src/models/event";
 import { Types } from "mongoose";
 import "@tests/setup";
 
