@@ -5,8 +5,20 @@ import Home from "./pages/Home";
 import Search from "./pages/Search";
 import Activity from "./pages/Activity";
 import Profile from "./pages/Profile";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 const router = createBrowserRouter([
+  {
+    path: "/login",
+    element: <Login />,
+    handle: { title: "Log in" },
+  },
+  {
+    path: "/register",
+    element: <Register />,
+    handle: { title: "Register" },
+  },
   {
     path: "/",
     element: <MainLayout />,
