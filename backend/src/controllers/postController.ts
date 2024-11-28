@@ -37,7 +37,7 @@ export class PostController {
             const nextCursor = posts.length > 0
                 ? posts[posts.length - 1]._id
                 : null;
-
+            console.log(posts)
             // 重新整理回傳資料結構
             res.status(200).json({
                 posts: posts.map(post => ({

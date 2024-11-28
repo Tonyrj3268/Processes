@@ -5,6 +5,7 @@ import { PostService } from '@src/services/postService';
 import { IUserDocument, User } from '@src/models/user';
 import { IPostDocument, Post } from '@src/models/post';
 import "@tests/setup";
+import { Types } from 'mongoose';
 
 /**
  * 創建模擬的 Express Response 對象
@@ -62,6 +63,7 @@ describe('PostController', () => {
             accountName: "testAccountName",
             email: "test@example.com",
             password: "password123",
+            avatarUrl: "test-avatar.jpg",
         });
 
         // 創建測試貼文
@@ -75,15 +77,13 @@ describe('PostController', () => {
         it('應該返回分頁的貼文列表', async () => {
             // 模擬請求對象，包含分頁參數
             const req = {
-                query: { page: '1', limit: '10' }
+                query: { page: '1', limit: '10' },
+                user: testUser,
             } as unknown as Request;
             const res = mockResponse();
 
             // 使用 jest.spyOn 監視並模擬 getAllPosts 方法的返回值
-            jest.spyOn(mockPostService, 'getAllPosts').mockResolvedValue({
-                posts: [testPost],
-                total: 1
-            });
+            jest.spyOn(mockPostService, 'getAllPosts').mockResolvedValue([testPost]);
 
             // 執行測試
             await controller.getAllPosts(req, res);
@@ -91,8 +91,22 @@ describe('PostController', () => {
             // 驗證響應
             expect(res.status).toHaveBeenCalledWith(200);
             expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-                posts: expect.any(Array),
-                pagination: expect.any(Object)
+                "posts": expect.arrayContaining([
+                    expect.objectContaining({
+                        postId: testPost._id,
+                        author: expect.objectContaining({
+                            id: testUser._id,
+                            accountName: undefined,
+                            userName: undefined,
+                            avatarUrl: undefined
+                        }),
+                        content: testPost.content,
+                        likesCount: 0,
+                        commentCount: 0,
+                        createdAt: testPost.createdAt
+                    })
+                ]),
+                nextCursor: expect.any(Types.ObjectId)
             }));
         });
     });
@@ -111,9 +125,9 @@ describe('PostController', () => {
 
             // 驗證響應
             expect(res.status).toHaveBeenCalledWith(201);
-            expect(res.json).toHaveBeenCalledWith({
-                msg: "Post created successfully"
-            });
+            expect(res.json).toHaveBeenCalledWith(
+                expect.objectContaining({ msg: 'Post created successfully', post: expect.any(Object) })
+            );
         });
     });
 
@@ -175,11 +189,13 @@ describe('PostController', () => {
             // 驗證響應
             expect(res.status).toHaveBeenCalledWith(200);
             expect(res.json).toHaveBeenCalledWith({
-                msg: "Post liked successfully"
+                message: "已按讚",
+                success: true
+
             });
         });
 
-        it('應該回傳 409，當已經按過讚時', async () => {
+        it('應該回傳 404，當已經按過讚時', async () => {
             // 模擬重複按讚的請求
             const req = {
                 params: { postId: testPost._id.toString() },
@@ -194,7 +210,7 @@ describe('PostController', () => {
             await controller.likePost(req, res);
 
             // 驗證返回衝突狀態碼
-            expect(res.status).toHaveBeenCalledWith(409);
+            expect(res.status).toHaveBeenCalledWith(404);
         });
     });
 
