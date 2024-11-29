@@ -1,6 +1,6 @@
 // controllers/postController.ts
 import { Request, Response } from 'express';
-import { PostService } from '@src/services/postService';
+import { postService, PostService } from '@src/services/postService';
 import { Types } from 'mongoose';
 import { IUserDocument } from '@src/models/user';
 
@@ -20,7 +20,7 @@ export class PostController {
      * - 只回傳公開用戶的貼文和當前用戶自己的貼文
      * - 優化回傳資料結構，減少不必要的資料傳輸
      */
-    async getAllPosts(req: Request, res: Response): Promise<void> {
+    getAllPosts = async (req: Request, res: Response): Promise<void> => {
         try {
             const limit = parseInt(req.query.limit as string) || 10;
             const cursor = req.query.cursor as string;  // 上一次請求的最後一篇貼文的 _id
@@ -37,7 +37,6 @@ export class PostController {
             const nextCursor = posts.length > 0
                 ? posts[posts.length - 1]._id
                 : null;
-            console.log(posts)
             // 重新整理回傳資料結構
             res.status(200).json({
                 posts: posts.map(post => ({
@@ -69,19 +68,22 @@ export class PostController {
      * - 從 req.user 取得已認證的使用者資訊，確保安全性
      * - 簡單的錯誤處理，確保系統穩定性
      */
-    async createPost(req: Request, res: Response): Promise<void> {
+    createPost = async (req: Request, res: Response): Promise<void> => {
         try {
             const { content } = req.body;
             // 透過 req.user 取得已認證的使用者資訊，這裡的型別斷言是必要的
             const userId = (req.user as IUserDocument)._id;
+            // 獲取多張圖片的 URL
+            const images = (req.files as Express.MulterS3.File[]).map(file => file.location);
 
+            const newPost = await this.postService.createPost(userId, content, images);
             // 這樣可以讓前端立即獲得新建立的貼文資料，不需要再次請求。
-            const newPost = await this.postService.createPost(userId, content);
             res.status(201).json({
                 msg: "Post created successfully",
                 post: {
                     postId: newPost._id,
                     content: newPost.content,
+                    images: newPost.images,
                     createdAt: newPost.createdAt,
                     likesCount: 0,
                     commentCount: 0
@@ -102,7 +104,7 @@ export class PostController {
      * 2. 回傳 boolean 值判斷是否更新成功
      * 3. 區分 404 (找不到) 和 500 (伺服器錯誤) 的情況
      */
-    async updatePost(req: Request, res: Response): Promise<void> {
+    updatePost = async (req: Request, res: Response): Promise<void> => {
         try {
             const { postId } = req.params;
             const { content } = req.body;
@@ -136,7 +138,7 @@ export class PostController {
      * - 同樣使用 Types.ObjectId 確保 ID 格式正確
      * - 遵循 RESTful API 的設計原則
      */
-    async deletePost(req: Request, res: Response): Promise<void> {
+    deletePost = async (req: Request, res: Response): Promise<void> => {
         try {
             const { postId } = req.params;
             const userId = (req.user as IUserDocument)._id;
@@ -169,7 +171,7 @@ export class PostController {
      * @param req - 請求物件，需包含 postId 參數和認證用戶資訊
      * @param res - 回應物件
      */
-    async likePost(req: Request, res: Response): Promise<void> {
+    likePost = async (req: Request, res: Response): Promise<void> => {
         try {
             const { postId } = req.params;
             const userId = (req.user as IUserDocument)._id;
@@ -211,7 +213,7 @@ export class PostController {
      * @param req - 請求物件，需包含 postId 參數和認證用戶資訊
      * @param res - 回應物件
      */
-    async unlikePost(req: Request, res: Response): Promise<void> {
+    unlikePost = async (req: Request, res: Response): Promise<void> => {
         try {
             const { postId } = req.params;
             const userId = (req.user as IUserDocument)._id;
@@ -250,7 +252,7 @@ export class PostController {
      * - 使用 201 Created 狀態碼表示成功建立資源
      * - 錯誤處理區分找不到貼文和伺服器錯誤兩種情況
      */
-    async addComment(req: Request, res: Response): Promise<void> {
+    addComment = async (req: Request, res: Response): Promise<void> => {
         try {
             const { postId } = req.params;
             const { content } = req.body;
@@ -275,4 +277,4 @@ export class PostController {
     }
 }
 
-export const postController = new PostController();
+export const postController = new PostController(postService);

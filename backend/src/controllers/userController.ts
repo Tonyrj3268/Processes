@@ -1,14 +1,14 @@
 // controllers/userController.ts
 import { Request, Response } from "express";
-import { UserService } from "@src/services/userService";
+import { userService, UserService } from "@src/services/userService";
 import { IUserDocument } from "@src/models/user";
 import { Types } from 'mongoose';
 
 export class UserController {
-  constructor(private userService: UserService = new UserService()) { }
+  constructor(private userService: UserService) { }
 
   // 獲取用戶資料
-  async getUserProfile(req: Request, res: Response): Promise<void> {
+  getUserProfile = async (req: Request, res: Response): Promise<void> => {
     const user = req.user as IUserDocument;
     const requested_userId = req.params.userId;
 
@@ -49,7 +49,7 @@ export class UserController {
   }
 
   // 更新用戶資料
-  async updateUserProfile(req: Request, res: Response): Promise<void> {
+  updateUserProfile = async (req: Request, res: Response): Promise<void> => {
     const user = req.user as IUserDocument;
     const { userName, email, isPublic, bio } = req.body;
     try {
@@ -71,7 +71,7 @@ export class UserController {
   }
 
   // 關注用戶
-  async followUser(req: Request, res: Response): Promise<void> {
+  followUser = async (req: Request, res: Response): Promise<void> => {
     const user = req.user as IUserDocument;
     const { userId } = req.body as { userId: string };
     try {
@@ -89,7 +89,7 @@ export class UserController {
   }
 
   // 取消關注用戶
-  async unfollowUser(req: Request, res: Response): Promise<void> {
+  unfollowUser = async (req: Request, res: Response): Promise<void> => {
     const user = req.user as IUserDocument;
     const { userId } = req.body as { userId: string };
     const followedId = new Types.ObjectId(userId);
@@ -108,4 +108,4 @@ export class UserController {
 }
 
 // 預設導出一個實例，方便直接使用
-export const userController = new UserController(new UserService());
+export const userController = new UserController(userService);

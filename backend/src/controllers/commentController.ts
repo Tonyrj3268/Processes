@@ -1,6 +1,6 @@
 // controllers/commentController.ts
 import { Request, Response } from "express";
-import { CommentService } from "@src/services/commentService";
+import { commentService, CommentService } from "@src/services/commentService";
 import { IUserDocument } from "@src/models/user";
 import { Types } from 'mongoose';
 
@@ -11,7 +11,7 @@ export class CommentController {
      * 建立新評論
      * POST /api/comments
      */
-    async createComment(req: Request, res: Response): Promise<void> {
+    createComment = async (req: Request, res: Response): Promise<void> => {
         try {
             const { content } = req.body;
             const userId = (req.user as IUserDocument)._id;
@@ -34,7 +34,7 @@ export class CommentController {
      * 更新評論
      * PATCH /api/comments/:commentId
      */
-    async updateComment(req: Request, res: Response): Promise<void> {
+    updateComment = async (req: Request, res: Response): Promise<void> => {
         try {
             const { commentId } = req.params;
             const { content } = req.body;
@@ -62,7 +62,7 @@ export class CommentController {
      * 刪除評論
      * DELETE /api/comments/:commentId
      */
-    async deleteComment(req: Request, res: Response): Promise<void> {
+    deleteComment = async (req: Request, res: Response): Promise<void> => {
         try {
             const { commentId } = req.params;
             const userId = (req.user as IUserDocument)._id;
@@ -95,7 +95,7 @@ export class CommentController {
      * @param req - 請求物件，需包含 commentId 參數和認證用戶資訊
      * @param res - 回應物件
      */
-    async likeComment(req: Request, res: Response): Promise<void> {
+    likeComment = async (req: Request, res: Response): Promise<void> => {
         try {
             const { commentId } = req.params;
             const userId = (req.user as IUserDocument)._id;
@@ -137,7 +137,7 @@ export class CommentController {
      * @param req - 請求物件，需包含 commentId 參數和認證用戶資訊
      * @param res - 回應物件
      */
-    async unlikeComment(req: Request, res: Response): Promise<void> {
+    unlikeComment = async (req: Request, res: Response): Promise<void> => {
         try {
             const { commentId } = req.params;
             const userId = (req.user as IUserDocument)._id;
@@ -170,4 +170,4 @@ export class CommentController {
 }
 
 // 預設導出一個實例，方便直接使用
-export const commentController = new CommentController();
+export const commentController = new CommentController(commentService);
