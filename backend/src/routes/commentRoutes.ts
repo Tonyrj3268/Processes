@@ -1,7 +1,8 @@
 // routes/commentRoutes.ts
-import { Router, Request, Response } from "express";
+import { Router } from "express";
 import { authenticateJWT } from "@src/middlewares/authenticateJWT";
 import { commentIdValidator, commentId_commentValidator } from "@src/middlewares/commentMiddleware";
+import { commentController } from "@src/controllers/commentController";
 const router = Router();
 
 /**
@@ -39,10 +40,7 @@ const router = Router();
  *                 msg:
  *                   type: string
  */
-router.post("/", authenticateJWT, commentId_commentValidator, (req: Request, res: Response) => {
-    // 模擬新增評論
-    res.status(201).json({ msg: "Comment created successfully" });
-});
+router.post("/", authenticateJWT, commentId_commentValidator, commentController.createComment);
 
 /**
  * @swagger
@@ -79,10 +77,7 @@ router.post("/", authenticateJWT, commentId_commentValidator, (req: Request, res
  *                 msg:
  *                   type: string
  */
-router.patch("/:commentId", authenticateJWT, commentId_commentValidator, (req: Request, res: Response) => {
-    // 模擬更新評論
-    res.status(200).json({ msg: "Comment updated successfully" });
-});
+router.patch("/:commentId", authenticateJWT, commentId_commentValidator, commentController.updateComment);
 
 /**
  * @swagger
@@ -110,10 +105,7 @@ router.patch("/:commentId", authenticateJWT, commentId_commentValidator, (req: R
  *                 msg:
  *                   type: string
  */
-router.delete("/:commentId", authenticateJWT, commentIdValidator, (req: Request, res: Response) => {
-    // 模擬刪除評論
-    res.status(200).json({ msg: "Comment deleted successfully" });
-});
+router.delete("/:commentId", authenticateJWT, commentIdValidator, commentController.deleteComment);
 
 /**
  * @swagger
@@ -141,10 +133,7 @@ router.delete("/:commentId", authenticateJWT, commentIdValidator, (req: Request,
  *                 msg:
  *                   type: string
  */
-router.post("/:commentId/like", authenticateJWT, commentIdValidator, (req: Request, res: Response) => {
-    // 模擬點贊評論
-    res.status(200).json({ msg: "Comment liked successfully" });
-});
+router.post("/:commentId/like", authenticateJWT, commentIdValidator, commentController.likeComment);
 
 /**
  * @swagger
@@ -172,9 +161,6 @@ router.post("/:commentId/like", authenticateJWT, commentIdValidator, (req: Reque
  *                 msg:
  *                   type: string
  */
-router.delete("/:commentId/like", authenticateJWT, commentIdValidator, (req: Request, res: Response) => {
-    // 模擬取消點贊評論
-    res.status(200).json({ msg: "Comment unliked successfully" });
-});
+router.delete("/:commentId/like", authenticateJWT, commentIdValidator, commentController.unlikeComment);
 
 export default router;

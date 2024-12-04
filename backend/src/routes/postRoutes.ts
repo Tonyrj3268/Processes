@@ -1,5 +1,5 @@
 // routes/postRoutes.ts
-import { Router, Request, Response } from "express";
+import { Router } from "express";
 import { authenticateJWT } from "@src/middlewares/authenticateJWT";
 import { postIdValidator, postId_postValidator, postValidator, getPostValidator } from "@src/middlewares/postMiddleware";
 import { upload } from "@src/config/multer";
@@ -113,44 +113,7 @@ router.get("/:userId", authenticateJWT, getPostValidator, postController.getPers
  *       500:
  *         description: 伺服器內部錯誤
  */
-router.get("/", authenticateJWT, getPostValidator, (req: Request, res: Response) => {
-    // 模擬數據
-    const mockPosts = [
-        {
-            postId: "5p8f8cakf54764421b715613",
-            author: {
-                id: "au8f8cakf54764421b715613",
-                userName: "John Doe",
-                accountName: "johndoe",
-                avatarUrl: "https://example.com/avatars/john.jpg"
-            },
-            content: "這是一篇模擬貼文！",
-            likesCount: 10,
-            commentCount: 2,
-            createdAt: "2024-11-01T10:00:00Z"
-        },
-        {
-            postId: "5p8f8cakf54764421b715612",
-            author: {
-                id: "au8f8cakf54764421b715612",
-                userName: "Jane Smith",
-                accountName: "janesmith",
-                avatarUrl: "https://example.com/avatars/jane.jpg"
-            },
-            content: "另一篇模擬貼文內容。",
-            likesCount: 5,
-            commentCount: 1,
-            createdAt: "2024-11-02T12:30:00Z"
-        }
-    ];
-
-    // 回傳符合 Swagger spec 的完整結構
-    res.status(200).json({
-        posts: mockPosts,
-        nextCursor: "2024-11-01T10:00:00Z",  // 最後一篇貼文的時間戳
-        hasMore: true  // 模擬還有更多貼文可載入
-    });
-});
+router.get("/", authenticateJWT, getPostValidator, postController.getAllPosts);
 
 /**
  * @swagger
@@ -203,10 +166,7 @@ router.post("/", authenticateJWT, postValidator, upload.array('images', 5), post
  *       200:
  *         description: Post updated successfully
  */
-router.patch("/:postId", authenticateJWT, postId_postValidator, (req: Request, res: Response) => {
-    // 模擬更新貼文
-    res.status(200).json({ msg: "Post updated successfully" });
-});
+router.patch("/:postId", authenticateJWT, postId_postValidator, postController.updatePost);
 
 /**
  * @swagger
@@ -234,10 +194,7 @@ router.patch("/:postId", authenticateJWT, postId_postValidator, (req: Request, r
  *                 msg:
  *                   type: string
  */
-router.delete("/:postId", authenticateJWT, postIdValidator, (req: Request, res: Response) => {
-    // 模擬刪除貼文
-    res.status(200).json({ msg: "Post deleted successfully" });
-});
+router.delete("/:postId", authenticateJWT, postIdValidator, postController.deletePost);
 
 /**
  * @swagger
@@ -330,9 +287,6 @@ router.delete("/:postId/like", authenticateJWT, postIdValidator, postController.
  *                 msg:
  *                   type: string
  */
-router.post("/:postId/comments", authenticateJWT, postId_postValidator, (req: Request, res: Response) => {
-    // 模擬添加評論
-    res.status(201).json({ msg: "Comment added successfully" });
-});
+router.post("/:postId/comments", authenticateJWT, postId_postValidator, postController.addComment);
 
 export default router;
