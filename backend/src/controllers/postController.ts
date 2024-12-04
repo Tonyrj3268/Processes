@@ -74,7 +74,9 @@ export class PostController {
             // 透過 req.user 取得已認證的使用者資訊，這裡的型別斷言是必要的
             const userId = (req.user as IUserDocument)._id;
             // 獲取多張圖片的 URL
-            const images = (req.files as Express.MulterS3.File[]).map(file => file.location);
+            const images = req.files
+                ? (req.files as Express.MulterS3.File[]).map(file => file.location)
+                : [];
 
             const newPost = await this.postService.createPost(userId, content, images);
             // 這樣可以讓前端立即獲得新建立的貼文資料，不需要再次請求。
