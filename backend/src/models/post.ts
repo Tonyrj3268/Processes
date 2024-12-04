@@ -5,6 +5,7 @@ import { Schema, Types, model, HydratedDocument } from "mongoose";
 export interface IPost {
   user: Types.ObjectId;
   content: string;
+  images: { type: [string], default: [] },
   createdAt: Date;
   updatedAt: Date;
   likesCount: number;
@@ -25,6 +26,10 @@ const postSchema = new Schema<IPostDocument>(
       type: String,
       required: true,
       maxlength: 280,
+    },
+    images: {
+      type: [String],
+      default: [],
     },
     createdAt: {
       type: Date,

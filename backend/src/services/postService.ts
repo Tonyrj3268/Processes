@@ -68,15 +68,15 @@ export class PostService {
      * 1. 驗證內容長度限制
      * 2. 初始化必要欄位，確保資料完整性
      */
-    async createPost(userId: Types.ObjectId, content: string): Promise<IPostDocument> {
+    async createPost(userId: Types.ObjectId, content: string, images: string[]): Promise<IPostDocument> {
         try {
             if (content.length > 280) {
                 throw new Error('貼文內容超過長度限制');
             }
-
             const post = new Post({
                 user: userId,
                 content,
+                images,
             });
 
             return await post.save();

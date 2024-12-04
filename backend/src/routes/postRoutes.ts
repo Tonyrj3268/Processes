@@ -2,6 +2,8 @@
 import { Router, Request, Response } from "express";
 import { authenticateJWT } from "@src/middlewares/authenticateJWT";
 import { postIdValidator, postId_postValidator, postValidator } from "@src/middlewares/postMiddleware";
+import { upload } from "@src/config/multer";
+import { postController } from "@src/controllers/postController";
 const router = Router();
 
 /**
@@ -154,10 +156,7 @@ router.get("/", authenticateJWT, (req: Request, res: Response) => {
  *       201:
  *         description: Post created successfully
  */
-router.post("/", authenticateJWT, postValidator, (req: Request, res: Response) => {
-    // 模擬創建貼文
-    res.status(201).json({ msg: "Post created successfully" });
-});
+router.post("/", authenticateJWT, postValidator, upload.array('images', 5), postController.createPost);
 
 /**
  * @swagger

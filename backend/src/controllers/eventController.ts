@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
 import { IUserDocument } from "@src/models/user";
-import { EventService } from "@src/services/eventService";
+import { eventService, EventService } from "@src/services/eventService";
 import { Types } from "mongoose";
 
 export class EventController {
 
     constructor(private eventService: EventService = new EventService()) { }
 
-    async getEvents(req: Request, res: Response): Promise<void> {
+    getEvents = async (req: Request, res: Response): Promise<void> => {
 
         const { cursor, limit = 10 } = req.query;
         const user = req.user as IUserDocument;
@@ -37,4 +37,4 @@ export class EventController {
     }
 }
 
-export const eventController = new EventController();
+export const eventController = new EventController(eventService);

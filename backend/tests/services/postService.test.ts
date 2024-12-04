@@ -87,7 +87,7 @@ describe("PostService", () => {
             const content = "New test post";
 
             // 調用服務方法創建貼文
-            const post = await postService.createPost(testUser._id, content);
+            const post = await postService.createPost(testUser._id, content, []);
 
             // 驗證創建的貼文
             expect(post).toBeDefined();
