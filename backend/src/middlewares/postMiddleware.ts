@@ -13,4 +13,12 @@ export const postValidator = [
         .isLength({ min: 1, max: 280 })
         .withMessage('post must be between 1 and 280 characters'),
 ];
+export const getPostValidator = [
+    param("limit")
+        .isInt({ min: 1, max: 10 })
+        .withMessage("Invalid limit"),
+    param("cursor")
+        .isString()
+        .withMessage("Invalid cursor"),
+];
 export const postId_postValidator = [...postIdValidator, ...postValidator];

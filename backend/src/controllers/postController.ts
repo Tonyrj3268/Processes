@@ -2,7 +2,7 @@
 import { Request, Response } from 'express';
 import { postService, PostService } from '@src/services/postService';
 import { Types } from 'mongoose';
-import { IUserDocument } from '@src/models/user';
+import { IUserDocument, User } from '@src/models/user';
 
 export class PostController {
     constructor(private postService: PostService = new PostService()) { }
@@ -56,6 +56,51 @@ export class PostController {
             });
         } catch (error) {
             console.error('Error in getAllPosts:', error);
+            res.status(500).json({ msg: '伺服器錯誤' });
+        }
+    }
+    getPersonalPosts = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const limit = parseInt(req.query.limit as string) || 10;
+            const cursor = req.query.cursor as string;  // 上一次請求的最後一篇貼文的 _id
+            const currentUserId = (req.user as IUserDocument)._id;  // currentUserId 由 authenticateJWT 中間件注入
+            const targetUserId = req.params.userId;
+
+            const targetUser = await User.findById(targetUserId);
+            if (targetUser === null) {
+                res.status(404).json({ msg: '找不到使用者' });
+                return;
+            }
+            if (!targetUser.isPublic && !currentUserId.equals(targetUserId)) {
+                res.status(401).json({ msg: '該使用者未公開個人貼文' });
+                return;
+            }
+
+            const posts = await this.postService.getPersonalPosts(limit, currentUserId, cursor);
+
+            // 如果有貼文，取得最後一篇的_id作為下一個 cursor
+            const nextCursor = posts.length > 0
+                ? posts[posts.length - 1]._id
+                : null;
+            // 重新整理回傳資料結構
+            res.status(200).json({
+                posts: posts.map(post => ({
+                    postId: post._id,
+                    author: {
+                        id: targetUser._id,
+                        userName: targetUser.userName,
+                        accountName: targetUser.accountName,
+                        avatarUrl: targetUser.avatarUrl
+                    },
+                    content: post.content,
+                    likesCount: post.likesCount,
+                    commentCount: post.comments?.length || 0,
+                    createdAt: post.createdAt
+                })),
+                nextCursor,  // 提供給前端下次請求使用
+            });
+        } catch (error) {
+            console.error('Error in getPersonalPosts:', error);
             res.status(500).json({ msg: '伺服器錯誤' });
         }
     }
