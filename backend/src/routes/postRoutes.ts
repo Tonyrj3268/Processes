@@ -265,10 +265,7 @@ router.delete("/:postId", authenticateJWT, postIdValidator, (req: Request, res: 
  *                 msg:
  *                   type: string
  */
-router.post("/:postId/like", authenticateJWT, postIdValidator, (req: Request, res: Response) => {
-    // 模擬點贊貼文
-    res.status(200).json({ msg: "Post liked successfully" });
-});
+router.post("/:postId/like", authenticateJWT, postIdValidator, postController.likePost);
 
 /**
  * @swagger
@@ -296,10 +293,7 @@ router.post("/:postId/like", authenticateJWT, postIdValidator, (req: Request, re
  *                 msg:
  *                   type: string
  */
-router.delete("/:postId/like", authenticateJWT, postIdValidator, (req: Request, res: Response) => {
-    // 模擬取消點贊貼文
-    res.status(200).json({ msg: "Post unliked successfully" });
-});
+router.delete("/:postId/like", authenticateJWT, postIdValidator, postController.unlikePost);
 
 /**
  * @swagger
