@@ -7,7 +7,7 @@ import authRoutes from "@src/routes/authRoutes";
 import userRoutes from "@src/routes/userRoutes";
 import postRoutes from "@src/routes/postRoutes";
 import commentRoutes from "@src/routes/commentRoutes";
-import feedRoutes from "@src/routes/feedRoutes";
+import searchRoutes from "@src/routes/searchRoutes";
 import eventRoutes from "@src/routes/eventRoutes";
 
 import swaggerJsdoc from "swagger-jsdoc";
@@ -38,7 +38,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/post", postRoutes);
 app.use("/api/comment", commentRoutes);
-app.use("/api/feed", feedRoutes);
+app.use("/api/search", searchRoutes);
 app.use("/api/event", eventRoutes);
 
 export default app;
