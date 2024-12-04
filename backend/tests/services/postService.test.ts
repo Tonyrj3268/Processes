@@ -71,6 +71,17 @@ describe("PostService", () => {
         }).save();
     });
 
+    describe("getPersonalPosts", () => {
+        it("應該返回用戶的貼文列表", async () => {
+            // 調用服務方法獲取用戶的貼文列表
+            const posts = await postService.getPersonalPosts(1, testUser._id);
+
+            // 驗證返回數據的結構和類型
+            expect(posts).toBeDefined();
+            expect(Array.isArray(posts)).toBeTruthy();
+        });
+    });
+
     describe("getAllPosts", () => {
         it("應該返回貼文列表及總數", async () => {
             // 調用服務方法獲取貼文列表
@@ -81,6 +92,7 @@ describe("PostService", () => {
             expect(Array.isArray(posts)).toBeTruthy();
         });
     });
+
 
     describe("createPost", () => {
         it("應該成功建立貼文", async () => {

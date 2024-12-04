@@ -1,7 +1,7 @@
 // routes/postRoutes.ts
 import { Router, Request, Response } from "express";
 import { authenticateJWT } from "@src/middlewares/authenticateJWT";
-import { postIdValidator, postId_postValidator, postValidator } from "@src/middlewares/postMiddleware";
+import { postIdValidator, postId_postValidator, postValidator, getPostValidator } from "@src/middlewares/postMiddleware";
 import { upload } from "@src/config/multer";
 import { postController } from "@src/controllers/postController";
 const router = Router();
@@ -12,6 +12,23 @@ const router = Router();
  *   name: Posts
  *   description: API endpoints for managing posts
  */
+
+/**
+ * @swagger
+ * /api/post/{userId}:
+ *  get:
+ *   summary: Get personal posts
+ *   description: Retrieve posts created by a specific user
+ *  tags: [貼文]
+ * security:
+ *  - bearerAuth: []
+ * parameters:
+ * - in: path
+ *  name: userId
+ * required: true
+ * 
+ */
+router.get("/:userId", authenticateJWT, getPostValidator, postController.getPersonalPosts);
 
 /**
  * @swagger
@@ -96,7 +113,7 @@ const router = Router();
  *       500:
  *         description: 伺服器內部錯誤
  */
-router.get("/", authenticateJWT, (req: Request, res: Response) => {
+router.get("/", authenticateJWT, getPostValidator, (req: Request, res: Response) => {
     // 模擬數據
     const mockPosts = [
         {

@@ -23,6 +23,7 @@ const mockResponse = () => {
 describe('PostController', () => {
     // 定義測試所需的變數
     let testUser: IUserDocument;          // 測試用戶
+    let anotherUser: IUserDocument;       // 用於交互測試的次要用戶
     let controller: PostController;        // 控制器實例
     let mockPostService: PostService;      // 模擬的 PostService
     let testPost: IPostDocument;          // 測試貼文
@@ -64,6 +65,15 @@ describe('PostController', () => {
             email: "test@example.com",
             password: "password123",
             avatarUrl: "test-avatar.jpg",
+            isPublic: false
+        });
+
+        anotherUser = await createTestUser({
+            userName: "anotheruser",
+            accountName: "anotherAccountName",
+            email: "another@example.com",
+            password: "password123",
+            avatarUrl: "another-avatar.jpg"
         });
 
         // 創建測試貼文
@@ -72,6 +82,29 @@ describe('PostController', () => {
             content: "Test post content"
         }).save();
     });
+
+    describe('getPersonalPosts', () => {
+        it('不應該返回未公開用戶的貼文列表', async () => {
+            // 模擬請求對象，包含分頁參數
+            const req = {
+                query: { limit: '10' },
+                params: { userId: testUser._id.toString() },
+                user: anotherUser,
+            } as unknown as Request;
+            const res = mockResponse();
+
+            // 使用 jest.spyOn 監視並模擬 getPersonalPosts 方法的返回值
+            jest.spyOn(mockPostService, 'getPersonalPosts').mockResolvedValue([testPost]);
+
+            // 執行測試
+            await controller.getPersonalPosts(req, res);
+
+            // 驗證響應
+            expect(res.status).toHaveBeenCalledWith(401);
+            expect(res.json).toHaveBeenCalledWith({ msg: '該使用者未公開個人貼文' });
+        });
+    });
+
 
     describe('getAllPosts', () => {
         it('應該返回分頁的貼文列表', async () => {
