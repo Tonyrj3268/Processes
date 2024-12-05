@@ -174,10 +174,19 @@ router.post("/register",
     const { userName, accountName, email, password } = req.body;
 
     try {
-      const existingUser = await userService.findUserByEmail(email);
+      const existingUser = await userService.findUserByCondition({
+        $or: [{ email }, { accountName }]
+      });
+
       if (existingUser) {
-        res.status(400).json({ error: "此信箱已被註冊" });
-        return;
+        if (existingUser.email === email) {
+          res.status(400).json({ error: "此信箱已被註冊" });
+          return;
+        }
+        if (existingUser.accountName === accountName) {
+          res.status(400).json({ error: "此帳號名稱已被註冊" });
+          return;
+        }
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
