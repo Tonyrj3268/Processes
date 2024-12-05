@@ -2,6 +2,7 @@ import { Router } from "express";
 import { userController } from "@src/controllers/userController";
 import { authenticateJWT } from "@src/middlewares/authenticateJWT"; // 這是一個身份驗證中間件
 import { followUserValidators } from "@src/middlewares/userMiddleware"; // 這是一個驗證用戶請求的中間件
+import { avatarUpload } from "@src/config/multer";
 const router = Router();
 /**
  * @swagger
@@ -170,7 +171,7 @@ router.get("/:userId", authenticateJWT, userController.getUserProfile);
  *       500:
  *         description: Server error
  */
-router.patch("/", authenticateJWT, userController.updateUserProfile);
+router.patch("/", authenticateJWT, avatarUpload.array('avatar', 1), userController.updateUserProfile);
 // 關注用戶
 /**
  * @swagger

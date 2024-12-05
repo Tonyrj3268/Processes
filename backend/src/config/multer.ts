@@ -12,7 +12,7 @@ const s3 = new S3Client({
     },
 });
 
-const upload = multer({
+const postUpload = multer({
     storage: multerS3({
         s3,
         bucket: process.env.AWS_S3_BUCKET_NAME || '', // S3 Bucket 名稱
@@ -33,4 +33,25 @@ const upload = multer({
     },
 });
 
-export { upload };
+const avatarUpload = multer({
+    storage: multerS3({
+        s3,
+        bucket: process.env.AWS_S3_BUCKET_NAME || '', // S3 Bucket 名稱
+        contentType: multerS3.AUTO_CONTENT_TYPE,
+        metadata: (_req: Request, file, cb) => {
+            cb(null, { fieldName: file.fieldname });
+        },
+        key: (_req: Request, file, cb) => {
+            cb(null, `avatar/${Date.now()}-${file.originalname}`);
+        },
+    }),
+    fileFilter: (_req: Request, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed!'));
+        }
+    },
+});
+
+export { postUpload, avatarUpload };
