@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { authenticateJWT } from "@src/middlewares/authenticateJWT";
 import { postIdValidator, postId_postValidator, postValidator, getPostValidator } from "@src/middlewares/postMiddleware";
-import { upload } from "@src/config/multer";
+import { postUpload } from "@src/config/multer";
 import { postController } from "@src/controllers/postController";
 const router = Router();
 
@@ -136,7 +136,7 @@ router.get("/", authenticateJWT, getPostValidator, postController.getAllPosts);
  *       201:
  *         description: Post created successfully
  */
-router.post("/", authenticateJWT, postValidator, upload.array('images', 5), postController.createPost);
+router.post("/", authenticateJWT, postValidator, postUpload.array('images', 5), postController.createPost);
 
 /**
  * @swagger

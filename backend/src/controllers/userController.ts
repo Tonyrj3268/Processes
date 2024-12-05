@@ -52,12 +52,16 @@ export class UserController {
   updateUserProfile = async (req: Request, res: Response): Promise<void> => {
     const user = req.user as IUserDocument;
     const { userName, email, isPublic, bio } = req.body;
+    const avatarUrl = req.files
+      ? (req.files as Express.MulterS3.File[]).map(file => file.location)
+      : [];
     try {
       const updatedUser = await this.userService.updateUserProfile(user, {
         userName,
         email,
         isPublic,
-        bio
+        bio,
+        avatarUrl: avatarUrl[0],
       });
       if (!updatedUser) {
         res.status(404).json({ msg: "用户不存在" });
