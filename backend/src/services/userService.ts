@@ -1,9 +1,8 @@
 // services/userService.ts
 import { User, IUserDocument } from "@src/models/user";
 import { Follow } from "@src/models/follow";
-import mongoose, { Types } from "mongoose";
+import mongoose, { Types, FilterQuery } from "mongoose";
 import { MongoServerError } from "mongodb";
-
 export class UserService {
   // 查找用戶
   async findUserById(userId: string): Promise<IUserDocument | null> {
@@ -30,6 +29,16 @@ export class UserService {
   async findUserByEmailWithPassword(email: string): Promise<IUserDocument | null> {
     try {
       return await User.findOne({ email }).select("+password").lean();
+    } catch (err) {
+      console.error(err);
+      throw new Error("伺服器錯誤");
+    }
+  }
+
+  async findUserByCondition(condition: FilterQuery<IUserDocument>): Promise<IUserDocument | null> {
+    try {
+      return await User.findOne(condition
+      ).select("-password").lean();
     } catch (err) {
       console.error(err);
       throw new Error("伺服器錯誤");
