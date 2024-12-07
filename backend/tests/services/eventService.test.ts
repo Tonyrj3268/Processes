@@ -90,11 +90,11 @@ describe('EventService', () => {
             await createTestEvent("comment", { sender: sender._id, receiver: receiver._id, eventType: 'comment' });
         });
         it('應返回帶有完整 sender 和 receiver 信息的事件列表', async () => {
-            const result = await eventService.getEvents(receiver._id, null, 10);
+            const result = await eventService.getEvents(receiver._id);
 
-            expect(result.notifications).toHaveLength(2);
+            expect(result).toHaveLength(2);
 
-            const firstNotification = result.notifications[0];
+            const firstNotification = result[0];
 
             expect(firstNotification.sender).toHaveProperty("accountName", "senderAccountName");
             expect(firstNotification.sender).toHaveProperty("avatarUrl", "https://example.com/avatar.jpg");
@@ -109,26 +109,11 @@ describe('EventService', () => {
             });
         });
 
-
-        it('應在有 cursor 時返回之前的事件列表', async () => {
-            // 使用第一個查詢結果的最後一個事件的 `_id` 作為 cursor
-            const initialResult = await eventService.getEvents(receiver._id, null, 1);
-            const cursor = initialResult.newCursor;
-
-            const result = await eventService.getEvents(receiver._id, cursor, 10);
-
-            expect(result.notifications).toHaveLength(1);
-            expect(result.notifications[0].eventType).toBe('follow');
-            expect(result.newCursor).toEqual(result.notifications[0]._id);
-        });
-
         it('當無任何事件時應返回空列表', async () => {
             await Event.deleteMany(); // 清空事件集合
 
-            const result = await eventService.getEvents(receiver._id, null, 10);
-
-            expect(result.notifications).toHaveLength(0);
-            expect(result.newCursor).toBeNull();
+            const result = await eventService.getEvents(receiver._id);
+            expect(result).toHaveLength(0);
         });
     });
 

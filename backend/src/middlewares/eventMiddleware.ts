@@ -4,7 +4,7 @@ import { query } from 'express-validator';
 export const getEventsValidators = [
     query('cursor')
         .optional()
-        .isMongoId()
+        .isInt({ min: 0 })
         .withMessage("Invalid event ID format."),
     query('limit')
         .optional()

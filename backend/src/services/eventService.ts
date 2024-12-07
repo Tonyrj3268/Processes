@@ -6,21 +6,14 @@ export class EventService {
     // Type 如果是 comment, details 應該包含 commentText, postId, commentId
     // Type 如果是 like, details 應該包含 contentId, contentType
     // 其他事件不需要特別驗證 details, 但是 get 後 details 會是 {}
-    async getEvents(user: Types.ObjectId, cursor: Types.ObjectId | null, limit: number = 10) {
+    async getEvents(user: Types.ObjectId) {
         const query: FilterQuery<IEventDocument> = { receiver: user };
-        if (cursor) {
-            query._id = { $lt: cursor };
-        }
-
         const notifications = await Event.find(query)
             .sort({ _id: -1 })
-            .limit(Number(limit))
             .populate('sender', 'accountName avatarUrl')  // 僅選擇用戶名和圖片
             .populate('receiver', 'accountName avatarUrl')
             .lean();
-        const newCursor = notifications.length > 0 ? notifications[notifications.length - 1]._id : null;
-
-        return { notifications, newCursor };
+        return notifications;
     }
 
     // Event種類：follow, comment, like, friend_request
