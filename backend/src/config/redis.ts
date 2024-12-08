@@ -7,7 +7,7 @@ if (process.env.NODE_ENV === "test") {
     console.log("Using Redis mock client");
 } else {
     redisClient = new Redis({
-        host: "127.0.0.1", // Redis 伺服器地址
+        host: "redis", // Redis 伺服器地址
         port: 6379,        // Redis 預設埠
         //password: process.env.REDIS_PASSWORD || undefined, // 如果需要密碼驗證
     });
