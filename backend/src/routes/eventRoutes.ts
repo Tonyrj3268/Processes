@@ -4,7 +4,6 @@ import { authenticateJWT } from "@src/middlewares/authenticateJWT";
 import { getEventsValidators } from "@src/middlewares/eventMiddleware";
 import { eventController } from "@src/controllers/eventController";
 const router = Router();
-
 /**
  * @swagger
  * tags:
