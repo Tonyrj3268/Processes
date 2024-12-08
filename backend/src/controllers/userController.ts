@@ -3,45 +3,40 @@ import { Request, Response } from "express";
 import { userService, UserService } from "@src/services/userService";
 import { IUserDocument } from "@src/models/user";
 import { Types } from 'mongoose';
-
+import { Redis } from "ioredis";
+import redisClient from "@src/config/redis";
 export class UserController {
-  constructor(private userService: UserService) { }
+  constructor(private userService: UserService, private redisClient: Redis) { }
 
   // 獲取用戶資料
   getUserProfile = async (req: Request, res: Response): Promise<void> => {
-    const user = req.user as IUserDocument;
     const requested_userId = req.params.userId;
-
+    const redisKey = `userProfile:${requested_userId}`;
     try {
+      const cachedData = await this.redisClient.get(redisKey);
+      if (cachedData) {
+        // 有快取，直接使用快取資料
+        const userData = JSON.parse(cachedData);
+        res.status(200).json(userData);
+        return;
+      }
       const requestedUser = await this.userService.findUserById(requested_userId);
       if (!requestedUser) {
         res.status(404).json({ msg: "使用者不存在" });
         return;
       }
+      const publicFields = {
+        _id: requestedUser._id,
+        accountName: requestedUser.accountName,
+        userName: requestedUser.userName,
+        bio: requestedUser.bio,
+        avatarUrl: requestedUser.avatarUrl,
+        followersCount: requestedUser.followersCount,
+        followingCount: requestedUser.followingCount,
+      };
+      await this.redisClient.setex(redisKey, 600, JSON.stringify(publicFields));
 
-      if (user._id.equals(requestedUser._id)) {
-        res.status(200).json({
-          _id: requestedUser._id,
-          accountName: requestedUser.accountName,
-          userName: requestedUser.userName,
-          email: requestedUser.email,
-          bio: requestedUser.bio,
-          avatarUrl: requestedUser.avatarUrl,
-          followersCount: requestedUser.followersCount,
-          followingCount: requestedUser.followingCount,
-          createdAt: requestedUser.createdAt,
-        });
-      } else {
-        res.status(200).json({
-          _id: requestedUser._id,
-          accountName: requestedUser.accountName,
-          userName: requestedUser.userName,
-          bio: requestedUser.bio,
-          avatarUrl: requestedUser.avatarUrl,
-          followersCount: requestedUser.followersCount,
-          followingCount: requestedUser.followingCount,
-        });
-      }
+      res.status(200).json(publicFields);
     } catch (err) {
       console.error(err);
       res.status(500);
@@ -112,4 +107,4 @@ export class UserController {
 }
 
 // 預設導出一個實例，方便直接使用
-export const userController = new UserController(userService);
+export const userController = new UserController(userService, redisClient);

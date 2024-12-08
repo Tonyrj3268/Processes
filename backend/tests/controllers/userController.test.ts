@@ -7,7 +7,7 @@ import {
 import { Request, Response } from "express";
 import { ParamsDictionary } from "express-serve-static-core";
 import "@tests/setup";
-
+import redisClient from "@src/config/redis";
 // 模擬 Express 的 Response 對象
 const mockResponse = () => {
   const res: Partial<Response> = {};
@@ -39,7 +39,7 @@ describe("UserController", () => {
 
   beforeEach(async () => {
     mockUserService = new UserService();
-    controller = new UserController(mockUserService);
+    controller = new UserController(mockUserService, redisClient);
     testUser = await createTestUser({
       userName: "testuser",
       accountName: "testAccountName",
@@ -73,7 +73,6 @@ describe("UserController", () => {
           _id: testUser._id,
           userName: "testuser",
           accountName: "testAccountName",
-          email: "test@example.com",
           bio: "test bio",
           avatarUrl: "test-avatar.jpg",
           followersCount: 0,
