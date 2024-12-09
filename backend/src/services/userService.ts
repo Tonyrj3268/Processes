@@ -10,7 +10,7 @@ export class UserService {
       if (!mongoose.Types.ObjectId.isValid(userId)) {
         return null;
       }
-      return await User.findById(userId).select("-password").lean();
+      return await User.findById(userId).select("-password");
     } catch (err) {
       console.error(err);
       throw new Error("伺服器錯誤");

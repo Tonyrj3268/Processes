@@ -57,7 +57,7 @@ export class PostService {
 
             // 限制只回傳一天內的貼文
             const oneDayAgo = new Date();
-            oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+            oneDayAgo.setDate(oneDayAgo.getDate() - 365);
             query.createdAt = {
                 ...query.createdAt,
                 $gte: oneDayAgo // createdAt 必須在一天以內
