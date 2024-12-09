@@ -2,7 +2,7 @@
 import { body } from 'express-validator';
 
 export const updateUserProfileValidators = [
-    body('username')
+    body('userName')
         .optional()
         .isString()
         .withMessage('Name must be a string'),
