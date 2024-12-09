@@ -7,6 +7,9 @@ import Activity from "./pages/Activity";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Replies from "./pages/Replies";
+import Reposts from "./pages/Reposts";
+import Posts from "./pages/Posts";
 
 const router = createBrowserRouter([
   {
@@ -38,6 +41,20 @@ const router = createBrowserRouter([
         path: "/profile",
         element: <Profile />,
         handle: { title: "個人檔案" },
+        children: [
+          {
+            index: true,
+            element: <Posts />,
+          },
+          {
+            path: "replies",
+            element: <Replies />,
+          },
+          {
+            path: "reposts",
+            element: <Reposts />,
+          },
+        ],
       },
     ],
   },

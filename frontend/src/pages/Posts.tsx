@@ -6,13 +6,13 @@ import {
   Divider,
   IconButton,
   Typography,
-  CircularProgress,
 } from "@mui/material";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import PostDialog from "../components/PostDialog";
 import { useOutletContext } from "react-router-dom";
 import usePostHandler from "../hooks/usePostHandler";
+import { jwtDecode } from "jwt-decode";
 
 interface Post {
   postId: string;
@@ -28,64 +28,63 @@ interface Post {
   createdAt: string;
 }
 
-const Home: React.FC = () => {
+const Posts: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const userData = useOutletContext<{
-    accountName: string;
+    userId: string;
+    userName: string;
     avatarUrl: string;
+    accountName: string;
   }>();
+
   const { dialogOpen, handleOpenDialog, handleCloseDialog, handleSubmit } =
     usePostHandler();
 
-  const fetchPosts = async (cursor: string | null = null) => {
+  const fetchPosts = async () => {
     try {
-      if (cursor) {
-        setIsLoadingMore(true);
-      } else {
-        setLoading(true);
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found");
       }
 
-      const queryParams = new URLSearchParams();
-      queryParams.append("limit", "10");
-      if (cursor) queryParams.append("cursor", cursor);
+      const decoded = jwtDecode<{ id: string }>(token);
+      const userId = decoded.id;
 
-      const response = await fetch(`/api/post?${queryParams.toString()}`, {
+      const response = await fetch(`/api/post/${userId}`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch posts: ${response.status}`);
+        throw new Error("Failed to fetch user posts");
       }
 
       const data = await response.json();
-      setPosts((prev) => [...prev, ...data.posts]);
-      setNextCursor(data.nextCursor);
+      setPosts(data.posts);
     } catch (error) {
-      console.error("Error fetching posts:", error);
+      console.error("Error fetching user posts:", error);
     } finally {
       setLoading(false);
-      setIsLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    fetchPosts();
-  }, []);
+    if (userData?.userId) {
+      fetchPosts();
+    }
+  }, [userData?.userId]);
 
   return (
-    <Box className="page">
-      {/* 新貼文輸入框 */}
+    <Box>
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
-          margin: "10px 0",
+          margin: "18px 0",
           cursor: "pointer",
         }}
         onClick={handleOpenDialog}
@@ -113,13 +112,25 @@ const Home: React.FC = () => {
           發佈
         </Button>
       </Box>
+
+      <PostDialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        onSubmit={handleSubmit}
+        accountName={userData?.accountName}
+        avatarUrl={userData?.avatarUrl}
+      />
+
       <Divider sx={{ marginY: "16px" }} />
 
-      {/* 貼文列表 */}
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-          <CircularProgress />
-        </Box>
+        <Typography sx={{ textAlign: "center", color: "#aaa", mt: 4 }}>
+          貼文加載中...
+        </Typography>
+      ) : posts.length === 0 ? (
+        <Typography sx={{ textAlign: "center", color: "#aaa", mt: 4 }}>
+          尚無貼文
+        </Typography>
       ) : (
         posts.map((post) => (
           <Box key={post.postId} sx={{ marginBottom: "16px" }}>
@@ -171,36 +182,8 @@ const Home: React.FC = () => {
           </Box>
         ))
       )}
-
-      {/* 加載更多按鈕 */}
-      {nextCursor && (
-        <Box sx={{ textAlign: "center", marginTop: "16px" }}>
-          <button
-            onClick={() => fetchPosts(nextCursor)}
-            disabled={isLoadingMore}
-            style={{
-              padding: "8px 16px",
-              border: "1px solid #ddd",
-              borderRadius: "10px",
-              background: "white",
-              cursor: "pointer",
-            }}
-          >
-            {isLoadingMore ? "載入中..." : "加載更多"}
-          </button>
-        </Box>
-      )}
-
-      {/* 貼文對話框 */}
-      <PostDialog
-        open={dialogOpen}
-        onClose={handleCloseDialog}
-        onSubmit={handleSubmit}
-        accountName={userData?.accountName}
-        avatarUrl={userData?.avatarUrl}
-      />
     </Box>
   );
 };
 
-export default Home;
+export default Posts;

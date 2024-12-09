@@ -10,12 +10,28 @@ import {
   MoreHoriz,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import PostDialog from "../components/PostDialog";
+import usePostHandler from "../hooks/usePostHandler";
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  userData: {
+    accountName: string;
+    avatarUrl: string;
+  } | null;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ userData }) => {
   const navigate = useNavigate();
+  const { dialogOpen, handleOpenDialog, handleCloseDialog, handleSubmit } =
+    usePostHandler();
 
   const handleNavigate = (path: string) => {
-    navigate(path);
+    if (path === "") {
+      // 使用 usePostHandler 打開對話框
+      handleOpenDialog();
+    } else {
+      navigate(path);
+    }
   };
 
   return (
@@ -89,6 +105,15 @@ const Sidebar: React.FC = () => {
           </IconButton>
         ))}
       </Box>
+
+      {/* PostDialog */}
+      <PostDialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        onSubmit={handleSubmit}
+        accountName={userData?.accountName || "Default User"}
+        avatarUrl={userData?.avatarUrl || "/default_avatar.jpg"}
+      />
     </Box>
   );
 };
