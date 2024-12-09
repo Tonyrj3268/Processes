@@ -67,6 +67,7 @@ const userSchema: Schema = new Schema<IUserDocument>({
   avatarUrl: {
     type: String,
     trim: true,
+    default: "",
   },
   hasNewNotifications: {
     type: Boolean,
