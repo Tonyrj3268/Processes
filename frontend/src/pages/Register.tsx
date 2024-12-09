@@ -30,7 +30,7 @@ const Register: React.FC = () => {
       return;
     }
     if (!userName) {
-      setErrorMessage("請輸入用戶名稱");
+      setErrorMessage("請輸入使用者名稱");
       setShowError(true);
       return;
     }
