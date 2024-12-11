@@ -1,13 +1,14 @@
 // controllers/postController.ts
 import { Request, Response } from 'express';
 import { postService, PostService } from '@src/services/postService';
+import { hotPostsService, HotPostsService } from '@src/services/hotPostsService';
 import { Types } from 'mongoose';
 import { IUserDocument, User } from '@src/models/user';
 import { Redis } from "ioredis";
 import redisClient from "@src/config/redis";
 
 export class PostController {
-    constructor(private postService: PostService = new PostService(), private redisClient: Redis) { }
+    constructor(private postService: PostService = new PostService(), private hotPostsService: HotPostsService = new HotPostsService(), private redisClient: Redis) { }
 
     /**
      * 獲取所有貼文列表
@@ -33,15 +34,31 @@ export class PostController {
                 return;
             }
 
-            const posts = await this.postService.getAllPosts(limit, cursor, currentUserId);
+            const allPosts = await this.postService.getAllPosts(limit, cursor, currentUserId);
+            const followPosts = await this.postService.getFollowPosts(currentUserId, 10);
+            const hotPosts = await this.hotPostsService.getHotPosts();
+
+            const combinedPosts = [...allPosts, ...followPosts, ...hotPosts];
+
+            // Shuffle function using Fisher-Yates algorithm
+            const shuffleArray = <T>(array: T[]): T[] => {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            };
+
+            // Shuffle the combined posts
+            const shuffledPosts = shuffleArray([...combinedPosts]);
 
             // 如果有貼文，取得最後一篇的_id作為下一個 cursor）
-            const nextCursor = posts.length > 0
-                ? posts[posts.length - 1]._id
+            const nextCursor = shuffledPosts.length > 0
+                ? shuffledPosts[shuffledPosts.length - 1]._id
                 : null;
             // 重新整理回傳資料結構
             res.status(200).json({
-                posts: posts.map(post => ({
+                posts: shuffledPosts.map(post => ({
                     postId: post._id,
                     author: {
                         id: post.user._id,
@@ -375,4 +392,4 @@ export class PostController {
     }
 }
 
-export const postController = new PostController(postService, redisClient);
+export const postController = new PostController(postService, hotPostsService, redisClient);

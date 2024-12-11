@@ -6,6 +6,8 @@ import { Event } from '@src/models/event';
 import mongoose from 'mongoose';
 import { User } from '@src/models/user';
 import { MongoServerError } from "mongodb";
+import { Follow } from '@src/models/follow';
+import redisClient from '@src/config/redis';
 
 export class PostService {
     async getPersonalPosts(limit: number, userId: Types.ObjectId, cursor?: string): Promise<IPostDocument[]> {
@@ -33,6 +35,62 @@ export class PostService {
             console.error('Error in getPersonalPosts:', error);
             throw error;
         }
+    }
+    getFollowPosts = async (userId: Types.ObjectId, limit: number): Promise<IPostDocument[]> => {
+        try {
+            const feedKey = `user:${userId.toString()}:feed`;
+
+            // 嘗試從 Redis 獲取快取
+            const cachedFeed = await redisClient.get(feedKey);
+            if (cachedFeed) {
+                const posts: IPostDocument[] = JSON.parse(cachedFeed);
+                return posts;
+            }
+
+            const following = await Follow.find({ follower: userId }).select('following').lean();
+            const followingIds = following.map(f => f.following);
+            if (followingIds.length === 0) {
+                return [];
+            }
+
+            // 為了避免過多數據，只獲取七天內的貼文
+            const sevenDayAgo = new Date();
+            sevenDayAgo.setDate(sevenDayAgo.getDate() - 7);
+
+            const aggregatedPosts = await Post.aggregate([
+                { $match: { user: { $in: followingIds }, createdAt: { $gte: sevenDayAgo } } },
+                { $addFields: { random: { $rand: {} } } },
+                { $sort: { user: 1, random: 1 } },
+                { $group: { _id: "$user", post: { $first: "$$ROOT" } } },
+                { $replaceRoot: { newRoot: "$post" } },
+                { $sort: { createdAt: -1 } },
+                { $limit: limit }
+            ]);
+
+            // 隨機打亂貼文順序
+            const shuffledPosts = this.shuffleArray(aggregatedPosts);
+
+            // 將結果存入 Redis 快取，設定過期時間為 10 分鐘
+            await redisClient.setex(feedKey, 600, JSON.stringify(shuffledPosts));
+
+            return shuffledPosts;
+        }
+        catch (error) {
+            console.error('Error in getFollowPosts:', error);
+            throw error;
+        }
+    }
+    /**
+     * 隨機打亂陣列順序
+     * @param array - 需要打亂的陣列
+     * @returns 打亂後的陣列
+     */
+    private shuffleArray = <T>(array: T[]): T[] => {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
     }
     /**
      * 獲取所有貼文，支援無限捲動分頁
