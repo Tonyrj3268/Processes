@@ -62,6 +62,17 @@ export class UserController {
         res.status(404).json({ msg: "用户不存在" });
         return;
       }
+      const publicFields = {
+        _id: updatedUser._id,
+        accountName: updatedUser.accountName,
+        userName: updatedUser.userName,
+        bio: updatedUser.bio,
+        avatarUrl: updatedUser.avatarUrl,
+        followersCount: updatedUser.followersCount,
+        followingCount: updatedUser.followingCount,
+      };
+      const redisKey = `userProfile:${updatedUser._id}`;
+      await this.redisClient.setex(redisKey, 600, JSON.stringify(publicFields));
       res.json({ msg: "使用者資料已更新", user: updatedUser.toObject() });
     } catch (err) {
       console.error(err);
