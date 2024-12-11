@@ -1,9 +1,9 @@
 // src/models/post.ts
 
 import { Schema, Types, model, HydratedDocument } from "mongoose";
-
+import { IUserDocument } from "@src/models/user";
 export interface IPost {
-  user: Types.ObjectId;
+  user: Types.ObjectId | IUserDocument;
   content: string;
   images: { type: [string], default: [] },
   createdAt: Date;

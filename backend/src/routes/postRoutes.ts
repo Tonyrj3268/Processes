@@ -4,7 +4,10 @@ import { authenticateJWT } from "@src/middlewares/authenticateJWT";
 import { postIdValidator, postId_postValidator, postValidator, getPostValidator } from "@src/middlewares/postMiddleware";
 import { postUpload } from "@src/config/multer";
 import { postController } from "@src/controllers/postController";
+import { hotPostController } from "@src/services/hotPostsService";
 const router = Router();
+
+hotPostController.updateHotPosts();
 
 /**
  * @swagger
