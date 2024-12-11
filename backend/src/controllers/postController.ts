@@ -185,13 +185,37 @@ export class PostController {
         try {
             const { content } = req.body;
             // 透過 req.user 取得已認證的使用者資訊，這裡的型別斷言是必要的
-            const userId = (req.user as IUserDocument)._id;
+            const user = req.user as IUserDocument;
             // 獲取多張圖片的 URL
             const images = req.files
                 ? (req.files as Express.MulterS3.File[]).map(file => file.location)
                 : [];
 
-            const newPost = await this.postService.createPost(userId, content, images);
+            const newPost = await this.postService.createPost(user._id, content, images);
+            // 組織 Redis 的貼文格式
+            const redisPost = {
+                postId: newPost._id.toString(),
+                author: {
+                    id: user._id.toString(),
+                    userName: user.userName,
+                    accountName: user.accountName,
+                    avatarUrl: user.avatarUrl,
+                },
+                content: newPost.content,
+                images: newPost.images,
+                likesCount: 0,
+                commentCount: 0,
+                createdAt: newPost.createdAt,
+            };
+
+            // 定義 Redis 鍵
+            const redisKey = `user:${user._id}:posts`;
+
+            // 使用 LPUSH 插入 Redis 並限制列表長度
+            const pipeline = this.redisClient.pipeline();
+            pipeline.lpush(redisKey, JSON.stringify(redisPost)); // 插入列表頭部
+            pipeline.ltrim(redisKey, 0, 99); // 保留最新 100 條貼文
+            await pipeline.exec();
             // 這樣可以讓前端立即獲得新建立的貼文資料，不需要再次請求。
             res.status(201).json({
                 msg: "Post created successfully",
