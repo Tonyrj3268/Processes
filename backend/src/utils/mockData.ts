@@ -8,6 +8,7 @@ import { Follow } from "../models/follow";
 import { Event } from "../models/event";
 import { faker } from "@faker-js/faker";
 import { MONGO_URI } from "../config/config";
+import { time } from "console";
 
 // 連接到 MongoDB
 const connectDB = async () => {
@@ -57,6 +58,8 @@ const createMockData = async () => {
                     comments: [], // 暫時空置
                 })
             );
+
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
         const savedPosts = await Post.insertMany(posts);
         console.log("Posts created!");
