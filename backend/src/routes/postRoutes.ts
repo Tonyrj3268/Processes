@@ -16,16 +16,16 @@ const router = Router();
 /**
  * @swagger
  * /api/post/{userId}:
- *  get:
- *   summary: Get personal posts
- *   description: Retrieve posts created by a specific user
- *  tags: [貼文]
- * security:
- *  - bearerAuth: []
- * parameters:
- * - in: path
- *  name: userId
- * required: true
+ *   get:
+ *      summary: Get personal posts
+ *      escription: Retrieve posts created by a specific user
+ *      tags: [貼文]
+ *      security:
+ *      - bearerAuth: []
+ *      parameters:
+ *      - in: path
+ *      name: userId
+ *      required: true
  * 
  */
 router.get("/:userId", authenticateJWT, getPostValidator, postController.getPersonalPosts);
