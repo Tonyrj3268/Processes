@@ -8,13 +8,39 @@ import { Follow } from "../models/follow";
 import { Event } from "../models/event";
 import { faker } from "@faker-js/faker";
 import { MONGO_URI } from "../config/config";
+import OpenAI from "openai";
+import dotenv from 'dotenv';
 
-// 連接到 MongoDB
+dotenv.config();
+// 配置 OpenAI API
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+
+// 连接到 MongoDB
 const connectDB = async () => {
     await mongoose
         .connect(MONGO_URI)
-        .then(() => console.log("MongoDB 已連接"))
+        .then(() => console.log('MongoDB 已连接'))
         .catch((err) => console.log(err));
+};
+
+// 使用 ChatGPT 生成随机中文文本
+const generateRandomChineseText = async (prompt: string): Promise<string> => {
+    try {
+        const response = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [
+                { role: 'system', content: '你是一個會隨機生成中文内容的助手。' },
+                { role: 'user', content: prompt },
+            ],
+            temperature: 1.0,
+        });
+        return response.choices[0].message?.content?.trim() || '';
+    } catch (error) {
+        console.error('生成文本时出错:', error);
+        return '';
+    }
 };
 
 // 創建假資料
@@ -44,11 +70,12 @@ const createMockData = async () => {
         // 建立貼文
         const posts = [];
         for (const user of savedUsers) {
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 3; i++) {
+                const text = await generateRandomChineseText("請生成100字內的隨機繁體中文文本");
                 posts.push(
                     new Post({
                         user: user._id,
-                        content: faker.lorem.sentences(3).slice(0, 280),
+                        content: text,
                         images: [faker.image.url()],
                         likesCount: faker.number.int(500),
                         comments: [],

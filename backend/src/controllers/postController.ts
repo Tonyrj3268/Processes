@@ -1,7 +1,7 @@
 // controllers/postController.ts
 import { Request, Response } from 'express';
 import { postService, PostService } from '@src/services/postService';
-import { hotPostsService, HotPostService } from '@src/services/hotPostService';
+import { hotPostService, HotPostService } from '@src/services/hotPostService';
 import { Types } from 'mongoose';
 import { IUserDocument, User } from '@src/models/user';
 import { Redis } from "ioredis";
@@ -392,4 +392,4 @@ export class PostController {
     }
 }
 
-export const postController = new PostController(postService, hotPostsService, redisClient);
+export const postController = new PostController(postService, hotPostService, redisClient);
