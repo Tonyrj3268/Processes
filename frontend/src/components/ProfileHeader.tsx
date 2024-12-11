@@ -7,6 +7,8 @@ interface ProfileHeaderProps {
   accountName: string;
   followersCount: number;
   avatarUrl: string;
+  bio: string;
+  isPublic: boolean;
   onProfileUpdate: () => void;
 }
 
@@ -15,6 +17,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   accountName,
   followersCount,
   avatarUrl,
+  bio,
+  isPublic,
   onProfileUpdate,
 }) => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -38,13 +42,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       >
         <Box>
           <Typography fontSize="24px" fontWeight="600">
-            {userName}
-          </Typography>
-          <Typography fontSize="14px" color="textSecondary">
             {accountName}
           </Typography>
-          <Typography fontSize="14px" color="textSecondary" marginTop="24px">
-            {followersCount} 位粉絲
+          <Typography fontSize="14px" color="textSecondary">
+            {userName}
           </Typography>
         </Box>
         <Avatar
@@ -52,6 +53,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           alt="Profile Avatar"
           sx={{ width: 80, height: 80 }}
         />
+      </Box>
+
+      <Box>
+        <Typography fontSize="14px">{bio}</Typography>
+        <Typography fontSize="14px" color="textSecondary" margin="16px 0">
+          {followersCount} 位粉絲
+        </Typography>
       </Box>
 
       <Box
@@ -82,6 +90,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         onClose={handleCloseDialog}
         userName={userName}
         avatarUrl={avatarUrl}
+        bio={bio}
+        isPublic={isPublic}
         onSaveSuccess={onProfileUpdate}
       />
     </Box>

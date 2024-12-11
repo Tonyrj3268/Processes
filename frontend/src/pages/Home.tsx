@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   Avatar,
   Box,
-  Button,
   Divider,
-  IconButton,
   Typography,
   CircularProgress,
+  IconButton,
+  Button,
 } from "@mui/material";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
@@ -41,7 +41,9 @@ const Home: React.FC = () => {
   const { dialogOpen, handleOpenDialog, handleCloseDialog, handleSubmit } =
     usePostHandler();
 
-  const fetchPosts = async (cursor: string | null = null) => {
+  const loaderRef = useRef<HTMLDivElement | null>(null);
+
+  const fetchPosts = useCallback(async (cursor: string | null = null) => {
     try {
       if (cursor) {
         setIsLoadingMore(true);
@@ -72,11 +74,32 @@ const Home: React.FC = () => {
       setLoading(false);
       setIsLoadingMore(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [fetchPosts]);
+
+  useEffect(() => {
+    if (!loaderRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && nextCursor && !isLoadingMore) {
+          fetchPosts(nextCursor);
+        }
+      },
+      { root: null, rootMargin: "0px", threshold: 0.1 },
+    );
+
+    observer.observe(loaderRef.current);
+
+    return () => {
+      if (loaderRef.current) {
+        observer.unobserve(loaderRef.current);
+      }
+    };
+  }, [nextCursor, isLoadingMore, fetchPosts]);
 
   return (
     <Box className="page">
@@ -126,12 +149,12 @@ const Home: React.FC = () => {
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <Avatar
                 src={post.author.avatarUrl}
-                alt={`${post.author.userName}'s Avatar`}
+                alt={`${post.author.accountName}'s Avatar`}
                 sx={{ width: 40, height: 40, marginRight: "8px" }}
               />
               <Box>
                 <Typography sx={{ fontSize: "15px", fontWeight: "bold" }}>
-                  {post.author.userName}
+                  {post.author.accountName}
                 </Typography>
                 <Typography sx={{ fontSize: "12px", color: "#aaa" }}>
                   {new Date(post.createdAt).toLocaleString()}
@@ -172,24 +195,10 @@ const Home: React.FC = () => {
         ))
       )}
 
-      {/* 加載更多按鈕 */}
-      {nextCursor && (
-        <Box sx={{ textAlign: "center", marginTop: "16px" }}>
-          <button
-            onClick={() => fetchPosts(nextCursor)}
-            disabled={isLoadingMore}
-            style={{
-              padding: "8px 16px",
-              border: "1px solid #ddd",
-              borderRadius: "10px",
-              background: "white",
-              cursor: "pointer",
-            }}
-          >
-            {isLoadingMore ? "載入中..." : "加載更多"}
-          </button>
-        </Box>
-      )}
+      {/* Loading Indicator for Auto-Load */}
+      <Box ref={loaderRef} sx={{ textAlign: "center", marginTop: "16px" }}>
+        {isLoadingMore && <CircularProgress />}
+      </Box>
 
       {/* 貼文對話框 */}
       <PostDialog

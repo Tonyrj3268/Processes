@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -16,6 +16,8 @@ interface EditProfileDialogProps {
   onClose: () => void;
   userName: string;
   avatarUrl: string;
+  bio: string;
+  isPublic: boolean;
   onSaveSuccess: () => void;
 }
 
@@ -24,13 +26,23 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
   onClose,
   userName: initialUserName,
   avatarUrl: initialAvatarUrl,
+  bio: initialBio,
+  isPublic: initialIsPublic,
   onSaveSuccess,
 }) => {
   const [userName, setUserName] = useState(initialUserName);
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl);
-  const [bio, setBio] = useState("");
-  const [isPublic, setIsPublic] = useState(true);
+  const [bio, setBio] = useState(initialBio);
+  const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setUserName(initialUserName);
+    setAvatarUrl(initialAvatarUrl);
+    setBio(initialBio);
+    setIsPublic(initialIsPublic);
+  }, [initialUserName, initialAvatarUrl, initialBio, initialIsPublic]);
 
   const handleSave = async () => {
     setLoading(true);
@@ -40,6 +52,11 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
       formData.append("userName", userName);
       formData.append("bio", bio);
       formData.append("isPublic", JSON.stringify(isPublic));
+
+      const fileInput = fileInputRef.current;
+      if (fileInput && fileInput.files?.[0]) {
+        formData.append("avatarUrl", fileInput.files[0]);
+      }
 
       const response = await fetch("/api/user", {
         method: "PATCH",
@@ -53,6 +70,8 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
         throw new Error("Failed to update user profile");
       }
 
+      const data = await response.json();
+      setAvatarUrl(data.user.avatarUrl);
       onSaveSuccess();
       onClose();
     } catch (error) {
@@ -63,7 +82,7 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
     }
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setAvatarUrl(URL.createObjectURL(file)); // 預覽圖片
@@ -113,25 +132,25 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
               }}
             />
           </Box>
-          <label htmlFor="avatar-upload" style={{ cursor: "pointer" }}>
-            <input
-              id="avatar-upload"
-              type="file"
-              accept="image/*"
-              style={{ display: "none" }}
-              onChange={handleAvatarChange}
-            />
-            <Avatar
-              src={avatarUrl}
-              alt="Profile Avatar"
-              sx={{
-                width: 60,
-                height: 60,
-                border: "2px solid #ddd",
-                marginLeft: "16px",
-              }}
-            />
-          </label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={handleAvatarChange}
+          />
+          <Avatar
+            src={avatarUrl}
+            alt="Profile Avatar"
+            sx={{
+              width: 60,
+              height: 60,
+              border: "2px solid #ddd",
+              marginLeft: "16px",
+              cursor: "pointer",
+            }}
+            onClick={() => fileInputRef.current?.click()} // 點擊頭像觸發檔案選擇
+          />
         </Box>
 
         <Box flex={1} mb={3}>
@@ -174,16 +193,16 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
             onChange={(e) => setIsPublic(e.target.checked)}
             sx={{
               "& .MuiSwitch-switchBase.Mui-checked": {
-                color: "#000", // 開啟時的滑塊顏色
+                color: "#000",
               },
               "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-                backgroundColor: "#000", // 開啟時的軌道顏色
+                backgroundColor: "#000",
               },
               "& .MuiSwitch-switchBase": {
-                color: "#ccc", // 關閉時的滑塊顏色
+                color: "#ccc",
               },
               "& .MuiSwitch-track": {
-                backgroundColor: "#ddd", // 關閉時的軌道顏色
+                backgroundColor: "#ddd",
               },
             }}
           />

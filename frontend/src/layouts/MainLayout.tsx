@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
-import { Box, Fab } from "@mui/material";
+import { Box, Fab, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { Outlet, useMatches } from "react-router-dom";
 import PostDialog from "../components/PostDialog";
@@ -17,6 +17,8 @@ interface UserData {
   userName: string;
   accountName: string;
   avatarUrl: string;
+  bio: string;
+  isPublic: boolean;
   followersCount: number;
 }
 
@@ -39,6 +41,7 @@ const MainLayout: React.FC = () => {
       const userId = decoded.id;
 
       try {
+        console.log("Fetching user data for userId:", userId);
         const response = await fetch(`/api/user/${userId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -50,12 +53,15 @@ const MainLayout: React.FC = () => {
         }
 
         const data = await response.json();
+        console.log("User data fetched from API:", data);
 
         setUserData({
-          userId,
+          userId: data._id,
           userName: data.userName,
           accountName: data.accountName,
           avatarUrl: data.avatarUrl || "/default_avatar.jpg",
+          bio: data.bio || "尚未設定個人簡介",
+          isPublic: data.isPublic ?? false,
           followersCount: data.followersCount ?? 0,
         });
       } catch (error) {
@@ -90,7 +96,11 @@ const MainLayout: React.FC = () => {
       <Box sx={{ display: "flex", flex: 1 }}>
         <Sidebar userData={userData} />
         <Box component="main" sx={{ flex: 1 }}>
-          <Outlet context={userData} />
+          {userData ? (
+            <Outlet context={userData} />
+          ) : (
+            <Typography>Loading user data...</Typography>
+          )}
           <Fab
             aria-label="add"
             onClick={handleOpenDialog}
@@ -98,21 +108,21 @@ const MainLayout: React.FC = () => {
               position: "fixed",
               bottom: 30,
               right: 30,
-              backgroundColor: "#fff", // 白色背景
-              color: "#000", // 加號顏色
-              borderRadius: "12px", // 方形但稍微圓角
-              width: "75px", // 按鈕寬度
-              height: "65px", // 按鈕高度
-              boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.2)", // 添加陰影效果
+              backgroundColor: "#fff",
+              color: "#000",
+              borderRadius: "12px",
+              width: "75px",
+              height: "65px",
+              boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.2)",
               "&:hover": {
-                backgroundColor: "#f5f5f5", // 滑鼠懸停時變淺
+                backgroundColor: "#f5f5f5",
               },
             }}
           >
             <AddIcon
               sx={{
-                fontSize: "36px", // 調整加號的大小
-                fontWeight: "bold", // 加粗加號
+                fontSize: "36px",
+                fontWeight: "bold",
               }}
             />
           </Fab>

@@ -1,5 +1,5 @@
-import React from "react";
-import { Box, IconButton } from "@mui/material";
+import React, { useState } from "react";
+import { Box, IconButton, Menu, MenuItem, Typography } from "@mui/material";
 import {
   HomeOutlined,
   SearchOutlined,
@@ -22,6 +22,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ userData }) => {
   const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { dialogOpen, handleOpenDialog, handleCloseDialog, handleSubmit } =
     usePostHandler();
 
@@ -32,6 +33,20 @@ const Sidebar: React.FC<SidebarProps> = ({ userData }) => {
     } else {
       navigate(path);
     }
+  };
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+    handleMenuClose();
   };
 
   return (
@@ -93,6 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userData }) => {
         {[PushPinOutlined, MoreHoriz].map((Icon, index) => (
           <IconButton
             key={index}
+            onClick={index === 1 ? handleMenuOpen : undefined}
             sx={{
               borderRadius: "16px",
               padding: "10px",
@@ -101,10 +117,23 @@ const Sidebar: React.FC<SidebarProps> = ({ userData }) => {
               },
             }}
           >
-            <Icon sx={{ color: "#9e9e9e", fontSize: "30px" }} />{" "}
+            <Icon sx={{ color: "#9e9e9e", fontSize: "30px" }} />
           </IconButton>
         ))}
       </Box>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        PaperProps={{
+          sx: { width: 150, borderRadius: "10px" },
+        }}
+      >
+        <MenuItem onClick={handleLogout}>
+          <Typography color="error">登出</Typography>
+        </MenuItem>
+      </Menu>
 
       {/* PostDialog */}
       <PostDialog
