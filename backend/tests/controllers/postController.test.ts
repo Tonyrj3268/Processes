@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 import { PostController } from '@src/controllers/postController';
 import { PostService } from '@src/services/postService';
+import { HotPostService } from '@src/services/hotPostService';
 import { IUserDocument, User } from '@src/models/user';
 import { IPostDocument, Post } from '@src/models/post';
 import "@tests/setup";
@@ -27,6 +28,7 @@ describe('PostController', () => {
     let anotherUser: IUserDocument;       // 用於交互測試的次要用戶
     let controller: PostController;        // 控制器實例
     let mockPostService: PostService;      // 模擬的 PostService
+    let mockHotPostService: HotPostService; // 模擬的 HotPostService
     let testPost: IPostDocument;          // 測試貼文
 
     /**
@@ -57,7 +59,8 @@ describe('PostController', () => {
     beforeEach(async () => {
         // 創建新的服務和控制器實例
         mockPostService = new PostService();
-        controller = new PostController(mockPostService, redisClient);
+        mockHotPostService = new HotPostService();
+        controller = new PostController(mockPostService, mockHotPostService, redisClient);
 
         // 創建測試用戶
         testUser = await createTestUser({

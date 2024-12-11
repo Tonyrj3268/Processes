@@ -3,7 +3,7 @@ import cron from 'node-cron';
 import redisClient from '@src/config/redis';
 import { Post, IPostDocument } from '@src/models/post';
 
-export class HotPostsService {
+export class HotPostService {
     constructor() {
         // 每天凌晨 2 點更新熱門貼文
         cron.schedule('0 0 * * *', this.updateHotPosts);
@@ -48,4 +48,4 @@ export class HotPostsService {
     }
 }
 
-export const hotPostsService = new HotPostsService();
+export const hotPostsService = new HotPostService();

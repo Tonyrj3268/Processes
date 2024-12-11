@@ -1,14 +1,14 @@
 // controllers/postController.ts
 import { Request, Response } from 'express';
 import { postService, PostService } from '@src/services/postService';
-import { hotPostsService, HotPostsService } from '@src/services/hotPostsService';
+import { hotPostsService, HotPostService } from '@src/services/hotPostService';
 import { Types } from 'mongoose';
 import { IUserDocument, User } from '@src/models/user';
 import { Redis } from "ioredis";
 import redisClient from "@src/config/redis";
 
 export class PostController {
-    constructor(private postService: PostService = new PostService(), private hotPostsService: HotPostsService = new HotPostsService(), private redisClient: Redis) { }
+    constructor(private postService: PostService = new PostService(), private hotPostsService: HotPostService = new HotPostService(), private redisClient: Redis) { }
 
     /**
      * 獲取所有貼文列表
