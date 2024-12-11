@@ -42,10 +42,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       >
         <Box>
           <Typography fontSize="24px" fontWeight="600">
-            {accountName}
+            {userName}
           </Typography>
           <Typography fontSize="14px" color="textSecondary">
-            {userName}
+            {accountName}
           </Typography>
         </Box>
         <Avatar

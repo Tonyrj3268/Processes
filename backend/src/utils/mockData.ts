@@ -21,7 +21,7 @@ const openai = new OpenAI({
 const connectDB = async () => {
     await mongoose
         .connect(MONGO_URI)
-        .then(() => console.log('MongoDB 已连接'))
+        .then(() => console.log('MongoDB 已連結'))
         .catch((err) => console.log(err));
 };
 
@@ -57,7 +57,7 @@ const createMockData = async () => {
                     password: faker.internet.password(),
                     followersCount: faker.number.int(1000),
                     followingCount: faker.number.int(1000),
-                    isPublic: faker.datatype.boolean(),
+                    isPublic: true,
                     bio: faker.lorem.sentence(),
                     avatarUrl: faker.image.avatar(),
                     hasNewNotifications: faker.datatype.boolean(),
