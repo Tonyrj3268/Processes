@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
-import { Box, Fab, Typography } from "@mui/material";
+import { Box, Fab } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { Outlet, useMatches } from "react-router-dom";
 import PostDialog from "../components/PostDialog";
@@ -95,12 +95,11 @@ const MainLayout: React.FC = () => {
       <Header title={pageTitle || "Processes"} />
       <Box sx={{ display: "flex", flex: 1 }}>
         <Sidebar userData={userData} />
-        <Box component="main" sx={{ flex: 1 }}>
-          {userData ? (
-            <Outlet context={userData} />
-          ) : (
-            <Typography>Loading user data...</Typography>
-          )}
+        <Box
+          component="main"
+          sx={{ flex: 1, paddingTop: "64px", overflowY: "auto" }}
+        >
+          <Outlet context={userData} />
           <Fab
             aria-label="add"
             onClick={handleOpenDialog}

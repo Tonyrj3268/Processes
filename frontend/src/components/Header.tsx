@@ -1,4 +1,11 @@
-import { AppBar, Button, IconButton, Toolbar, Typography } from "@mui/material";
+import {
+  AppBar,
+  Button,
+  IconButton,
+  Toolbar,
+  Typography,
+  Box,
+} from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -25,47 +32,69 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
 
   return (
     <AppBar
-      position="static"
+      position="fixed"
       sx={{
         background: "#fbfbfb",
         boxShadow: "none",
+        zIndex: 1300,
       }}
     >
       <Toolbar
         sx={{
           display: "flex",
-          justifyContent: "space-evenly",
+          justifyContent: "space-between",
           alignItems: "center",
         }}
       >
-        <IconButton edge="start" aria-label="menu" onClick={handleLogoClick}>
-          <img
-            src="/favicon.jpg"
-            alt="logo"
-            style={{ width: "30px", height: "30px" }}
-          />
-        </IconButton>
+        {/* 左側區域 - Logo */}
+        <Box
+          sx={{
+            minWidth: "80px",
+            display: "flex",
+            justifyContent: "flex-start",
+          }}
+        >
+          <IconButton edge="start" aria-label="menu" onClick={handleLogoClick}>
+            <img
+              src="/favicon.jpg"
+              alt="logo"
+              style={{ width: "30px", height: "30px" }}
+            />
+          </IconButton>
+        </Box>
+
+        {/* 中間區域 - 標題 */}
         <Typography
           component="div"
           sx={{
-            flexGrow: 1,
+            textAlign: "center",
             color: "black",
             fontSize: "16px",
             fontWeight: "600",
-            textAlign: "center",
+            flexGrow: 1,
           }}
         >
           {title}
         </Typography>
-        {!isLoggedIn && (
-          <Button
-            variant="contained"
-            sx={{ backgroundColor: "black", borderRadius: 3 }}
-            onClick={handleLoginClick}
-          >
-            登入
-          </Button>
-        )}
+
+        {/* 右側區域 - 登入按鈕 */}
+        <Box
+          sx={{ minWidth: "80px", display: "flex", justifyContent: "flex-end" }}
+        >
+          {!isLoggedIn && (
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: "black",
+                borderRadius: 3,
+                textTransform: "none",
+              }}
+              onClick={handleLoginClick}
+            >
+              登入
+            </Button>
+          )}
+        </Box>
       </Toolbar>
     </AppBar>
   );
