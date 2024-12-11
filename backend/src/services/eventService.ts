@@ -44,7 +44,7 @@ export class EventService {
         // 根據 eventType 驗證 details 的結構
         switch (eventType) {
             case "comment":
-                validateDetails(["commentText", "postId", "commentId"]);
+                validateDetails(["commentId", "commentText", "postId", "postText",]);
                 break;
             case "like":
                 validateDetails(["contentId", "contentType"]);

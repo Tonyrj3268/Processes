@@ -185,6 +185,7 @@ const createMockData = async () => {
                     const post = faker.helpers.arrayElement(savedPosts); // 隨機選擇一個現有的 post
                     details = {
                         commentText: faker.lorem.sentence(10), // 限制長度為 10 個單詞
+                        postText: post.content.slice(0, 20), // 限制長度為 20 個字元
                         postId: post._id,
                         commentId: comment._id,
                     };
