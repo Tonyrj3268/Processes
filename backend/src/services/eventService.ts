@@ -9,7 +9,7 @@ export class EventService {
     async getEvents(user: Types.ObjectId) {
         const query: FilterQuery<IEventDocument> = { receiver: user };
         const notifications = await Event.find(query)
-            .sort({ _id: -1 })
+            .sort({ timestamp: -1 })
             .populate('sender', 'accountName avatarUrl')  // 僅選擇用戶名和圖片
             .populate('receiver', 'accountName avatarUrl')
             .lean();
