@@ -6,6 +6,7 @@ import { IUserDocument, User } from '@src/models/user';
 import { IPostDocument, Post } from '@src/models/post';
 import "@tests/setup";
 import { Types } from 'mongoose';
+import redisClient from '@src/config/redis';
 
 /**
  * 創建模擬的 Express Response 對象
@@ -56,7 +57,7 @@ describe('PostController', () => {
     beforeEach(async () => {
         // 創建新的服務和控制器實例
         mockPostService = new PostService();
-        controller = new PostController(mockPostService);
+        controller = new PostController(mockPostService, redisClient);
 
         // 創建測試用戶
         testUser = await createTestUser({

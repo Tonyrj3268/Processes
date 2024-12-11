@@ -8,7 +8,6 @@ import { Follow } from "../models/follow";
 import { Event } from "../models/event";
 import { faker } from "@faker-js/faker";
 import { MONGO_URI } from "../config/config";
-import { time } from "console";
 
 // 連接到 MongoDB
 const connectDB = async () => {

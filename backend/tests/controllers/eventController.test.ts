@@ -67,7 +67,7 @@ describe('EventController', () => {
     };
 
     beforeEach(async () => {
-        eventService = new EventService();
+        eventService = new EventService(redisClient);
         eventController = new EventController(eventService, redisClient);
 
         receiver = await createTestUser({

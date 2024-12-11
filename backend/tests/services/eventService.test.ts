@@ -4,7 +4,7 @@ import { Event, IEventDocument } from '@src/models/event';
 import { User, IUserDocument } from '@src/models/user';
 import { Types } from 'mongoose';
 import "@tests/setup";
-
+import redisClient from '@src/config/redis';
 describe('EventService', () => {
     let eventService: EventService;
     let receiver: IUserDocument;
@@ -64,7 +64,7 @@ describe('EventService', () => {
         return user;
     };
     beforeAll(() => {
-        eventService = new EventService();
+        eventService = new EventService(redisClient);
     });
 
     beforeEach(async () => {
