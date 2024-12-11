@@ -1,5 +1,5 @@
 import { AppBar, Button, IconButton, Toolbar, Typography } from "@mui/material";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
@@ -8,6 +8,12 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ title }) => {
   const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+  }, []);
 
   const handleLogoClick = () => {
     navigate("/");
@@ -51,13 +57,15 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
         >
           {title}
         </Typography>
-        <Button
-          variant="contained"
-          sx={{ backgroundColor: "black", borderRadius: 3 }}
-          onClick={handleLoginClick}
-        >
-          登入
-        </Button>
+        {!isLoggedIn && (
+          <Button
+            variant="contained"
+            sx={{ backgroundColor: "black", borderRadius: 3 }}
+            onClick={handleLoginClick}
+          >
+            登入
+          </Button>
+        )}
       </Toolbar>
     </AppBar>
   );
