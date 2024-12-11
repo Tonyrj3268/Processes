@@ -23,6 +23,7 @@ describe('EventService', () => {
                 details.set("commentId", new Types.ObjectId().toString());
                 details.set("postId", new Types.ObjectId().toString());
                 details.set("commentText", "This is a test comment");
+                details.set("postText", "This is a test post");
                 break;
             case "like":
                 details.set("postId", new Types.ObjectId().toString());
@@ -121,6 +122,7 @@ describe('EventService', () => {
         it('應成功創建 comment 事件，並驗證 details 欄位', async () => {
             const details = {
                 commentText: "This is a test comment",
+                postText: "This is a test post",
                 postId: new Types.ObjectId().toString(),
                 commentId: new Types.ObjectId().toString(),
             };
