@@ -155,6 +155,8 @@ describe('EventService', () => {
 
         it('應在 comment 事件缺少必要的 details 欄位時拋出錯誤', async () => {
             const incompleteDetails = {
+                postText: "This is a test post",
+                commentId: new Types.ObjectId().toString(),
                 commentText: "Missing postId and commentId",
             };
 
