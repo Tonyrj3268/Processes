@@ -5,10 +5,13 @@ import ProfileTabs from "../components/ProfileTab";
 import { Outlet, useOutletContext } from "react-router-dom";
 
 interface UserContext {
+  userId: string;
   userName: string;
   accountName: string;
   followersCount: number;
   avatarUrl: string;
+  bio: string;
+  isPublic: boolean;
 }
 
 const Profile: React.FC = () => {
@@ -22,13 +25,16 @@ const Profile: React.FC = () => {
           accountName={userData.accountName}
           followersCount={userData.followersCount}
           avatarUrl={userData.avatarUrl}
+          bio={userData.bio}
+          isPublic={userData.isPublic}
           // eslint-disable-next-line @typescript-eslint/no-empty-function
-          onProfileUpdate={() => {}}
+          onProfileUpdate={() => { }}
         />
       )}
       <ProfileTabs />
       <Outlet
         context={{
+          userId: userData?.userId,
           accountName: userData?.accountName,
           avatarUrl: userData?.avatarUrl,
         }}
