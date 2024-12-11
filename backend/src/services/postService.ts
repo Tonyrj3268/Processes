@@ -245,7 +245,7 @@ export class PostService {
                 }
 
                 // 如果不是自己的貼文，建立通知
-                if (!post.user.equals(userId)) {
+                if (!post.user._id.equals(userId)) {
                     await Event.create(
                         [{
                             sender: userId,
@@ -388,7 +388,7 @@ export class PostService {
                 );
 
                 // 如果不是自己的貼文，建立通知
-                if (!post.user.equals(userId)) {
+                if (!post.user._id.equals(userId)) {
                     await new Event({
                         sender: userId,
                         receiver: post.user,
