@@ -171,7 +171,7 @@ router.get("/:userId", authenticateJWT, userController.getUserProfile);
  *       500:
  *         description: Server error
  */
-router.patch("/", authenticateJWT, avatarUpload.array('avatar', 1), userController.updateUserProfile);
+router.patch("/", authenticateJWT, avatarUpload.array('avatarUrl', 1), userController.updateUserProfile);
 // 關注用戶
 /**
  * @swagger
