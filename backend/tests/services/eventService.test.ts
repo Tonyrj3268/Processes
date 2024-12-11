@@ -5,7 +5,6 @@ import { User, IUserDocument } from '@src/models/user';
 import { Types } from 'mongoose';
 import "@tests/setup";
 import redisClient from '@src/config/redis';
-import { de } from '@faker-js/faker/.';
 describe('EventService', () => {
     let eventService: EventService;
     let receiver: IUserDocument;
