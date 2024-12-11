@@ -20,9 +20,6 @@ const connectDB = async () => {
 // 創建假資料
 const createMockData = async () => {
     try {
-        // 清除現有數據
-        await Promise.all([User.deleteMany({}), Post.deleteMany({}), Comment.deleteMany({}), Like.deleteMany({}), Follow.deleteMany({}), Event.deleteMany({})]);
-
         // 建立用戶
         const users = [];
         for (let i = 0; i < 10; i++) {
