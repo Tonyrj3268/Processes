@@ -48,4 +48,4 @@ export class HotPostService {
     }
 }
 
-export const hotPostsService = new HotPostService();
+export const hotPostService = new HotPostService();

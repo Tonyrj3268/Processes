@@ -43,20 +43,21 @@ const createMockData = async () => {
 
         // 建立貼文
         const posts = [];
-        for (let i = 0; i < 20; i++) {
-            const user = faker.helpers.arrayElement(savedUsers);
-            posts.push(
-                new Post({
-                    user: user._id,
-                    content: faker.lorem.sentences(3).slice(0, 280),
-                    images: [faker.image.url()],
-                    likesCount: faker.number.int(500),
-                    comments: [], // 暫時空置
-                })
-            );
-
-            await new Promise(resolve => setTimeout(resolve, 500));
+        for (const user of savedUsers) {
+            for (let i = 0; i < 10; i++) {
+                posts.push(
+                    new Post({
+                        user: user._id,
+                        content: faker.lorem.sentences(3).slice(0, 280),
+                        images: [faker.image.url()],
+                        likesCount: faker.number.int(500),
+                        comments: [],
+                    })
+                );
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
         }
+
         const savedPosts = await Post.insertMany(posts);
         console.log("Posts created!");
 
