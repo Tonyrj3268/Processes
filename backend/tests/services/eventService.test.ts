@@ -5,6 +5,7 @@ import { User, IUserDocument } from '@src/models/user';
 import { Types } from 'mongoose';
 import "@tests/setup";
 import redisClient from '@src/config/redis';
+import { de } from '@faker-js/faker/.';
 describe('EventService', () => {
     let eventService: EventService;
     let receiver: IUserDocument;
@@ -28,6 +29,7 @@ describe('EventService', () => {
             case "like":
                 details.set("postId", new Types.ObjectId().toString());
                 details.set("likeType", "post");
+                details.set("contentText", "This is a test post");
                 break;
             case "friend_request":
                 details.set("senderId", sender._id.toString());
@@ -141,6 +143,7 @@ describe('EventService', () => {
             const details = {
                 contentId: new Types.ObjectId().toString(),
                 contentType: "post",
+                contentText: "This is a test post",
             };
 
             await eventService.createEvent(sender._id, receiver._id, "like", details);

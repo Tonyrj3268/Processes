@@ -47,7 +47,7 @@ export class EventService {
                 validateDetails(["commentId", "commentText", "postId", "postText",]);
                 break;
             case "like":
-                validateDetails(["contentId", "contentType"]);
+                validateDetails(["contentId", "contentType", "contentText"]);
                 break;
             default:
                 // 其他事件不需要特別驗證 details

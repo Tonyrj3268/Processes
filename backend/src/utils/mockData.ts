@@ -202,6 +202,7 @@ const createMockData = async () => {
                     details = {
                         contentId: target._id,
                         contentType: targetType,
+                        contentText: target.content.slice(0, 20),
                     };
                     break;
 
