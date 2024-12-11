@@ -3,9 +3,11 @@ import { Request, Response } from 'express';
 import { postService, PostService } from '@src/services/postService';
 import { Types } from 'mongoose';
 import { IUserDocument, User } from '@src/models/user';
+import { Redis } from "ioredis";
+import redisClient from "@src/config/redis";
 
 export class PostController {
-    constructor(private postService: PostService = new PostService()) { }
+    constructor(private postService: PostService = new PostService(), private redisClient: Redis) { }
 
     /**
      * 獲取所有貼文列表
@@ -76,18 +78,55 @@ export class PostController {
                 return;
             }
 
+            // 定義 Redis 列表鍵
+            const redisKey = `user:${targetUserId}:posts`;
+
+            let start: number;
+            let end: number;
+
+            if (cursor) {
+                // 使用貼文的 _id 作為游標
+                // 首先找到該貼文在列表中的索引
+                const cursorIndex = await this.redisClient.lpos(redisKey, cursor);
+                if (cursorIndex === null) {
+                    res.status(400).json({ msg: '無效的游標' });
+                    return;
+                }
+                start = cursorIndex + 1;
+                end = start + limit - 1;
+            } else {
+                // 無游標，從列表頭部獲取最新的貼文
+                start = 0;
+                end = limit - 1;
+            }
+
+            // 從 Redis 獲取貼文
+            const cachedPosts = await this.redisClient.lrange(redisKey, start, end);
+            if (cachedPosts.length > 0) {
+                const parsedPosts = cachedPosts.map(post => JSON.parse(post));
+
+                // 計算下一個游標
+                const listLength = await this.redisClient.llen(redisKey);
+                const nextCursor = end + 1 < listLength ? parsedPosts[parsedPosts.length - 1].postId : null;
+                res.status(200).json({
+                    posts: parsedPosts,
+                    nextCursor,  // 提供給前端下次請求使用
+                });
+                return;
+            }
+
+            // 如果 Redis 中沒有快取，從資料庫查詢
             const posts = await this.postService.getPersonalPosts(limit, currentUserId, cursor);
 
             // 如果有貼文，取得最後一篇的_id作為下一個 cursor
-            const nextCursor = posts.length > 0
-                ? posts[posts.length - 1]._id
-                : null;
-            // 重新整理回傳資料結構
-            res.status(200).json({
+            const nextCursor = posts.length > 0 ? posts[posts.length - 1]._id.toString() : null;
+
+            // 組織回傳資料結構
+            const responseData = {
                 posts: posts.map(post => ({
-                    postId: post._id,
+                    postId: post._id.toString(),
                     author: {
-                        id: targetUser._id,
+                        id: targetUser._id.toString(),
                         userName: targetUser.userName,
                         accountName: targetUser.accountName,
                         avatarUrl: targetUser.avatarUrl
@@ -98,7 +137,19 @@ export class PostController {
                     createdAt: post.createdAt
                 })),
                 nextCursor,  // 提供給前端下次請求使用
+            };
+
+            // 將貼文存入 Redis 列表，使用 LPUSH 將新貼文推入列表頭部
+            const pipeline = this.redisClient.pipeline();
+            responseData.posts.forEach(post => {
+                pipeline.lpush(redisKey, JSON.stringify(post));
             });
+            // 限制列表長度，保留最新的 100 條貼文
+            pipeline.ltrim(redisKey, 0, 99);
+            await pipeline.exec();
+
+            res.status(200).json(responseData);
+
         } catch (error) {
             console.error('Error in getPersonalPosts:', error);
             res.status(500).json({ msg: '伺服器錯誤' });
@@ -324,4 +375,4 @@ export class PostController {
     }
 }
 
-export const postController = new PostController(postService);
+export const postController = new PostController(postService, redisClient);
