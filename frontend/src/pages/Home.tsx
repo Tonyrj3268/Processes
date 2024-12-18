@@ -23,6 +23,7 @@ interface Post {
     avatarUrl: string;
   };
   content: string;
+  images: string[];
   likesCount: number;
   commentCount: number;
   createdAt: string;
@@ -175,6 +176,39 @@ const Home: React.FC = () => {
             >
               {post.content}
             </Typography>
+
+            {/* 顯示圖片 */}
+            <Box
+              sx={{
+                display: "flex",
+                gap: "8px",
+                flexWrap: "wrap",
+                marginBottom: "8px",
+              }}
+            >
+              {(post.images || []).map((image, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    width: "100px",
+                    height: "100px",
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <img
+                    src={image}
+                    alt={`Post image ${index}`}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                </Box>
+              ))}
+            </Box>
+
             <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
               <Box
                 sx={{
