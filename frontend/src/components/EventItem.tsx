@@ -104,6 +104,7 @@ const EventItem: React.FC<EventItemProps> = ({ event }) => {
     }
   };
 
+  // 把 event created_time 轉換成 O天前、O週前 ...
   const formatTime = (timestamp: Date) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -191,7 +192,7 @@ const EventItem: React.FC<EventItemProps> = ({ event }) => {
             onClick={handleHide}
             sx={buttonStyles}
           >
-            隱藏
+            拒絕
           </Button>
         </Stack>
       );
