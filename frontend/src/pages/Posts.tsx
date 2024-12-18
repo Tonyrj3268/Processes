@@ -26,6 +26,7 @@ interface Post {
     avatarUrl: string;
   };
   content: string;
+  images: string[];
   likesCount: number;
   commentCount: number;
   createdAt: string;
@@ -95,39 +96,32 @@ const Posts: React.FC = () => {
   const handleUpdatePost = async (formData: FormData) => {
     if (!selectedPost) return;
 
+    formData.forEach((value, key) => {
+      console.log(`${key}:`, value); // 檢查 formData 中的字段
+    });
+
     const token = localStorage.getItem("token");
-    if (!token) {
-      console.error("Token is missing in localStorage");
-      return;
-    }
+    if (!token) return;
 
     try {
       const response = await fetch(`/api/post/${selectedPost.postId}`, {
         method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to update post: ${response.status}`);
-      }
+      if (!response.ok) throw new Error("Failed to update post");
 
       const updatedPost = await response.json();
-
-      // 更新成功後刷新本地狀態
       setPosts((prev) =>
         prev.map((post) =>
           post.postId === selectedPost.postId
-            ? { ...post, content: updatedPost.content }
+            ? { ...post, ...updatedPost }
             : post,
         ),
       );
-
-      console.log("Post updated successfully");
       setUpdateDialogOpen(false);
-      handleMenuClose();
+      setSelectedPost(null);
     } catch (error) {
       console.error("Error updating post:", error);
     }
@@ -275,6 +269,39 @@ const Posts: React.FC = () => {
             >
               {post.content}
             </Typography>
+
+            {/* 顯示圖片 */}
+            <Box
+              sx={{
+                display: "flex",
+                gap: "8px",
+                flexWrap: "wrap",
+                marginBottom: "8px",
+              }}
+            >
+              {(post.images || []).map((image, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    width: "100px",
+                    height: "100px",
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <img
+                    src={image}
+                    alt={`Post image ${index}`}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                </Box>
+              ))}
+            </Box>
+
             <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
               <Box
                 sx={{
