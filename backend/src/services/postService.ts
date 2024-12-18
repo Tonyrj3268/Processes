@@ -121,7 +121,6 @@ export class PostService {
                 $gte: oneDayAgo // createdAt 必須在一天以內
             };
 
-
             // 構建訪問權限查詢條件
             query.$or = [
                 { user: userId }, // 用戶自己的貼文
@@ -132,7 +131,6 @@ export class PostService {
                 .sort({ createdAt: -1, _id: -1 }) // 按 createdAt 和 _id 排序
                 .limit(limit)
                 .populate('user', 'userName accountName avatarUrl isPublic')
-                .select('-comments') // 排除 comments 欄位，減少資料量
                 .lean(); // 使用 lean() 提升效能
 
             return posts;

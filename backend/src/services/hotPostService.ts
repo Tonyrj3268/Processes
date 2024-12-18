@@ -33,7 +33,6 @@ export class HotPostService {
                 .sort({ likesCount: -1, comments: -1, createdAt: -1 })
                 .limit(100)
                 .populate('user', 'userName accountName avatarUrl')
-                .select('-comments') // 排除 comments 欄位，減少資料量
                 .lean();
 
             // 清空當前的熱門貼文有序集合
