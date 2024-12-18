@@ -27,7 +27,6 @@ export class PostService {
             const posts = await Post.find(query)
                 .sort({ createdAt: -1, _id: -1 }) // 按 createdAt 和 _id 排序
                 .limit(limit)
-                .select('-comments') // 排除 comments 欄位，減少資料量
                 .lean(); // 使用 lean() 提升效能
 
             return posts;

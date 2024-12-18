@@ -13,7 +13,6 @@ const usePostHandler = () => {
       const response = await fetch("/api/post", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: formData,

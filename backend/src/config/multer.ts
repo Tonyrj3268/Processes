@@ -24,6 +24,9 @@ const postUpload = multer({
             cb(null, `uploads/${Date.now()}-${file.originalname}`);
         },
     }),
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 檔案最大限制為 5MB
+    },
     fileFilter: (_req: Request, file, cb) => {
         if (file.mimetype.startsWith('image/')) {
             cb(null, true);
@@ -45,6 +48,9 @@ const avatarUpload = multer({
             cb(null, `avatar/${Date.now()}-${file.originalname}`);
         },
     }),
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 檔案最大限制為 5MB
+    },
     fileFilter: (_req: Request, file, cb) => {
         if (file.mimetype.startsWith('image/')) {
             cb(null, true);
