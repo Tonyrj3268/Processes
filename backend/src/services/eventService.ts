@@ -78,6 +78,7 @@ export class EventService {
                 _id: (notification.sender as IUserDocument)._id.toString(),
                 accountName: (notification.sender as IUserDocument).accountName,
                 avatarUrl: (notification.sender as IUserDocument).avatarUrl,
+                isPublic: (notification.sender as IUserDocument).isPublic,
             },
             receiver: {
                 _id: (notification.receiver as IUserDocument)._id.toString(),
