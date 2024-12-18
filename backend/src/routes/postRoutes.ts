@@ -1,6 +1,6 @@
 // routes/postRoutes.ts
 import { Router } from "express";
-import { authenticateJWT } from "@src/middlewares/authenticateJWT";
+import { authenticateJWT, optionalAuthenticateJWT } from "@src/middlewares/authenticateJWT";
 import { postIdValidator, postId_postValidator, postValidator, getPostValidator } from "@src/middlewares/postMiddleware";
 import { postUpload } from "@src/config/multer";
 import { postController } from "@src/controllers/postController";
@@ -16,6 +16,7 @@ hotPostService.updateHotPosts();
  *   description: API endpoints for managing posts
  */
 
+router.get("/guest", optionalAuthenticateJWT, getPostValidator, postController.getAllPosts);
 /**
  * @swagger
  * /api/post/{userId}:
