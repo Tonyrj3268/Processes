@@ -255,7 +255,7 @@ export class PostController {
                 res.status(404).json({ msg: "Post not found or unauthorized" });
                 return;
             }
-
+            await this.redisClient.del(`user:${userId.toString()}:posts`);
             res.status(200).json({ msg: "Post updated successfully" });
         } catch (error) {
             console.error('Error in updatePost:', error);
@@ -285,7 +285,7 @@ export class PostController {
                 res.status(404).json({ msg: "Post not found or unauthorized" });
                 return;
             }
-
+            await this.redisClient.del(`user:${userId.toString()}:posts`);
             res.status(200).json({ msg: "Post deleted successfully" });
         } catch (error) {
             console.error('Error in deletePost:', error);
