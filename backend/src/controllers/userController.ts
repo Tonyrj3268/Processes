@@ -94,8 +94,8 @@ export class UserController {
         res.status(404).json({ msg: "找不到或已經追蹤該使用者" });
         return;
       }
-      await this.eventService.createEvent(user._id, followedId);
-        res.status(200).json({ msg: "成功追蹤使用者" });
+      await this.eventService.createEvent(user._id, followedId, "follow", {});
+      res.status(200).json({ msg: "成功追蹤使用者" });
     } catch (err) {
       console.error(err);
       res.status(500);
