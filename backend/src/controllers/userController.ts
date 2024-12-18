@@ -73,6 +73,7 @@ export class UserController {
       };
       const redisKey = `userProfile:${updatedUser._id}`;
       await this.redisClient.setex(redisKey, 600, JSON.stringify(publicFields));
+      await this.redisClient.del(`user:${updatedUser._id.toString()}:posts`);
       res.json({ msg: "使用者資料已更新", user: updatedUser.toObject() });
     } catch (err) {
       console.error(err);
