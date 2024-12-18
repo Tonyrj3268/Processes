@@ -27,30 +27,24 @@ export class PostController {
         try {
             const limit = parseInt(req.query.limit as string) || 10;
             const cursor = req.query.cursor as string;  // 上一次請求的最後一篇貼文的 _id
-            const currentUserId = (req.user as IUserDocument)._id;  // currentUserId 由 authenticateJWT 中間件注入
+            let currentUserId = undefined;
+            if (req.user !== undefined) {
+                currentUserId = (req.user as IUserDocument)._id;  // currentUserId 由 authenticateJWT 中間件注入
+            }
 
             if (limit < 1) {
                 res.status(400).json({ msg: '無效的參數' });
                 return;
             }
 
-            const allPosts = await this.postService.getAllPosts(limit, cursor, currentUserId);
-            const followPosts = await this.postService.getFollowPosts(currentUserId, 10);
-            const hotPosts = await this.hotPostsService.getHotPosts();
-
-            const combinedPosts = [...allPosts, ...followPosts, ...hotPosts];
-
-            // Shuffle function using Fisher-Yates algorithm
-            const shuffleArray = <T>(array: T[]): T[] => {
-                for (let i = array.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [array[i], array[j]] = [array[j], array[i]];
-                }
-                return array;
-            };
+            const [allPosts, hotPosts, followPosts] = await Promise.all([
+                this.postService.getAllPosts(limit, cursor, currentUserId),
+                this.hotPostsService.getHotPosts(),
+                currentUserId ? this.postService.getFollowPosts(currentUserId, 10) : Promise.resolve([]),
+            ]);
 
             // Shuffle the combined posts
-            const shuffledPosts = shuffleArray([...combinedPosts]);
+            const shuffledPosts = this.shuffleArray([...allPosts, ...followPosts, ...hotPosts]);
 
             // 如果有貼文，取得最後一篇的_id作為下一個 cursor）
             const nextCursor = shuffledPosts.length > 0
@@ -68,7 +62,7 @@ export class PostController {
                     },
                     content: post.content,
                     likesCount: post.likesCount,
-                    commentCount: post.comments?.length || 0,
+                    commentCount: post.comments.length || 0,
                     createdAt: post.createdAt
                 })),
                 nextCursor,  // 提供給前端下次請求使用
@@ -414,6 +408,13 @@ export class PostController {
             res.status(500).json({ msg: '伺服器錯誤' });
         }
     }
+    private shuffleArray = <T>(array: T[]): T[] => {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    };
 }
 
 export const postController = new PostController(postService, hotPostService, redisClient);
