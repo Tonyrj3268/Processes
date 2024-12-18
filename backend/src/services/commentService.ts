@@ -2,7 +2,6 @@ import { Types } from 'mongoose';
 import { Comment, ICommentDocument } from '@src/models/comment';
 import { Like } from '@src/models/like';
 import { Event } from '@src/models/event';
-import mongoose from 'mongoose';
 
 export class CommentService {
     /**
@@ -90,38 +89,39 @@ export class CommentService {
         commentId: Types.ObjectId,
         userId: Types.ObjectId
     ): Promise<boolean> {
-        const session = await mongoose.startSession();
         try {
-            return await session.withTransaction(async () => {
-                const comment = await Comment.findOneAndDelete(
-                    { _id: commentId, user: userId },
-                    { session }
-                );
+            // 刪除指定的評論，並確認該評論屬於指定的使用者
+            const comment = await Comment.findOneAndDelete(
+                { _id: commentId, user: userId }
+            );
 
-                if (!comment) return false;
+            if (!comment) {
+                // 如果未找到評論或使用者不匹配，返回 false
+                return false;
+            }
 
-                await Promise.all([
-                    // 刪除相關的按讚記錄
-                    Like.deleteMany({
-                        targetModel: "Comment",
-                        target: commentId
-                    }).session(session),
-                    // 刪除相關的通知
-                    Event.deleteMany({
-                        'details.commentId': commentId.toString(),
-                        eventType: { $in: ['like', 'comment'] }
-                    }).session(session)
-                ]);
+            // 同時刪除相關的按讚記錄和通知
+            await Promise.all([
+                // 刪除相關的按讚記錄
+                Like.deleteMany({
+                    targetModel: "Comment",
+                    target: commentId
+                }),
+                // 刪除相關的通知
+                Event.deleteMany({
+                    'details.commentId': commentId.toString(),
+                    eventType: { $in: ['like', 'comment'] }
+                })
+            ]);
 
-                return true;
-            });
+            // 所有操作成功，返回 true
+            return true;
         } catch (error) {
             console.error('Error in deleteComment service:', error);
             throw error;
-        } finally {
-            session.endSession();
         }
     }
+
 
     /**
      * 處理評論按讚功能
@@ -135,48 +135,52 @@ export class CommentService {
      * - 前端需要維護愛心的狀態，只在未按讚狀態下調用此API
      */
     async likeComment(commentId: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
-        const session = await mongoose.startSession();
         try {
-            return await session.withTransaction(async () => {
-                // 只檢查評論是否存在
-                const comment = await Comment.findById(commentId).session(session);
-                if (!comment) return false;
+            // 檢查評論是否存在
+            const comment = await Comment.findById(commentId);
+            if (!comment) {
+                return false;
+            }
 
-                // 直接建立按讚記錄和更新計數
-                await Promise.all([
-                    Like.create([{
-                        user: userId,
-                        target: commentId,
-                        targetModel: 'Comment'
-                    }], { session }),
-                    Comment.updateOne(
-                        { _id: commentId },
-                        { $inc: { likesCount: 1 } }
-                    ).session(session)
-                ]);
-
-                // 建立通知（如果不是自己的評論）
-                if (!comment.user.equals(userId)) {
-                    await Event.create([{
-                        sender: userId,
-                        receiver: comment.user,
-                        eventType: 'like',
-                        details: new Map([
-                            ['commentId', commentId.toString()],
-                            ['type', 'comment']
-                        ])
-                    }], { session });
-                }
-
-                return true;
+            // 建立按讚記錄
+            const like = await Like.create({
+                user: userId,
+                target: commentId,
+                targetModel: 'Comment'
             });
+
+            // 更新評論的按讚計數
+            const updateResult = await Comment.updateOne(
+                { _id: commentId },
+                { $inc: { likesCount: 1 } }
+            );
+
+            if (updateResult.modifiedCount === 0) {
+                // 如果更新失敗，移除剛剛建立的按讚記錄以維持一致性
+                await Like.deleteOne({ _id: like._id });
+                return false;
+            }
+
+            // 如果評論不是自己的，建立通知
+            if (!comment.user.equals(userId)) {
+                await Event.create({
+                    sender: userId,
+                    receiver: comment.user,
+                    eventType: 'like',
+                    details: {
+                        commentId: commentId.toString(),
+                        type: 'comment'
+                    }
+                });
+            }
+
+            return true;
         } catch (error) {
-            console.error('Error in likeComment:', error);
+            console.error('Error in likeComment service:', error);
             throw error;
-        } finally {
-            session.endSession();
         }
     }
+
 
     /**
      * 處理取消評論按讚功能
@@ -190,42 +194,49 @@ export class CommentService {
      * - 前端需要維護愛心的狀態，只在已按讚狀態下調用此API
      */
     async unlikeComment(commentId: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
-        const session = await mongoose.startSession();
         try {
-            return await session.withTransaction(async () => {
-                // 直接刪除按讚記錄
-                const result = await Like.deleteOne({
+            // 刪除按讚記錄
+            const deleteResult = await Like.deleteOne({
+                user: userId,
+                target: commentId,
+                targetModel: 'Comment'
+            });
+
+            if (deleteResult.deletedCount === 0) {
+                // 如果沒有找到按讚記錄，返回 false
+                return false;
+            }
+
+            // 更新評論的按讚計數
+            const updateResult = await Comment.updateOne(
+                { _id: commentId },
+                { $inc: { likesCount: -1 } }
+            );
+
+            if (updateResult.modifiedCount === 0) {
+                // 如果更新失敗，重新建立按讚記錄以維持一致性
+                await Like.create({
                     user: userId,
                     target: commentId,
                     targetModel: 'Comment'
-                }).session(session);
+                });
+                return false;
+            }
 
-                if (result.deletedCount === 0) {
-                    return false;
-                }
-
-                // 更新計數和刪除通知
-                await Promise.all([
-                    Comment.updateOne(
-                        { _id: commentId },
-                        { $inc: { likesCount: -1 } }
-                    ).session(session),
-                    Event.deleteOne({
-                        sender: userId,
-                        'details.commentId': commentId.toString(),
-                        eventType: 'like'
-                    }).session(session)
-                ]);
-
-                return true;
+            // 刪除相關的通知
+            await Event.deleteOne({
+                sender: userId,
+                'details.commentId': commentId.toString(),
+                eventType: 'like'
             });
+
+            return true;
         } catch (error) {
             console.error('Error in unlikeComment:', error);
             throw error;
-        } finally {
-            session.endSession();
         }
     }
+
 
     /**
      * 根據ID獲取評論

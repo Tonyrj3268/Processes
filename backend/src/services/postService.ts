@@ -3,7 +3,6 @@ import { Post, IPostDocument } from '@src/models/post';
 import { Comment } from '@src/models/comment';
 import { Like } from '@src/models/like';
 import { Event } from '@src/models/event';
-import mongoose from 'mongoose';
 import { User } from '@src/models/user';
 import { MongoServerError } from "mongodb";
 import { Follow } from '@src/models/follow';
@@ -215,39 +214,41 @@ export class PostService {
      * 3. 確保只有作者可以刪除貼文
      */
     async deletePost(postId: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
-        const session = await mongoose.startSession();
         try {
-            return await session.withTransaction(async () => {
-                // 刪除貼文並確認作者身份
-                const post = await Post.findOneAndDelete(
-                    { _id: postId, user: userId },
-                    { session }
-                );
+            // 刪除指定的貼文，並確認該貼文屬於指定的使用者
+            const post = await Post.findOneAndDelete(
+                { _id: postId, user: userId }
+            );
 
-                if (!post) return false;
+            if (!post) {
+                // 如果未找到貼文或使用者不匹配，返回 false
+                return false;
+            }
 
+            // 同時刪除相關的評論、按讚記錄和通知
+            await Promise.all([
                 // 刪除所有相關評論
-                Comment.deleteMany({ post: postId }).session(session)
+                Comment.deleteMany({ post: postId }),
                 // 刪除所有相關按讚記錄
                 Like.deleteMany({
                     target: postId,
                     targetModel: 'Post'
-                }).session(session)
+                }),
                 // 刪除所有相關通知
                 Event.deleteMany({
-                    'details.postId': postId,
+                    'details.postId': postId.toString(),
                     eventType: { $in: ['like', 'comment'] }
-                }).session(session)
+                })
+            ]);
 
-                return true;
-            });
+            // 所有操作成功，返回 true
+            return true;
         } catch (error) {
-            console.error('Error in deletePost:', error);
+            console.error('Error in deletePost service:', error);
             throw error;
-        } finally {
-            session.endSession();
         }
     }
+
 
     /**
      * 處理貼文按讚功能
@@ -270,62 +271,59 @@ export class PostService {
      *    - 建立通知（若非自己的貼文）
      */
     async likePost(postId: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
-        const session = await mongoose.startSession();
         try {
-            const result = await session.withTransaction(async () => {
-                // 檢查貼文是否存在
-                const post = await Post.findById(postId).session(session);
-                if (!post) {
-                    throw new Error("Post not found");
-                }
+            // 檢查貼文是否存在
+            const post = await Post.findById(postId);
+            if (!post) {
+                throw new Error("Post not found");
+            }
 
-                // 嘗試插入按讚記錄
-                await Like.create(
-                    [{
-                        user: userId,
-                        target: postId,
-                        targetModel: 'Post'
-                    }],
-                    { session }
-                );
-
-                // 更新貼文按讚計數
-                const postUpdateResult = await Post.updateOne(
-                    { _id: postId },
-                    { $inc: { likesCount: 1 } }
-                ).session(session);
-
-                if (postUpdateResult.modifiedCount === 0) {
-                    throw new Error("Failed to increment like count");
-                }
-
-                // 如果不是自己的貼文，建立通知
-                if (!post.user._id.equals(userId)) {
-                    await Event.create(
-                        [{
-                            sender: userId,
-                            receiver: post.user,
-                            eventType: 'like',
-                            details: { postId }
-                        }],
-                        { session }
-                    );
-                }
-
-                // 所有操作成功，返回 true
-                return true;
+            // 嘗試插入按讚記錄
+            await Like.create({
+                user: userId,
+                target: postId,
+                targetModel: 'Post'
             });
 
-            return result; // 返回事務結果
+            // 更新貼文按讚計數
+            const postUpdateResult = await Post.updateOne(
+                { _id: postId },
+                { $inc: { likesCount: 1 } }
+            );
+
+            if (postUpdateResult.modifiedCount === 0) {
+                // 如果更新失敗，移除剛剛建立的按讚記錄以維持一致性
+                await Like.deleteOne({
+                    user: userId,
+                    target: postId,
+                    targetModel: 'Post'
+                });
+                throw new Error("Failed to increment like count");
+            }
+
+            // 如果不是自己的貼文，建立通知
+            if (!post.user._id.equals(userId)) {
+                await Event.create({
+                    sender: userId,
+                    receiver: post.user,
+                    eventType: 'like',
+                    details: {
+                        postId: postId.toString(),
+                        type: 'post'
+                    }
+                });
+            }
+
+            // 所有操作成功，返回 true
+            return true;
         } catch (error: unknown) {
             if (error instanceof MongoServerError && error.code === 11000) {
                 // 重複點讚，返回 false
                 return false;
             }
             // 其他錯誤
+            console.error('Error in likePost service:', error);
             throw error;
-        } finally {
-            session.endSession(); // 確保 session 始終關閉
         }
     }
 
@@ -350,53 +348,64 @@ export class PostService {
      *    - 刪除相關通知
      */
     async unlikePost(postId: Types.ObjectId, userId: Types.ObjectId): Promise<boolean> {
-        const session = await mongoose.startSession();
         try {
-            return await session.withTransaction(async () => {
-                // 檢查按讚記錄是否存在
-                const likeRecord = await Like.findOne({
+            // 檢查按讚記錄是否存在
+            const likeRecord = await Like.findOne({
+                user: userId,
+                target: postId,
+                targetModel: 'Post'
+            });
+
+            // 如果按讚記錄不存在，直接返回 false
+            if (!likeRecord) {
+                return false;
+            }
+
+            // 刪除按讚記錄
+            const deleteResult = await Like.deleteOne({
+                _id: likeRecord._id
+            });
+
+            if (deleteResult.deletedCount === 0) {
+                // 如果刪除失敗，返回 false
+                return false;
+            }
+
+            // 更新貼文按讚計數
+            const postUpdateResult = await Post.updateOne(
+                { _id: postId },
+                { $inc: { likesCount: -1 } }
+            );
+
+            if (postUpdateResult.modifiedCount === 0) {
+                // 如果更新失敗，重新建立被刪除的按讚記錄以維持一致性
+                await Like.create({
+                    _id: likeRecord._id, // 保持原有的 _id
                     user: userId,
                     target: postId,
                     targetModel: 'Post'
-                }).session(session);
+                });
+                throw new Error('Failed to decrement like count');
+            }
 
-                // 如果按讚記錄不存在，直接返回 false
-                if (!likeRecord) {
-                    return false;
-                }
-
-                // 刪除按讚記錄
-                await Like.deleteOne({
-                    _id: likeRecord._id
-                }).session(session);
-
-                // 更新貼文按讚計數
-                const postUpdateResult = await Post.updateOne(
-                    { _id: postId },
-                    { $inc: { likesCount: -1 } }
-                ).session(session);
-
-                // 如果貼文不存在或更新失敗，拋出錯誤回滾事務
-                if (postUpdateResult.modifiedCount === 0) {
-                    throw new Error('Failed to decrement like count');
-                }
-
-                // 刪除通知（如果存在）
-                await Event.deleteOne({
-                    sender: userId,
-                    'details.postId': postId,
-                    eventType: 'like'
-                }).session(session);
-
-                return true;
+            // 刪除相關的通知
+            await Event.deleteOne({
+                sender: userId,
+                'details.postId': postId.toString(),
+                eventType: 'like'
             });
-        } catch (error) {
-            console.error('Error in unlikePost:', error);
+
+            return true;
+        } catch (error: unknown) {
+            if (error instanceof MongoServerError && error.code === 11000) {
+                // 處理重複鍵錯誤（例如重複建立相同的按讚記錄）
+                return false;
+            }
+            console.error('Error in unlikePost service:', error);
             throw error;
-        } finally {
-            session.endSession();
         }
     }
+
 
     /**
      * 新增評論到貼文
@@ -415,52 +424,59 @@ export class PostService {
         userId: Types.ObjectId,
         content: string
     ): Promise<boolean> {
-        const session = await mongoose.startSession();
         try {
-            return await session.withTransaction(async () => {
-                if (content.length > 280) {
-                    throw new Error('評論內容超過長度限制');
-                }
+            // 檢查評論內容長度
+            if (content.length > 280) {
+                throw new Error('評論內容超過長度限制');
+            }
 
-                // 檢查貼文是否存在
-                const post = await Post.findById(postId).session(session);
-                if (!post) return false;
+            // 檢查貼文是否存在
+            const post = await Post.findById(postId);
+            if (!post) {
+                return false;
+            }
 
-                // 建立新評論
-                const comment = await new Comment({
-                    user: userId,
-                    content,
-                    post: postId,
-                    comments: [],    // 支援巢狀評論
-                    likesCount: 0
-                }).save({ session });
-
-                // 更新貼文的評論列表
-                await Post.updateOne(
-                    { _id: postId },
-                    { $push: { comments: comment._id } },
-                    { session }
-                );
-
-                // 如果不是自己的貼文，建立通知
-                if (!post.user._id.equals(userId)) {
-                    await new Event({
-                        sender: userId,
-                        receiver: post.user,
-                        eventType: 'comment',
-                        details: { postId, commentId: comment._id }
-                    }).save({ session });
-                }
-
-                return true;
+            // 建立新評論
+            const comment = await Comment.create({
+                user: userId,
+                content,
+                post: postId,
+                comments: [],    // 支援巢狀評論
+                likesCount: 0
             });
-        } catch (error) {
-            console.error('Error in addComment:', error);
+
+            // 更新貼文的評論列表
+            const postUpdateResult = await Post.updateOne(
+                { _id: postId },
+                { $push: { comments: comment._id } }
+            );
+
+            if (postUpdateResult.modifiedCount === 0) {
+                // 如果更新失敗，刪除剛建立的評論以維持一致性
+                await Comment.deleteOne({ _id: comment._id });
+                throw new Error('Failed to update post with new comment');
+            }
+
+            // 如果不是自己的貼文，建立通知
+            if (!post.user._id.equals(userId)) {
+                await Event.create({
+                    sender: userId,
+                    receiver: post.user,
+                    eventType: 'comment',
+                    details: {
+                        postId: postId.toString(),
+                        commentId: comment._id.toString()
+                    }
+                });
+            }
+
+            return true;
+        } catch (error: unknown) {
+            console.error('Error in addComment service:', error);
             throw error;
-        } finally {
-            session.endSession();
         }
     }
+
 }
 
 export const postService = new PostService();

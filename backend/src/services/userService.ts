@@ -82,33 +82,39 @@ export class UserService {
 
   // 關注用戶
   async followUser(userId: Types.ObjectId, followedUserId: Types.ObjectId): Promise<boolean> {
+    // 防止用戶追蹤自己
     if (userId.equals(followedUserId)) {
       return false;
     }
+
+    // 查找執行追蹤的用戶
     const user = await User.findById(userId);
     if (!user) {
       throw new Error("用戶不存在");
     }
-    const session = await mongoose.startSession();
+
     try {
-      const result = await session.withTransaction(async () => {
-        // 嘗試創建 Follow 記錄，捕獲重複關注的錯誤
-        await Follow.create([{
-          follower: userId,
-          following: followedUserId,
-          status: user.isPublic ? "accepted" : "pending",
-        }], { session })
-
-        // 更新關注者和被關注者的計數器
-        await Promise.all([
-          User.updateOne({ _id: userId }, { $inc: { followingCount: 1 } }, { session }),
-          User.updateOne({ _id: followedUserId }, { $inc: { followersCount: 1 } }, { session }),
-        ]);
-
-        return true;
+      // 嘗試創建 Follow 記錄，捕獲重複關注的錯誤
+      const follow = await Follow.create({
+        follower: userId,
+        following: followedUserId,
+        status: user.isPublic ? "accepted" : "pending",
       });
 
-      return result;
+      // 更新關注者和被關注者的計數器
+      const [updateFollower, updateFollowing] = await Promise.all([
+        User.updateOne({ _id: userId }, { $inc: { followingCount: 1 } }),
+        User.updateOne({ _id: followedUserId }, { $inc: { followersCount: 1 } }),
+      ]);
+
+      // 檢查是否所有更新都成功
+      if (updateFollower.modifiedCount === 0 || updateFollowing.modifiedCount === 0) {
+        // 若其中一個更新失敗，進行補償性操作，刪除剛剛建立的 Follow 記錄
+        await Follow.deleteOne({ _id: follow._id });
+        return false;
+      }
+
+      return true;
     } catch (error: unknown) {
       if (error instanceof MongoServerError && error.code === 11000) {
         // 重複關注，返回 false
@@ -116,8 +122,6 @@ export class UserService {
       }
       console.error('Error in followUser:', error);
       throw new Error("伺服器錯誤");
-    } finally {
-      await session.endSession();
     }
   }
 
@@ -125,138 +129,134 @@ export class UserService {
 
   // 取消關注
   async unfollowUser(userId: Types.ObjectId, followedUserId: Types.ObjectId): Promise<boolean> {
-    // 防止對自己取消關注
+    // 防止用戶取消關注自己
     if (userId.equals(followedUserId)) {
       return false;
     }
 
-    const session = await mongoose.startSession();
     try {
-      const result = await session.withTransaction(async () => {
-        // 查找並刪除關注記錄
-        const deletedFollow = await Follow.findOneAndDelete({
-          follower: userId,
-          following: followedUserId,
-        }).session(session);
-
-        // 如果沒有找到關注關係，返回 false
-        if (!deletedFollow) {
-          await session.abortTransaction();
-          return false;
-        }
-
-        // 同時更新兩個用戶的計數器
-        await Promise.all([
-          User.updateOne(
-            { _id: userId },
-            { $inc: { followingCount: -1 } },
-            { session }
-          ),
-          User.updateOne(
-            { _id: followedUserId },
-            { $inc: { followersCount: -1 } },
-            { session }
-          ),
-        ]);
-
-        return true;
+      // 查找並刪除關注記錄
+      const deletedFollow = await Follow.findOneAndDelete({
+        follower: userId,
+        following: followedUserId,
       });
 
-      return result;
+      // 如果沒有找到關注關係，返回 false
+      if (!deletedFollow) {
+        return false;
+      }
+
+      // 更新關注者和被關注者的計數器
+      const [updateFollower, updateFollowing] = await Promise.all([
+        User.updateOne(
+          { _id: userId },
+          { $inc: { followingCount: -1 } }
+        ),
+        User.updateOne(
+          { _id: followedUserId },
+          { $inc: { followersCount: -1 } }
+        ),
+      ]);
+
+      // 檢查是否所有更新都成功
+      if (updateFollower.modifiedCount === 0 || updateFollowing.modifiedCount === 0) {
+        // 若其中一個更新失敗，進行補償性操作，重新建立刪除的 Follow 記錄
+        await Follow.create({
+          follower: userId,
+          following: followedUserId,
+          status: deletedFollow.status,
+        });
+        return false;
+      }
+
+      return true;
     } catch (error: unknown) {
-      console.error('Error in unFollowUser:', error);
+      console.error('Error in unfollowUser:', error);
       throw new Error("伺服器錯誤");
-    } finally {
-      // 確保 session 被正確結束
-      session.endSession();
     }
   }
 
   // 接受追蹤請求
   async acceptFollowRequest(userId: Types.ObjectId, followerId: Types.ObjectId): Promise<boolean> {
-    // 防止對自己接受追蹤請求
+    // 防止用戶接受自己的追蹤請求
     if (userId.equals(followerId)) {
       return false;
     }
 
-    const session = await mongoose.startSession();
     try {
-      const result = await session.withTransaction(async () => {
-        // 查找並更新 Follow 記錄
-        const updatedFollow = await Follow.findOneAndUpdate(
+      // 查找並更新 Follow 記錄
+      const updatedFollow = await Follow.findOneAndUpdate(
+        {
+          follower: followerId,
+          following: userId,
+          status: "pending",
+        },
+        { status: "accepted" }
+      );
+
+      // 如果沒有找到記錄，返回 false
+      if (!updatedFollow) {
+        return false;
+      }
+
+      // 更新被追蹤者和追蹤者的計數器
+      const [updateReceiver, updateFollower] = await Promise.all([
+        User.updateOne(
+          { _id: userId },
+          { $inc: { followersCount: 1 } }
+        ),
+        User.updateOne(
+          { _id: followerId },
+          { $inc: { followingCount: 1 } }
+        ),
+      ]);
+
+      // 檢查是否所有更新都成功
+      if (updateReceiver.modifiedCount === 0 || updateFollower.modifiedCount === 0) {
+        // 若其中一個更新失敗，進行補償性操作，將 Follow 記錄重新設為 "pending"
+        await Follow.findOneAndUpdate(
           {
             follower: followerId,
             following: userId,
-            status: "pending",
           },
-          { status: "accepted" },
-          { session }
+          { status: "pending" }
         );
+        return false;
+      }
 
-        // 如果沒有找到記錄，返回 false
-        if (!updatedFollow) {
-          await session.abortTransaction();
-          return false;
-        }
-
-        // 更新兩個用戶的計數器
-        await Promise.all([
-          User.updateOne(
-            { _id: userId },
-            { $inc: { followersCount: 1 } },
-            { session }
-          ),
-          User.updateOne(
-            { _id: followerId },
-            { $inc: { followingCount: 1 } },
-            { session }
-          ),
-        ]);
-
-        return true;
-      });
-
-      return result;
+      return true;
     } catch (error: unknown) {
       console.error('Error in acceptFollowRequest:', error);
       throw new Error("伺服器錯誤");
-    } finally {
-      session.endSession();
     }
   }
 
   // 取消追蹤請求
   async rejectFollowRequest(userId: Types.ObjectId, followerId: Types.ObjectId): Promise<boolean> {
-    // 防止對自己取消追蹤請求
+    // 防止用戶取消自己的追蹤請求
     if (userId.equals(followerId)) {
       return false;
     }
 
-    const session = await mongoose.startSession();
     try {
-      const result = await session.withTransaction(async () => {
-        // 查找並刪除 Follow 記錄
-        const deletedFollow = await Follow.findOneAndDelete({
-          follower: followerId,
-          following: userId,
-          status: "pending",
-        }).session(session);
-
-        // 如果沒有找到記錄，返回 false
-        if (!deletedFollow) {
-          await session.abortTransaction();
-          return false;
-        }
-
-        return true;
+      // 查找並刪除 Follow 記錄
+      const deletedFollow = await Follow.findOneAndDelete({
+        follower: followerId,
+        following: userId,
+        status: "pending",
       });
 
-      return result;
+      // 如果沒有找到記錄，返回 false
+      if (!deletedFollow) {
+        return false;
+      }
+
+      // 由於是拒絕追蹤請求，不需要更新計數器
+
+      return true;
     } catch (error: unknown) {
-      console.error('Error in cancelFollowRequest:', error);
+      console.error('Error in rejectFollowRequest:', error);
       throw new Error("伺服器錯誤");
-    } finally {
-      session.endSession();
     }
   }
 
