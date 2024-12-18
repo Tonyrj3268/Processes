@@ -1,7 +1,7 @@
 // routes/postRoutes.ts
 import { Router } from "express";
 import { authenticateJWT, optionalAuthenticateJWT } from "@src/middlewares/authenticateJWT";
-import { postIdValidator, postId_postValidator, postValidator, getPostValidator } from "@src/middlewares/postMiddleware";
+import { postIdValidator, postId_postValidator, postValidator, getPostValidator, updatePostValidator } from "@src/middlewares/postMiddleware";
 import { postUpload } from "@src/config/multer";
 import { postController } from "@src/controllers/postController";
 import { hotPostService } from "@src/services/hotPostService";
@@ -170,7 +170,7 @@ router.post("/", authenticateJWT, postValidator, postUpload.array('images', 5), 
  *       200:
  *         description: Post updated successfully
  */
-router.patch("/:postId", authenticateJWT, postId_postValidator, postController.updatePost);
+router.patch("/:postId", authenticateJWT, updatePostValidator, postController.updatePost);
 
 /**
  * @swagger

@@ -17,7 +17,7 @@ export class EventService {
         const query: FilterQuery<IEventDocument> = { receiver: user };
         const notifications = await Event.find(query)
             .sort({ timestamp: -1 })
-            .populate('sender', 'accountName avatarUrl')  // 僅選擇用戶名和圖片
+            .populate('sender', 'accountName avatarUrl isPublic')  // 僅選擇用戶名和圖片
             .populate('receiver', 'accountName avatarUrl')
             .lean();
         return notifications;

@@ -22,3 +22,12 @@ export const getPostValidator = [
         .withMessage("Invalid cursor"),
 ];
 export const postId_postValidator = [...postIdValidator, ...postValidator];
+
+export const updatePostValidator = [
+    ...postIdValidator,
+    body('content')
+        .isString()
+        .withMessage('updated content must be a string')
+        .isLength({ min: 1, max: 280 })
+        .withMessage('post must be between 1 and 280 characters'),
+];

@@ -52,14 +52,26 @@ const Home: React.FC = () => {
         setLoading(true);
       }
 
+      const token = localStorage.getItem("token");
+      const isGuest = !token; // 判斷是否為訪客
+
       const queryParams = new URLSearchParams();
       queryParams.append("limit", "10");
       if (cursor) queryParams.append("cursor", cursor);
 
-      const response = await fetch(`/api/post?${queryParams.toString()}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+      // 根據是否為訪客選擇不同的 API 端點
+      const apiEndpoint = isGuest ? `/api/post/guest` : `/api/post`;
+
+      // 設置請求頭
+      let headers = {};
+      if (token) {
+        headers = {
+          Authorization: `Bearer ${token}`,
+        };
+      }
+
+      const response = await fetch(`${apiEndpoint}?${queryParams.toString()}`, {
+        headers,
       });
 
       if (!response.ok) {
