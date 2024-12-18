@@ -18,7 +18,13 @@ interface EditProfileDialogProps {
   avatarUrl: string;
   bio: string;
   isPublic: boolean;
-  onSaveSuccess: () => void;
+  // eslint-disable-next-line no-unused-vars
+  onSaveSuccess: (updatedProfile: {
+    userName: string;
+    avatarUrl: string;
+    bio: string;
+    isPublic: boolean;
+  }) => void;
 }
 
 const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
@@ -50,7 +56,7 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
       const token = localStorage.getItem("token");
       const formData = new FormData();
       formData.append("userName", userName);
-      formData.append("bio", bio);
+      formData.append("bio", bio.trim() || "");
       formData.append("isPublic", JSON.stringify(isPublic));
 
       const fileInput = fileInputRef.current;
@@ -72,7 +78,13 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
 
       const data = await response.json();
       setAvatarUrl(data.user.avatarUrl);
-      onSaveSuccess();
+      onSaveSuccess({
+        userName: data.user.userName,
+        avatarUrl: data.user.avatarUrl,
+        bio: data.user.bio || "",
+        isPublic: data.user.isPublic,
+      });
+
       onClose();
     } catch (error) {
       console.error("Error updating user profile:", error);

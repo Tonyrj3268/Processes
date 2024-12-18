@@ -7,12 +7,15 @@ import {
   CircularProgress,
   IconButton,
   Button,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import PostDialog from "../components/PostDialog";
 import { useOutletContext } from "react-router-dom";
 import usePostHandler from "../hooks/usePostHandler";
+import { MoreHoriz } from "@mui/icons-material";
 
 interface Post {
   postId: string;
@@ -31,6 +34,10 @@ interface Post {
 const Posts: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null); // 控制選單
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null); // 儲存當前選中的貼文
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [updatedContent, setUpdatedContent] = useState("");
 
   const userData = useOutletContext<{
     userId: string;
@@ -70,15 +77,106 @@ const Posts: React.FC = () => {
       }
 
       const data = await response.json();
-      console.log("Posts fetched:", data.posts);
-
-      setPosts(data.posts || []);
+      setPosts((prev) => {
+        const existingIds = new Set(prev.map((post) => post.postId));
+        const uniquePosts = data.posts.filter(
+          (post: Post) => !existingIds.has(post.postId),
+        );
+        return [...prev, ...uniquePosts];
+      });
+      // setPosts(data.posts || []);
     } catch (error) {
       console.error("Error fetching user posts:", error);
     } finally {
       setLoading(false);
     }
   }, [userData?.userId]);
+
+  const handleUpdatePost = async (formData: FormData) => {
+    if (!selectedPost) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("Token is missing in localStorage");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/post/${selectedPost.postId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update post: ${response.status}`);
+      }
+
+      const updatedPost = await response.json();
+
+      // 更新成功後刷新本地狀態
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.postId === selectedPost.postId
+            ? { ...post, content: updatedPost.content }
+            : post,
+        ),
+      );
+
+      console.log("Post updated successfully");
+      setUpdateDialogOpen(false);
+      handleMenuClose();
+    } catch (error) {
+      console.error("Error updating post:", error);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!selectedPost) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("Token is missing in localStorage");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/post/${selectedPost.postId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete post: ${response.status}`);
+      }
+
+      // 刪除成功後更新前端狀態
+      setPosts((prev) =>
+        prev.filter((post) => post.postId !== selectedPost.postId),
+      );
+      console.log("Post deleted successfully");
+
+      // 關閉選單
+      handleMenuClose();
+    } catch (error) {
+      console.error("Error deleting post:", error);
+    }
+  };
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, post: Post) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedPost(post);
+    setUpdatedContent(post.content);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedPost(null);
+  };
 
   useEffect(() => {
     if (userData?.userId) {
@@ -87,7 +185,7 @@ const Posts: React.FC = () => {
     } else {
       console.warn("UserData is missing or incomplete:", userData);
     }
-  }, [fetchPosts]);
+  }, [fetchPosts, userData]);
 
   return (
     <Box>
@@ -131,6 +229,7 @@ const Posts: React.FC = () => {
         onSubmit={handleSubmit}
         accountName={userData?.accountName}
         avatarUrl={userData?.avatarUrl}
+        title={"新串文"}
       />
 
       <Divider sx={{ marginY: "16px" }} />
@@ -164,6 +263,12 @@ const Posts: React.FC = () => {
                   {new Date(post.createdAt).toLocaleString()}
                 </Typography>
               </Box>
+              <IconButton
+                onClick={(e) => handleMenuOpen(e, post)}
+                sx={{ marginLeft: "auto" }}
+              >
+                <MoreHoriz />
+              </IconButton>
             </Box>
             <Typography
               sx={{ marginY: "8px", fontSize: "15px", paddingLeft: "8px" }}
@@ -198,6 +303,39 @@ const Posts: React.FC = () => {
           </Box>
         ))
       )}
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        PaperProps={{
+          sx: { width: 150, borderRadius: "10px" },
+        }}
+      >
+        <MenuItem
+          onClick={() => setUpdateDialogOpen(true)}
+          sx={{ color: "black" }}
+        >
+          編輯
+        </MenuItem>
+        <MenuItem onClick={handleDeletePost} sx={{ color: "red" }}>
+          刪除
+        </MenuItem>
+      </Menu>
+
+      {/* 更新對話框 */}
+      <PostDialog
+        open={updateDialogOpen}
+        onClose={() => {
+          setUpdateDialogOpen(false);
+          handleMenuClose();
+        }}
+        onSubmit={handleUpdatePost}
+        accountName={userData?.accountName || ""}
+        avatarUrl={userData?.avatarUrl || ""}
+        initialContent={updatedContent}
+        title="編輯貼文"
+      />
     </Box>
   );
 };

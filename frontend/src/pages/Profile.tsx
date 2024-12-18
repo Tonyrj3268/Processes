@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Box } from "@mui/material";
 import ProfileHeader from "../components/ProfileHeader";
 import ProfileTabs from "../components/ProfileTab";
@@ -15,7 +15,23 @@ interface UserContext {
 }
 
 const Profile: React.FC = () => {
-  const userData = useOutletContext<UserContext | null>();
+  const initialUserData = useOutletContext<UserContext | null>();
+  const [userData, setUserData] = useState(initialUserData);
+
+  const handleProfileUpdate = (updatedProfile: {
+    userName: string;
+    avatarUrl: string;
+    bio: string;
+    isPublic: boolean;
+  }) => {
+    setUserData((prev) => ({
+      ...prev,
+      ...updatedProfile,
+      userId: prev?.userId || "",
+      accountName: prev?.accountName || "",
+      followersCount: prev?.followersCount || 0,
+    }));
+  };
 
   return (
     <Box className="page">
@@ -27,8 +43,7 @@ const Profile: React.FC = () => {
           avatarUrl={userData.avatarUrl}
           bio={userData.bio}
           isPublic={userData.isPublic}
-          // eslint-disable-next-line @typescript-eslint/no-empty-function
-          onProfileUpdate={() => {}}
+          onProfileUpdate={handleProfileUpdate} // 傳遞更新回調函數
         />
       )}
       <ProfileTabs />
