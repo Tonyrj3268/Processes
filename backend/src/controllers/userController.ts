@@ -1,12 +1,13 @@
 // controllers/userController.ts
 import { Request, Response } from "express";
 import { userService, UserService } from "@src/services/userService";
+import { eventService, EventService } from "@src/services/eventService";
 import { IUserDocument } from "@src/models/user";
 import { Types } from 'mongoose';
 import { Redis } from "ioredis";
 import redisClient from "@src/config/redis";
 export class UserController {
-  constructor(private userService: UserService, private redisClient: Redis) { }
+  constructor(private userService: UserService, private eventService: EventService, private redisClient: Redis) { }
 
   // 獲取用戶資料
   getUserProfile = async (req: Request, res: Response): Promise<void> => {
@@ -93,7 +94,8 @@ export class UserController {
         res.status(404).json({ msg: "找不到或已經追蹤該使用者" });
         return;
       }
-      res.status(200).json({ msg: "成功追蹤使用者" });
+      await this.eventService.createEvent(user._id, followedId);
+        res.status(200).json({ msg: "成功追蹤使用者" });
     } catch (err) {
       console.error(err);
       res.status(500);
@@ -156,4 +158,4 @@ export class UserController {
 }
 
 // 預設導出一個實例，方便直接使用
-export const userController = new UserController(userService, redisClient);
+export const userController = new UserController(userService, eventService, redisClient);
