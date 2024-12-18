@@ -142,6 +142,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userData }) => {
         onSubmit={handleSubmit}
         accountName={userData?.accountName || "Default User"}
         avatarUrl={userData?.avatarUrl || "/default_avatar.jpg"}
+        title="新串文"
       />
     </Box>
   );

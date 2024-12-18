@@ -61,11 +61,12 @@ const MainLayout: React.FC = () => {
           accountName: data.accountName,
           avatarUrl: data.avatarUrl || "/default_avatar.jpg",
           bio: data.bio || "尚未設定個人簡介",
-          isPublic: data.isPublic ?? false,
+          isPublic: data.isPublic || false,
           followersCount: data.followersCount ?? 0,
         });
       } catch (error) {
         console.error("Error fetching user data:", error);
+        localStorage.removeItem("token"); // Remove invalid token
       }
     };
 
@@ -131,6 +132,7 @@ const MainLayout: React.FC = () => {
             onSubmit={handleSubmit}
             accountName={userData?.accountName || "Default User"}
             avatarUrl={userData?.avatarUrl || "/default_avatar.jpg"}
+            title="新串文"
           />
         </Box>
       </Box>

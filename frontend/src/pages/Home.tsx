@@ -66,7 +66,16 @@ const Home: React.FC = () => {
       }
 
       const data = await response.json();
-      setPosts((prev) => [...prev, ...data.posts]);
+      // setPosts((prev) => [...prev, ...data.posts]);
+
+      setPosts((prev) => {
+        const uniquePosts = new Map();
+        [...prev, ...data.posts].forEach((post) => {
+          uniquePosts.set(post.postId, post);
+        });
+        return Array.from(uniquePosts.values());
+      });
+
       setNextCursor(data.nextCursor);
     } catch (error) {
       console.error("Error fetching posts:", error);
@@ -207,6 +216,7 @@ const Home: React.FC = () => {
         onSubmit={handleSubmit}
         accountName={userData?.accountName}
         avatarUrl={userData?.avatarUrl}
+        title="新串文"
       />
     </Box>
   );

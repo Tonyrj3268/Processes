@@ -7,9 +7,7 @@ const usePostHandler = () => {
 
   const handleCloseDialog = () => setDialogOpen(false);
 
-  const handleSubmit = async (content: string) => {
-    console.log("New Post Content:", content);
-
+  const handleSubmit = async (formData: FormData) => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch("/api/post", {
@@ -18,7 +16,7 @@ const usePostHandler = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ content }),
+        body: formData,
       });
 
       if (!response.ok) {
