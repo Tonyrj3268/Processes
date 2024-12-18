@@ -63,7 +63,8 @@ export class PostController {
                     content: post.content,
                     likesCount: post.likesCount,
                     commentCount: post.comments.length || 0,
-                    createdAt: post.createdAt
+                    createdAt: post.createdAt,
+                    images: post.images
                 })),
                 nextCursor,  // 提供給前端下次請求使用
             });
@@ -75,7 +76,7 @@ export class PostController {
     getPersonalPosts = async (req: Request, res: Response): Promise<void> => {
         try {
             const limit = parseInt(req.query.limit as string) || 10;
-            const cursor = req.query.cursor as string;  // 上一次請求的最後一篇貼文的 _id
+            const cursorStr = req.query.cursor as string;  // 上一次請求的最後一篇貼文的 _id
             const currentUserId = (req.user as IUserDocument)._id;  // currentUserId 由 authenticateJWT 中間件注入
             const targetUserId = req.params.userId;
 
@@ -92,33 +93,31 @@ export class PostController {
             // 定義 Redis 列表鍵
             const redisKey = `user:${targetUserId}:posts`;
 
-            let start: number;
-            let end: number;
+            let start: number = 0;
 
-            if (cursor) {
-                // 使用貼文的 _id 作為游標
-                // 首先找到該貼文在列表中的索引
-                const cursorIndex = await this.redisClient.lpos(redisKey, cursor);
-                if (cursorIndex === null) {
+            if (cursorStr) {
+                // 使用數字作為分頁游標
+                const cursor = parseInt(cursorStr);
+                if (isNaN(cursor) || cursor < 0) {
                     res.status(400).json({ msg: '無效的游標' });
                     return;
                 }
-                start = cursorIndex + 1;
-                end = start + limit - 1;
-            } else {
-                // 無游標，從列表頭部獲取最新的貼文
-                start = 0;
-                end = limit - 1;
+                start = cursor + 1; // 從游標位置的下一個貼文開始
             }
+
+            const end = start + limit - 1;
 
             // 從 Redis 獲取貼文
             const cachedPosts = await this.redisClient.lrange(redisKey, start, end);
+
             if (cachedPosts.length > 0) {
                 const parsedPosts = cachedPosts.map(post => JSON.parse(post));
 
                 // 計算下一個游標
                 const listLength = await this.redisClient.llen(redisKey);
-                const nextCursor = end + 1 < listLength ? parsedPosts[parsedPosts.length - 1].postId : null;
+                const hasMore = end + 1 < listLength;
+                const nextCursor = hasMore ? parsedPosts[parsedPosts.length - 1].createdAt : null;
+
                 res.status(200).json({
                     posts: parsedPosts,
                     nextCursor,  // 提供給前端下次請求使用
@@ -127,14 +126,14 @@ export class PostController {
             }
 
             // 如果 Redis 中沒有快取，從資料庫查詢
-            const posts = await this.postService.getPersonalPosts(limit, currentUserId, cursor);
+            const posts = await this.postService.getPersonalPosts(new Types.ObjectId(targetUserId));
 
-            // 如果有貼文，取得最後一篇的_id作為下一個 cursor
-            const nextCursor = posts.length > 0 ? posts[posts.length - 1]._id.toString() : null;
+            // 如果有貼文，取得最後一篇的 createdAt 作為下一個 cursor
+            const nextCursor = posts.length > 0 ? start + posts.length - 1 : null;
 
             // 組織回傳資料結構
             const responseData = {
-                posts: posts.map(post => ({
+                posts: posts.map((post) => ({
                     postId: post._id.toString(),
                     author: {
                         id: targetUser._id.toString(),
@@ -145,7 +144,8 @@ export class PostController {
                     content: post.content,
                     likesCount: post.likesCount,
                     commentCount: post.comments?.length || 0,
-                    createdAt: post.createdAt
+                    createdAt: post.createdAt.toISOString(),
+                    images: post.images
                 })),
                 nextCursor,  // 提供給前端下次請求使用
             };
@@ -165,7 +165,7 @@ export class PostController {
             console.error('Error in getPersonalPosts:', error);
             res.status(500).json({ msg: '伺服器錯誤' });
         }
-    }
+    };
 
     /**
      * 建立新貼文
@@ -255,7 +255,32 @@ export class PostController {
                 res.status(404).json({ msg: "Post not found or unauthorized" });
                 return;
             }
-            await this.redisClient.del(`user:${userId.toString()}:posts`);
+            this.redisClient.lrange(`user:${userId}:posts`, 0, -1, async (err, posts) => {
+                if (err) {
+                    console.error('Error fetching posts from Redis:', err);
+                    return;
+                }
+
+                // 更新貼文內容
+                if (!posts) {
+                    res.status(500).json({ msg: '伺服器錯誤' });
+                    return;
+                }
+                const updatedPosts = posts.map(postStr => {
+                    const post = JSON.parse(postStr);
+                    if (post.postId === postId) {
+                        post.content = content;  // 更新內容
+                    }
+                    return JSON.stringify(post);
+                });
+
+                // 重新設置 Redis 列表
+                const pipeline = this.redisClient.pipeline();
+                pipeline.del(`user:${userId}:posts`); // 清空舊列表
+                pipeline.rpush(`user:${userId}:posts`, ...updatedPosts); // 推入更新後的列表
+                await pipeline.exec();
+            });
+
             res.status(200).json({ msg: "Post updated successfully" });
         } catch (error) {
             console.error('Error in updatePost:', error);

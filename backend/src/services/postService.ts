@@ -9,14 +9,9 @@ import { Follow } from '@src/models/follow';
 import redisClient from '@src/config/redis';
 
 export class PostService {
-    async getPersonalPosts(limit: number, userId: Types.ObjectId, cursor?: string): Promise<IPostDocument[]> {
+    async getPersonalPosts(userId: Types.ObjectId): Promise<IPostDocument[]> {
         try {
             const query: FilterQuery<IPostDocument> = {};
-
-            // 添加游標條件，實現分頁
-            if (cursor) {
-                query._id = { $lt: cursor }; // _id 必須小於游標
-            }
 
             // 構建訪問權限查詢條件
             query.$or = [
@@ -24,8 +19,7 @@ export class PostService {
             ];
 
             const posts = await Post.find(query)
-                .sort({ createdAt: -1, _id: -1 }) // 按 createdAt 和 _id 排序
-                .limit(limit)
+                .sort({ createdAt: -1 }) // 按 createdAt 排序
                 .lean(); // 使用 lean() 提升效能
 
             return posts;
