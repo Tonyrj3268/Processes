@@ -6,6 +6,7 @@ export interface IFollow extends Document {
   follower: Types.ObjectId;
   following: Types.ObjectId;
   createdAt: Date;
+  status: "pending" | "accepted";
 }
 
 export type IFollowDocument = HydratedDocument<IFollow>
@@ -24,6 +25,11 @@ const followSchema: Schema = new Schema({
   createdAt: {
     type: Date,
     default: Date.now,
+  },
+  status: {
+    type: String,
+    enum: ["pending", "accepted"],
+    default: "accepted",
   },
 });
 

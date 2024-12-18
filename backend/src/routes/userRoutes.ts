@@ -291,4 +291,10 @@ router.post("/follow", authenticateJWT, followUserValidators, userController.fol
  *         description: Server error
  */
 router.post("/unfollow", authenticateJWT, followUserValidators, userController.unfollowUser);
+
+// 接受用戶追隨
+router.post("/accept-follow", authenticateJWT, followUserValidators, userController.acceptFollowRequest);
+
+// 拒絕用戶追隨
+router.post("/reject-follow", authenticateJWT, followUserValidators, userController.rejectFollowRequest);
 export default router;

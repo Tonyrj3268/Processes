@@ -115,6 +115,42 @@ export class UserController {
       res.status(500);
     }
   }
+
+  // 接受用戶追隨
+  acceptFollowRequest = async (req: Request, res: Response): Promise<void> => {
+    const user = req.user as IUserDocument;
+    const { userId } = req.body as { userId: string };
+    const followerId = new Types.ObjectId(userId);
+    try {
+      const result = await this.userService.acceptFollowRequest(user._id, followerId);
+      if (!result) {
+        res.status(404).json({ msg: "找不到或尚未追蹤該使用者" });
+        return;
+      }
+      res.status(200).json({ msg: "成功接受追蹤" });
+    } catch (err) {
+      console.error(err);
+      res.status(500);
+    }
+  }
+
+  // 拒絕用戶追隨
+  rejectFollowRequest = async (req: Request, res: Response): Promise<void> => {
+    const user = req.user as IUserDocument;
+    const { userId } = req.body as { userId: string };
+    const followerId = new Types.ObjectId(userId);
+    try {
+      const result = await this.userService.rejectFollowRequest(user._id, followerId);
+      if (!result) {
+        res.status(404).json({ msg: "找不到或尚未追蹤該使用者" });
+        return;
+      }
+      res.status(200).json({ msg: "已拒絕追蹤" });
+    } catch (err) {
+      console.error(err);
+      res.status(500);
+    }
+  }
 }
 
 // 預設導出一個實例，方便直接使用
