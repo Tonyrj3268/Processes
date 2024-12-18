@@ -28,7 +28,7 @@ const Profile: React.FC = () => {
           bio={userData.bio}
           isPublic={userData.isPublic}
           // eslint-disable-next-line @typescript-eslint/no-empty-function
-          onProfileUpdate={() => { }}
+          onProfileUpdate={() => {}}
         />
       )}
       <ProfileTabs />

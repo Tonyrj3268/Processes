@@ -95,7 +95,10 @@ const MainLayout: React.FC = () => {
       <Header title={pageTitle || "Processes"} />
       <Box sx={{ display: "flex", flex: 1 }}>
         <Sidebar userData={userData} />
-        <Box component="main" sx={{ flex: 1 }}>
+        <Box
+          component="main"
+          sx={{ flex: 1, paddingTop: "64px", overflowY: "auto" }}
+        >
           <Outlet context={userData} />
           <Fab
             aria-label="add"
