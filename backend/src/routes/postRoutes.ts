@@ -170,7 +170,7 @@ router.post("/", authenticateJWT, postValidator, postUpload.array('images', 5), 
  *       200:
  *         description: Post updated successfully
  */
-router.patch("/:postId", authenticateJWT, updatePostValidator, postController.updatePost);
+router.patch("/:postId", authenticateJWT, postUpload.array('images', 5), updatePostValidator, postController.updatePost);
 
 /**
  * @swagger

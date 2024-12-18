@@ -241,6 +241,9 @@ export class PostController {
         try {
             const { postId } = req.params;
             const { content } = req.body;
+            const images = req.files
+                ? (req.files as Express.MulterS3.File[]).map(file => file.location)
+                : [];
             const userId = (req.user as IUserDocument)._id;
 
             // 使用 Types.ObjectId 轉換字串 ID，確保格式正確
