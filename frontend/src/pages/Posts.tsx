@@ -9,6 +9,10 @@ import {
   Button,
   Menu,
   MenuItem,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Dialog,
 } from "@mui/material";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
@@ -39,6 +43,7 @@ const Posts: React.FC = () => {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null); // 儲存當前選中的貼文
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [updatedContent, setUpdatedContent] = useState("");
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const userData = useOutletContext<{
     userId: string;
@@ -158,6 +163,7 @@ const Posts: React.FC = () => {
       handleMenuClose();
     } catch (error) {
       console.error("Error deleting post:", error);
+      alert("刪除失敗，請稍後再試。");
     }
   };
 
@@ -171,6 +177,9 @@ const Posts: React.FC = () => {
     setAnchorEl(null);
     setSelectedPost(null);
   };
+
+  const handleConfirmDeleteOpen = () => setConfirmDeleteOpen(true);
+  const handleConfirmDeleteClose = () => setConfirmDeleteOpen(false);
 
   useEffect(() => {
     if (userData?.userId) {
@@ -332,7 +341,7 @@ const Posts: React.FC = () => {
       )}
 
       <Menu
-        anchorEl={anchorEl}
+        anchorEl={anchorEl || document.body}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
         PaperProps={{
@@ -345,7 +354,7 @@ const Posts: React.FC = () => {
         >
           編輯
         </MenuItem>
-        <MenuItem onClick={handleDeletePost} sx={{ color: "red" }}>
+        <MenuItem onClick={handleConfirmDeleteOpen} sx={{ color: "red" }}>
           刪除
         </MenuItem>
       </Menu>
@@ -363,6 +372,42 @@ const Posts: React.FC = () => {
         initialContent={updatedContent}
         title="編輯貼文"
       />
+
+      {/* 刪除確認對話框 */}
+      <Dialog
+        open={confirmDeleteOpen}
+        onClose={handleConfirmDeleteClose}
+        PaperProps={{
+          sx: { borderRadius: "20px", padding: "8px" },
+        }}
+      >
+        <DialogTitle>刪除貼文？</DialogTitle>
+        <DialogContent>
+          <Typography>刪除這則貼文後，即無法恢復顯示。</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleConfirmDeleteClose}
+            sx={{ color: "#888", fontSize: "16px", textTransform: "none" }}
+          >
+            取消
+          </Button>
+          <Button
+            onClick={async () => {
+              await handleDeletePost(); // 執行刪除貼文邏輯
+              handleConfirmDeleteClose(); // 關閉對話框
+            }}
+            sx={{
+              textTransform: "none",
+              color: "red",
+              fontWeight: "bold",
+              fontSize: "16px",
+            }}
+          >
+            刪除
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
