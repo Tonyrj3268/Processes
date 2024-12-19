@@ -1,5 +1,6 @@
+// routes.tsx
 import React from "react";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout";
 import Home from "./pages/Home";
 import Search from "./pages/Search";
@@ -10,6 +11,20 @@ import Register from "./pages/Register";
 import Replies from "./pages/Replies";
 import Reposts from "./pages/Reposts";
 import Posts from "./pages/Posts";
+import { useUser } from "./contexts/UserContext";
+
+// 保護路由組件
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  // const { userData, isLoading } = useUser();
+  // const token = localStorage.getItem('token');
+
+  // 沒有 token 強制拉回登入頁面 (會影響首頁 guest，先註解掉)
+  // if (!token && !isLoading) {
+  //   return <Navigate to="/login" replace />;
+  // }
+
+  return <>{children}</>;
+};
 
 const router = createBrowserRouter([
   {
@@ -24,7 +39,11 @@ const router = createBrowserRouter([
   },
   {
     path: "/",
-    element: <MainLayout />,
+    element: (
+      <ProtectedRoute>
+        <MainLayout />
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, element: <Home />, handle: { title: "首頁" } },
       {

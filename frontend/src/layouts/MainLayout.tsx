@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+// layouts/MainLayout.tsx
+import React, { useEffect } from "react";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import { Box, Fab } from "@mui/material";
@@ -6,73 +7,20 @@ import AddIcon from "@mui/icons-material/Add";
 import { Outlet, useMatches } from "react-router-dom";
 import PostDialog from "../components/PostDialog";
 import usePostHandler from "../hooks/usePostHandler";
-import { jwtDecode } from "jwt-decode";
+import { useUser } from '../contexts/UserContext';
 
 interface RouteHandle {
   title?: string;
 }
 
-interface UserData {
-  userId: string;
-  userName: string;
-  accountName: string;
-  avatarUrl: string;
-  bio: string;
-  isPublic: boolean;
-  followersCount: number;
-}
-
 const MainLayout: React.FC = () => {
   const matches = useMatches();
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const { userData } = useUser();
 
   const { dialogOpen, handleOpenDialog, handleCloseDialog, handleSubmit } =
     usePostHandler();
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("No token found");
-        return;
-      }
-
-      const decoded = jwtDecode<{ id: string }>(token);
-      const userId = decoded.id;
-
-      try {
-        console.log("Fetching user data for userId:", userId);
-        const response = await fetch(`/api/user/${userId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch user data");
-        }
-
-        const data = await response.json();
-        console.log("User data fetched from API:", data);
-
-        setUserData({
-          userId: data._id,
-          userName: data.userName,
-          accountName: data.accountName,
-          avatarUrl: data.avatarUrl || "/default_avatar.jpg",
-          bio: data.bio || "尚未設定個人簡介",
-          isPublic: data.isPublic || false,
-          followersCount: data.followersCount ?? 0,
-        });
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        localStorage.removeItem("token"); // Remove invalid token
-      }
-    };
-
-    fetchUserData();
-  }, []);
-
+  // 處理頁面標題
   useEffect(() => {
     const currentMatch = matches.find(
       (match) => (match.handle as RouteHandle)?.title,
@@ -119,12 +67,7 @@ const MainLayout: React.FC = () => {
               },
             }}
           >
-            <AddIcon
-              sx={{
-                fontSize: "36px",
-                fontWeight: "bold",
-              }}
-            />
+            <AddIcon sx={{ fontSize: "36px", fontWeight: "bold" }} />
           </Fab>
           <PostDialog
             open={dialogOpen}

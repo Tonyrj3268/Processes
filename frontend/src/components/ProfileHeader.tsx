@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Avatar, Box, Button, Typography } from "@mui/material";
 import EditProfileDialog from "./EditProfileDialog";
+import { useUser } from '../contexts/UserContext';
 
 interface ProfileHeaderProps {
   userName: string;
@@ -10,12 +11,12 @@ interface ProfileHeaderProps {
   bio: string;
   isPublic: boolean;
   // eslint-disable-next-line no-unused-vars
-  onProfileUpdate: (updatedProfile: {
-    userName: string;
-    avatarUrl: string;
-    bio: string;
-    isPublic: boolean;
-  }) => void;
+  // onProfileUpdate: (updatedProfile: {
+  //   userName: string;
+  //   avatarUrl: string;
+  //   bio: string;
+  //   isPublic: boolean;
+  // }) => void;
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -25,32 +26,44 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   avatarUrl,
   bio,
   isPublic,
-  onProfileUpdate,
+  // onProfileUpdate,
 }) => {
   // 本地管理狀態
-  const [currentUserName, setCurrentUserName] = useState(userName);
-  const [currentAvatarUrl, setCurrentAvatarUrl] = useState(avatarUrl);
-  const [currentBio, setCurrentBio] = useState(bio);
-  const [currentIsPublic, setCurrentIsPublic] = useState(isPublic);
+  // const [currentUserName, setCurrentUserName] = useState(userName);
+  // const [currentAvatarUrl, setCurrentAvatarUrl] = useState(avatarUrl);
+  // const [currentBio, setCurrentBio] = useState(bio);
+  // const [currentIsPublic, setCurrentIsPublic] = useState(isPublic);
+  // const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  // // 打開和關閉對話框
+  // const handleOpenDialog = () => setEditDialogOpen(true);
+  // const handleCloseDialog = () => setEditDialogOpen(false);
+
+  // // 更新本地狀態
+  // const handleSaveSuccess = (updatedProfile: {
+  //   userName: string;
+  //   avatarUrl: string;
+  //   bio: string;
+  //   isPublic: boolean;
+  // }) => {
+  //   setCurrentUserName(updatedProfile.userName);
+  //   setCurrentAvatarUrl(updatedProfile.avatarUrl);
+  //   setCurrentBio(updatedProfile.bio);
+  //   setCurrentIsPublic(updatedProfile.isPublic);
+
+  //   onProfileUpdate(updatedProfile);
+  // };
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const { refreshUserData } = useUser();
 
   // 打開和關閉對話框
   const handleOpenDialog = () => setEditDialogOpen(true);
   const handleCloseDialog = () => setEditDialogOpen(false);
 
-  // 更新本地狀態
-  const handleSaveSuccess = (updatedProfile: {
-    userName: string;
-    avatarUrl: string;
-    bio: string;
-    isPublic: boolean;
-  }) => {
-    setCurrentUserName(updatedProfile.userName);
-    setCurrentAvatarUrl(updatedProfile.avatarUrl);
-    setCurrentBio(updatedProfile.bio);
-    setCurrentIsPublic(updatedProfile.isPublic);
-
-    onProfileUpdate(updatedProfile);
+  // Dialog關閉後的處理
+  const handleDialogClose = async () => {
+    await refreshUserData(); // 刷新用戶數據
+    handleCloseDialog();
   };
 
   return (
@@ -69,21 +82,21 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       >
         <Box>
           <Typography fontSize="24px" fontWeight="600">
-            {currentUserName}
+            {userName}
           </Typography>
           <Typography fontSize="14px" color="textSecondary">
             {accountName}
           </Typography>
         </Box>
         <Avatar
-          src={currentAvatarUrl}
+          src={avatarUrl}
           alt="Profile Avatar"
           sx={{ width: 80, height: 80 }}
         />
       </Box>
 
       <Box>
-        <Typography fontSize="14px">{currentBio || ""}</Typography>
+        <Typography fontSize="14px">{bio || ""}</Typography>
         <Typography fontSize="14px" color="textSecondary" margin="16px 0">
           {followersCount} 位粉絲
         </Typography>
@@ -113,14 +126,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       </Box>
 
       <EditProfileDialog
-        key={`${currentUserName}-${currentAvatarUrl}-${currentBio}-${currentIsPublic}`} // 每次資料更新都會變更 key
         open={editDialogOpen}
-        onClose={handleCloseDialog}
-        userName={currentUserName}
-        avatarUrl={currentAvatarUrl}
-        bio={currentBio}
-        isPublic={currentIsPublic}
-        onSaveSuccess={handleSaveSuccess} // 傳遞回調函數
+        onClose={handleDialogClose}
+        userName={userName}
+        avatarUrl={avatarUrl}
+        bio={bio}
+        isPublic={isPublic}
       />
     </Box>
   );
