@@ -34,6 +34,7 @@ export class UserController {
         avatarUrl: requestedUser.avatarUrl,
         followersCount: requestedUser.followersCount,
         followingCount: requestedUser.followingCount,
+        isPublic: requestedUser.isPublic,
       };
       await this.redisClient.setex(redisKey, 600, JSON.stringify(publicFields));
 
