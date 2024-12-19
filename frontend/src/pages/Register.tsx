@@ -59,9 +59,11 @@ const Register: React.FC = () => {
         alert("註冊成功！");
         navigate("/login");
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       if (error.response && error.response.data.errors) {
         setErrorMessage(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           error.response.data.errors.map((err: any) => err.msg).join("\n"),
         );
       } else if (error.response && error.response.data.error) {
