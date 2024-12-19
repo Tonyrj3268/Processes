@@ -10,6 +10,7 @@ import {
   Typography,
   Switch,
 } from "@mui/material";
+import { useUser } from "../contexts/UserContext";
 
 interface EditProfileDialogProps {
   open: boolean;
@@ -18,13 +19,6 @@ interface EditProfileDialogProps {
   avatarUrl: string;
   bio: string;
   isPublic: boolean;
-  // eslint-disable-next-line no-unused-vars
-  onSaveSuccess: (updatedProfile: {
-    userName: string;
-    avatarUrl: string;
-    bio: string;
-    isPublic: boolean;
-  }) => void;
 }
 
 const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
@@ -34,8 +28,8 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
   avatarUrl: initialAvatarUrl,
   bio: initialBio,
   isPublic: initialIsPublic,
-  onSaveSuccess,
 }) => {
+  const { refreshUserData } = useUser();
   const [userName, setUserName] = useState(initialUserName);
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl);
   const [bio, setBio] = useState(initialBio);
@@ -54,11 +48,16 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
       const formData = new FormData();
       formData.append("userName", userName);
       formData.append("bio", bio.trim() || "");
       formData.append("isPublic", JSON.stringify(isPublic));
 
+      // 處理頭像上傳
       const fileInput = fileInputRef.current;
       if (fileInput && fileInput.files?.[0]) {
         formData.append("avatarUrl", fileInput.files[0]);
@@ -76,15 +75,8 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
         throw new Error("Failed to update user profile");
       }
 
-      const data = await response.json();
-      setAvatarUrl(data.user.avatarUrl);
-      onSaveSuccess({
-        userName: data.user.userName,
-        avatarUrl: data.user.avatarUrl,
-        bio: data.user.bio || "",
-        isPublic: data.user.isPublic,
-      });
-
+      // 刷新全局用戶數據
+      await refreshUserData();
       onClose();
     } catch (error) {
       console.error("Error updating user profile:", error);
@@ -94,10 +86,10 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
     }
   };
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAvatarUrl(URL.createObjectURL(file)); // 預覽圖片
+      setAvatarUrl(URL.createObjectURL(file));
     }
   };
 
@@ -117,12 +109,7 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
       <DialogContent>
         <Box display="flex" alignItems="center" mb={3}>
           <Box flex={1}>
-            <Typography
-              variant="subtitle1"
-              fontWeight="bold"
-              color="#000"
-              mb={0.5}
-            >
+            <Typography variant="subtitle1" fontWeight="bold" color="#000" mb={0.5}>
               使用者名稱
             </Typography>
             <TextField
@@ -161,17 +148,12 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
               marginLeft: "16px",
               cursor: "pointer",
             }}
-            onClick={() => fileInputRef.current?.click()} // 點擊頭像觸發檔案選擇
+            onClick={() => fileInputRef.current?.click()}
           />
         </Box>
 
         <Box flex={1} mb={3}>
-          <Typography
-            variant="subtitle1"
-            fontWeight="bold"
-            color="#000"
-            mb={0.5}
-          >
+          <Typography variant="subtitle1" fontWeight="bold" color="#000" mb={0.5}>
             個人簡介
           </Typography>
           <TextField
