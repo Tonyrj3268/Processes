@@ -55,6 +55,12 @@ const Posts: React.FC = () => {
   const { dialogOpen, handleOpenDialog, handleCloseDialog, handleSubmit } =
     usePostHandler();
 
+  const { userId, avatarUrl, avatarTimestamp } = useOutletContext<{
+    userId: string;
+    accountName: string;
+    avatarUrl: string;
+    avatarTimestamp: number;
+  }>();
   // Fetch posts from the server
   const fetchPosts = useCallback(async () => {
     if (!userData?.userId) {
@@ -254,7 +260,11 @@ const Posts: React.FC = () => {
           >
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <Avatar
-                src={post.author.avatarUrl}
+                src={
+                  post.author.id === userId
+                    ? `${avatarUrl}` // 使用全局 avatarUrl（已包含時間戳）
+                    : post.author.avatarUrl
+                }
                 alt={`${post.author.accountName}'s Avatar`}
                 sx={{ width: 40, height: 40, marginRight: "8px" }}
               />
