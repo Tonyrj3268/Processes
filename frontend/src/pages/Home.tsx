@@ -105,6 +105,8 @@ const Home: React.FC = () => {
   useEffect(() => {
     if (!loaderRef.current) return;
 
+    const currentLoader = loaderRef.current;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && nextCursor && !isLoadingMore) {
@@ -114,11 +116,11 @@ const Home: React.FC = () => {
       { root: null, rootMargin: "0px", threshold: 0.1 },
     );
 
-    observer.observe(loaderRef.current);
+    observer.observe(currentLoader);
 
     return () => {
-      if (loaderRef.current) {
-        observer.unobserve(loaderRef.current);
+      if (currentLoader) {
+        observer.unobserve(currentLoader);
       }
     };
   }, [nextCursor, isLoadingMore, fetchPosts]);
@@ -210,7 +212,7 @@ const Home: React.FC = () => {
                 >
                   <img
                     src={image}
-                    alt={`Post image ${index}`}
+                    alt={`Post`}
                     style={{
                       width: "100%",
                       height: "100%",

@@ -300,7 +300,7 @@ const Posts: React.FC = () => {
                 >
                   <img
                     src={image}
-                    alt={`Post image ${index}`}
+                    alt={`Post`}
                     style={{
                       width: "100%",
                       height: "100%",

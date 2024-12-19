@@ -78,6 +78,8 @@ const Activity: React.FC = () => {
   useEffect(() => {
     if (!loaderRef.current) return;
 
+    const currentLoader = loaderRef.current;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && newCursor && !isLoadingMore) {
@@ -87,12 +89,10 @@ const Activity: React.FC = () => {
       { root: null, rootMargin: "0px", threshold: 0.1 },
     );
 
-    observer.observe(loaderRef.current);
+    observer.observe(currentLoader);
 
     return () => {
-      if (loaderRef.current) {
-        observer.unobserve(loaderRef.current);
-      }
+      observer.unobserve(currentLoader);
     };
   }, [newCursor, isLoadingMore, fetchEvents]);
 
