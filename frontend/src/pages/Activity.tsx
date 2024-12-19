@@ -1,14 +1,9 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
-  Avatar,
   Box,
-  Button,
   Divider,
   Typography,
   List,
-  ListItem,
-  ListItemAvatar,
-  Stack,
   CircularProgress,
 } from "@mui/material";
 import EventItem from "../components/EventItem";

@@ -34,6 +34,7 @@ const Login: React.FC = () => {
         localStorage.setItem("token", response.data.token);
         navigate("/");
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       if (error.response && error.response.data.error) {
         setErrorMessage(error.response.data.error);
