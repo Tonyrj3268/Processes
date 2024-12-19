@@ -175,18 +175,25 @@ export class PostService {
     async updatePost(
         postId: Types.ObjectId,
         userId: Types.ObjectId,
-        content: string
+        content?: string,
+        images?: string[]
     ): Promise<boolean> {
         try {
-            if (content.length > 280) {
-                throw new Error('貼文內容超過長度限制');
+            if (!content && images?.length === 0) {
+                throw new Error('請提供新的貼文內容或圖片');
+            }
+            const updateData: { content?: string; images?: string[] } = {};
+
+            if (content !== undefined) {
+                updateData.content = content;
             }
 
-            // 使用 updateOne 進行高效更新
+            if (images?.length !== 0) {
+                updateData.images = images;
+            }
             const result = await Post.updateOne(
                 { _id: postId, user: userId }, // 確保只有作者可以更新
-                { content },
-                { new: true }
+                { $set: updateData }
             );
 
             return result.modifiedCount > 0; // 根據實際修改數判斷是否成功
