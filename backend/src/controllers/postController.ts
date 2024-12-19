@@ -241,13 +241,22 @@ export class PostController {
         try {
             const { postId } = req.params;
             const { content } = req.body;
+            const images = req.files
+                ? (req.files as Express.MulterS3.File[]).map(file => file.location)
+                : [];
             const userId = (req.user as IUserDocument)._id;
+            // 驗證 postId 是否為有效的 ObjectId
+            if (!Types.ObjectId.isValid(postId)) {
+                res.status(400).json({ msg: '無效的 postId' });
+                return;
+            }
 
             // 使用 Types.ObjectId 轉換字串 ID，確保格式正確
             const result = await this.postService.updatePost(
                 new Types.ObjectId(postId),
                 userId,
-                content
+                content,
+                images
             );
 
             // 根據更新結果回傳適當的狀態碼
@@ -269,7 +278,12 @@ export class PostController {
                 const updatedPosts = posts.map(postStr => {
                     const post = JSON.parse(postStr);
                     if (post.postId === postId) {
-                        post.content = content;  // 更新內容
+                        if (content !== undefined) {
+                            post.content = content; // 更新內容
+                        }
+                        if (images.length > 0) {
+                            post.images = images; // 更新圖片
+                        }
                     }
                     return JSON.stringify(post);
                 });
