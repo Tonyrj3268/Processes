@@ -202,8 +202,8 @@ const Home: React.FC = () => {
                 <Box
                   key={index}
                   sx={{
-                    width: "100px",
-                    height: "100px",
+                    width: "500px",
+                    height: "500px",
                     borderRadius: "8px",
                     overflow: "hidden",
                   }}
