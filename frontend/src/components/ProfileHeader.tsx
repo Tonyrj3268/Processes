@@ -28,10 +28,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   onProfileUpdate,
 }) => {
   // 本地管理狀態
-  const [currentUserName, setCurrentUserName] = useState(userName);
-  const [currentAvatarUrl, setCurrentAvatarUrl] = useState(avatarUrl);
-  const [currentBio, setCurrentBio] = useState(bio);
-  const [currentIsPublic, setCurrentIsPublic] = useState(isPublic);
+  // const [currentUserName, setCurrentUserName] = useState(userName);
+  // const [currentAvatarUrl, setCurrentAvatarUrl] = useState(avatarUrl);
+  // const [currentBio, setCurrentBio] = useState(bio);
+  // const [currentIsPublic, setCurrentIsPublic] = useState(isPublic);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // 打開和關閉對話框
@@ -45,11 +45,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     bio: string;
     isPublic: boolean;
   }) => {
-    setCurrentUserName(updatedProfile.userName);
-    setCurrentAvatarUrl(updatedProfile.avatarUrl);
-    setCurrentBio(updatedProfile.bio);
-    setCurrentIsPublic(updatedProfile.isPublic);
-
     onProfileUpdate(updatedProfile);
   };
 
@@ -69,21 +64,21 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       >
         <Box>
           <Typography fontSize="24px" fontWeight="600">
-            {currentUserName}
+            {userName}
           </Typography>
           <Typography fontSize="14px" color="textSecondary">
             {accountName}
           </Typography>
         </Box>
         <Avatar
-          src={currentAvatarUrl}
+          src={avatarUrl}
           alt="Profile Avatar"
           sx={{ width: 80, height: 80 }}
         />
       </Box>
 
       <Box>
-        <Typography fontSize="14px">{currentBio || ""}</Typography>
+        <Typography fontSize="14px">{bio || ""}</Typography>
         <Typography fontSize="14px" color="textSecondary" margin="16px 0">
           {followersCount} 位粉絲
         </Typography>
@@ -113,13 +108,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       </Box>
 
       <EditProfileDialog
-        key={`${currentUserName}-${currentAvatarUrl}-${currentBio}-${currentIsPublic}`} // 每次資料更新都會變更 key
         open={editDialogOpen}
         onClose={handleCloseDialog}
-        userName={currentUserName}
-        avatarUrl={currentAvatarUrl}
-        bio={currentBio}
-        isPublic={currentIsPublic}
+        userName={userName}
+        avatarUrl={avatarUrl}
+        bio={bio}
+        isPublic={isPublic}
         onSaveSuccess={handleSaveSuccess} // 傳遞回調函數
       />
     </Box>

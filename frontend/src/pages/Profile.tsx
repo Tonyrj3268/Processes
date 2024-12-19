@@ -17,6 +17,7 @@ interface UserContext {
 const Profile: React.FC = () => {
   const initialUserData = useOutletContext<UserContext | null>();
   const [userData, setUserData] = useState(initialUserData);
+  const [avatarTimestamp, setAvatarTimestamp] = useState<number>(Date.now()); // 新增時間戳狀態
 
   const handleProfileUpdate = (updatedProfile: {
     userName: string;
@@ -31,6 +32,7 @@ const Profile: React.FC = () => {
       accountName: prev?.accountName || "",
       followersCount: prev?.followersCount || 0,
     }));
+    setAvatarTimestamp(Date.now()); // 更新時間戳
   };
 
   return (
@@ -40,7 +42,7 @@ const Profile: React.FC = () => {
           userName={userData.userName}
           accountName={userData.accountName}
           followersCount={userData.followersCount}
-          avatarUrl={userData.avatarUrl}
+          avatarUrl={`${userData.avatarUrl}?t=${avatarTimestamp}`} // 附加時間戳
           bio={userData.bio}
           isPublic={userData.isPublic}
           onProfileUpdate={handleProfileUpdate} // 傳遞更新回調函數
@@ -52,6 +54,7 @@ const Profile: React.FC = () => {
           userId: userData?.userId,
           accountName: userData?.accountName,
           avatarUrl: userData?.avatarUrl,
+          avatarTimestamp,
         }}
       />
     </Box>

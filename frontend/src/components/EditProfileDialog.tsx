@@ -77,7 +77,7 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
       }
 
       const data = await response.json();
-      setAvatarUrl(data.user.avatarUrl);
+      // setAvatarUrl(data.user.avatarUrl);
       onSaveSuccess({
         userName: data.user.userName,
         avatarUrl: data.user.avatarUrl,
