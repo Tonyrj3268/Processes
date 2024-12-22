@@ -1,14 +1,9 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
-  Avatar,
   Box,
-  Button,
   Divider,
   Typography,
   List,
-  ListItem,
-  ListItemAvatar,
-  Stack,
   CircularProgress,
 } from "@mui/material";
 import EventItem from "../components/EventItem";
@@ -83,6 +78,8 @@ const Activity: React.FC = () => {
   useEffect(() => {
     if (!loaderRef.current) return;
 
+    const currentLoader = loaderRef.current;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && newCursor && !isLoadingMore) {
@@ -92,11 +89,11 @@ const Activity: React.FC = () => {
       { root: null, rootMargin: "0px", threshold: 0.1 },
     );
 
-    observer.observe(loaderRef.current);
+    observer.observe(currentLoader);
 
     return () => {
-      if (loaderRef.current) {
-        observer.unobserve(loaderRef.current);
+      if (currentLoader) {
+        observer.unobserve(currentLoader);
       }
     };
   }, [newCursor, isLoadingMore, fetchEvents]);

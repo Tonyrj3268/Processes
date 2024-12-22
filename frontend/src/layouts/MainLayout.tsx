@@ -5,73 +5,21 @@ import { Box, Fab } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { Outlet, useMatches } from "react-router-dom";
 import PostDialog from "../components/PostDialog";
+import GuestDialog from "../components/GuestDialog";
 import usePostHandler from "../hooks/usePostHandler";
-import { jwtDecode } from "jwt-decode";
+import { useUser } from "../contexts/UserContext";
 
 interface RouteHandle {
   title?: string;
 }
 
-interface UserData {
-  userId: string;
-  userName: string;
-  accountName: string;
-  avatarUrl: string;
-  bio: string;
-  isPublic: boolean;
-  followersCount: number;
-}
-
 const MainLayout: React.FC = () => {
   const matches = useMatches();
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const { userData, isGuest } = useUser();
+  const [isGuestDialogOpen, setGuestDialogOpen] = useState(false);
 
   const { dialogOpen, handleOpenDialog, handleCloseDialog, handleSubmit } =
     usePostHandler();
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("No token found");
-        return;
-      }
-
-      const decoded = jwtDecode<{ id: string }>(token);
-      const userId = decoded.id;
-
-      try {
-        console.log("Fetching user data for userId:", userId);
-        const response = await fetch(`/api/user/${userId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch user data");
-        }
-
-        const data = await response.json();
-        console.log("User data fetched from API:", data);
-
-        setUserData({
-          userId: data._id,
-          userName: data.userName,
-          accountName: data.accountName,
-          avatarUrl: data.avatarUrl || "/default_avatar.jpg",
-          bio: data.bio || "尚未設定個人簡介",
-          isPublic: data.isPublic || false,
-          followersCount: data.followersCount ?? 0,
-        });
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        localStorage.removeItem("token"); // Remove invalid token
-      }
-    };
-
-    fetchUserData();
-  }, []);
 
   useEffect(() => {
     const currentMatch = matches.find(
@@ -91,6 +39,14 @@ const MainLayout: React.FC = () => {
       ? (currentMatch.handle as RouteHandle).title
       : "Processes";
 
+  const handleFabClick = () => {
+    if (isGuest) {
+      setGuestDialogOpen(true);
+    } else {
+      handleOpenDialog();
+    }
+  };
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
       <Header title={pageTitle || "Processes"} />
@@ -103,7 +59,7 @@ const MainLayout: React.FC = () => {
           <Outlet context={userData} />
           <Fab
             aria-label="add"
-            onClick={handleOpenDialog}
+            onClick={handleFabClick}
             sx={{
               position: "fixed",
               bottom: 30,
@@ -130,9 +86,13 @@ const MainLayout: React.FC = () => {
             open={dialogOpen}
             onClose={handleCloseDialog}
             onSubmit={handleSubmit}
-            accountName={userData?.accountName || "Default User"}
-            avatarUrl={userData?.avatarUrl || "/default_avatar.jpg"}
+            initialContent=""
+            initialImages={[]}
             title="新串文"
+          />
+          <GuestDialog
+            isOpen={isGuestDialogOpen}
+            onClose={() => setGuestDialogOpen(false)}
           />
         </Box>
       </Box>

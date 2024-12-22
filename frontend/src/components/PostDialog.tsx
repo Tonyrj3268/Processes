@@ -11,15 +11,15 @@ import {
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import { useUser } from "../contexts/UserContext";
 
 interface PostDialogProps {
   open: boolean;
   onClose: () => void;
   // eslint-disable-next-line no-unused-vars
   onSubmit: (formData: FormData) => Promise<void>;
-  accountName: string;
-  avatarUrl: string;
   initialContent?: string;
+  initialImages?: string[];
   title: string;
 }
 
@@ -27,34 +27,60 @@ const PostDialog: React.FC<PostDialogProps> = ({
   open,
   onClose,
   onSubmit,
-  accountName,
-  avatarUrl,
   initialContent = "",
+  initialImages = [],
   title = "",
 }) => {
-  const [content, setContent] = useState("");
+  const { userData } = useUser();
+  const [content, setContent] = useState(initialContent);
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>(initialImages);
+  const [removedImages, setRemovedImages] = useState<string[]>([]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setContent(initialContent);
-  }, [initialContent]);
+    if (open) {
+      setContent(initialContent || "");
+      setExistingImages(initialImages || []);
+      setImages([]);
+      setRemovedImages([]);
+    }
+  }, [open, initialContent, initialImages]);
 
   const handleSubmit = async () => {
-    if (!content.trim()) return;
+    if (!content.trim() && images.length === 0) {
+      alert("請輸入內容或上傳圖片");
+      return;
+    }
 
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append("content", content);
+      formData.append("content", content.trim());
+
+      // 添加現有圖片的 URL
+      existingImages.forEach((imageUrl) => {
+        formData.append("existingImages", imageUrl);
+      });
+
+      // 添加刪除的圖片 URL
+      removedImages.forEach((imageUrl) => {
+        formData.append("removedImages", imageUrl);
+      });
+
+      // 添加新的圖片
       images.forEach((image) => {
         formData.append("images", image);
       });
 
       await onSubmit(formData);
+
       setContent("");
       setImages([]);
+      setExistingImages([]);
+      setRemovedImages([]);
       onClose();
     } catch (error) {
       console.error("Failed to create post:", error);
@@ -69,12 +95,20 @@ const PostDialog: React.FC<PostDialogProps> = ({
       // 限制最多 5 張圖片
       setImages((prev) => {
         const newImages = [...prev, ...files];
-        return newImages.slice(0, 5);
+        return newImages.slice(0, 5 - existingImages.length);
       });
     }
   };
 
-  const handleRemoveImage = (index: number) => {
+  const handleRemoveExistingImage = (index: number) => {
+    setExistingImages((prev) => {
+      const removedImage = prev[index];
+      setRemovedImages((prevRemoved) => [...prevRemoved, removedImage]);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const handleRemoveNewImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -105,11 +139,11 @@ const PostDialog: React.FC<PostDialogProps> = ({
         <Divider sx={{ marginBottom: "16px" }} />
         <Box sx={{ display: "flex", alignItems: "center", marginBottom: 2 }}>
           <Avatar
-            src={avatarUrl || "/default_avatar.jpg"}
+            src={userData?.avatarUrl || "/default_avatar.jpg"}
             alt="User Avatar"
             sx={{ marginRight: 2 }}
           />
-          <Typography>{accountName}</Typography>
+          <Typography>{userData?.accountName}</Typography>
         </Box>
         <TextField
           fullWidth
@@ -133,9 +167,41 @@ const PostDialog: React.FC<PostDialogProps> = ({
             marginBottom: "16px",
           }}
         >
+          {existingImages.map((image, index) => (
+            <Box
+              key={`existing-${index}`}
+              sx={{
+                position: "relative",
+                minWidth: "100px",
+                height: "100px",
+                borderRadius: "8px",
+                overflow: "hidden",
+              }}
+            >
+              <img
+                src={image}
+                alt={`existing-upload-preview-${index}`}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+              <IconButton
+                onClick={() => handleRemoveExistingImage(index)}
+                sx={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  color: "#fff",
+                  "&:hover": { backgroundColor: "rgba(0,0,0,0.8)" },
+                }}
+              >
+                <CloseIcon sx={{ fontSize: "20px" }} />
+              </IconButton>
+            </Box>
+          ))}
+
           {images.map((image, index) => (
             <Box
-              key={index}
+              key={`new-${index}`}
               sx={{
                 position: "relative",
                 minWidth: "100px",
@@ -146,11 +212,11 @@ const PostDialog: React.FC<PostDialogProps> = ({
             >
               <img
                 src={URL.createObjectURL(image)}
-                alt={`upload-preview-${index}`}
+                alt={`new-upload-preview-${index}`}
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
               <IconButton
-                onClick={() => handleRemoveImage(index)}
+                onClick={() => handleRemoveNewImage(index)}
                 sx={{
                   position: "absolute",
                   top: 0,
@@ -176,9 +242,11 @@ const PostDialog: React.FC<PostDialogProps> = ({
             fontSize: "14px",
             marginBottom: "8px",
           }}
-          disabled={images.length >= 5}
+          disabled={images.length + existingImages.length >= 5}
         >
-          {images.length >= 5 ? "最多上傳五張圖片" : "上傳圖片"}
+          {images.length + existingImages.length >= 5
+            ? "最多上傳五張圖片"
+            : "上傳圖片"}
         </Button>
         <input
           ref={fileInputRef}
@@ -201,7 +269,7 @@ const PostDialog: React.FC<PostDialogProps> = ({
         <Button
           onClick={handleSubmit}
           variant="outlined"
-          disabled={!content.trim() || loading}
+          disabled={loading || (!content.trim() && images.length === 0)}
           sx={{
             textTransform: "none",
             borderRadius: "8px",
