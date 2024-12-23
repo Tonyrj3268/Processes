@@ -1,52 +1,19 @@
 import React, { useState } from "react";
 import { Avatar, Box, Button, Typography } from "@mui/material";
 import EditProfileDialog from "./EditProfileDialog";
+import { useUser } from "../contexts/UserContext";
 
-interface ProfileHeaderProps {
-  userName: string;
-  accountName: string;
-  followersCount: number;
-  avatarUrl: string;
-  bio: string;
-  isPublic: boolean;
-  // eslint-disable-next-line no-unused-vars
-  onProfileUpdate: (updatedProfile: {
-    userName: string;
-    avatarUrl: string;
-    bio: string;
-    isPublic: boolean;
-  }) => void;
-}
-
-const ProfileHeader: React.FC<ProfileHeaderProps> = ({
-  userName,
-  accountName,
-  followersCount,
-  avatarUrl,
-  bio,
-  isPublic,
-  onProfileUpdate,
-}) => {
-  // 本地管理狀態
-  // const [currentUserName, setCurrentUserName] = useState(userName);
-  // const [currentAvatarUrl, setCurrentAvatarUrl] = useState(avatarUrl);
-  // const [currentBio, setCurrentBio] = useState(bio);
-  // const [currentIsPublic, setCurrentIsPublic] = useState(isPublic);
+const ProfileHeader: React.FC = () => {
+  const { userData } = useUser();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  if (!userData) {
+    return <Typography>無法加載使用者資料</Typography>;
+  }
 
   // 打開和關閉對話框
   const handleOpenDialog = () => setEditDialogOpen(true);
   const handleCloseDialog = () => setEditDialogOpen(false);
-
-  // 更新本地狀態
-  const handleSaveSuccess = (updatedProfile: {
-    userName: string;
-    avatarUrl: string;
-    bio: string;
-    isPublic: boolean;
-  }) => {
-    onProfileUpdate(updatedProfile);
-  };
 
   return (
     <Box
@@ -64,23 +31,23 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       >
         <Box>
           <Typography fontSize="24px" fontWeight="600">
-            {userName}
+            {userData.userName}
           </Typography>
           <Typography fontSize="14px" color="textSecondary">
-            {accountName}
+            {userData.accountName}
           </Typography>
         </Box>
         <Avatar
-          src={avatarUrl}
+          src={userData.avatarUrl}
           alt="Profile Avatar"
           sx={{ width: 80, height: 80 }}
         />
       </Box>
 
       <Box>
-        <Typography fontSize="14px">{bio || ""}</Typography>
+        <Typography fontSize="14px">{userData.bio || ""}</Typography>
         <Typography fontSize="14px" color="textSecondary" margin="16px 0">
-          {followersCount} 位粉絲
+          {userData.followersCount} 位粉絲
         </Typography>
       </Box>
 
@@ -107,15 +74,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </Button>
       </Box>
 
-      <EditProfileDialog
-        open={editDialogOpen}
-        onClose={handleCloseDialog}
-        userName={userName}
-        avatarUrl={avatarUrl}
-        bio={bio}
-        isPublic={isPublic}
-        onSaveSuccess={handleSaveSuccess} // 傳遞回調函數
-      />
+      <EditProfileDialog open={editDialogOpen} onClose={handleCloseDialog} />
     </Box>
   );
 };

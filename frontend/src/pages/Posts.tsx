@@ -17,9 +17,9 @@ import {
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import PostDialog from "../components/PostDialog";
-import { useOutletContext } from "react-router-dom";
 import usePostHandler from "../hooks/usePostHandler";
 import { MoreHoriz } from "@mui/icons-material";
+import { useUser } from "../contexts/UserContext";
 
 interface Post {
   postId: string;
@@ -37,39 +37,25 @@ interface Post {
 }
 
 const Posts: React.FC = () => {
+  const { userData } = useUser();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null); // 控制選單
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null); // 儲存當前選中的貼文
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [updatedContent, setUpdatedContent] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
-  const userData = useOutletContext<{
-    userId: string;
-    userName: string;
-    avatarUrl: string;
-    accountName: string;
-  }>();
-
   const { dialogOpen, handleOpenDialog, handleCloseDialog, handleSubmit } =
     usePostHandler();
 
-  const { userId, avatarUrl, avatarTimestamp } = useOutletContext<{
-    userId: string;
-    accountName: string;
-    avatarUrl: string;
-    avatarTimestamp: number;
-  }>();
-  // Fetch posts from the server
   const fetchPosts = useCallback(async () => {
     if (!userData?.userId) {
       console.error("User ID is missing in fetchPosts");
-      return; // Exit if userId is missing
+      return;
     }
 
     try {
-      console.log("Fetching posts for userId:", userData.userId);
       setLoading(true);
 
       const token = localStorage.getItem("token");
@@ -89,14 +75,7 @@ const Posts: React.FC = () => {
       }
 
       const data = await response.json();
-      setPosts((prev) => {
-        const existingIds = new Set(prev.map((post) => post.postId));
-        const uniquePosts = data.posts.filter(
-          (post: Post) => !existingIds.has(post.postId),
-        );
-        return [...prev, ...uniquePosts];
-      });
-      // setPosts(data.posts || []);
+      setPosts(data.posts || []);
     } catch (error) {
       console.error("Error fetching user posts:", error);
     } finally {
@@ -104,17 +83,23 @@ const Posts: React.FC = () => {
     }
   }, [userData?.userId]);
 
+  const handleCreatePost = async (formData: FormData) => {
+    try {
+      await handleSubmit(formData);
+      await fetchPosts();
+      handleCloseDialog();
+    } catch (error) {
+      console.error("Error creating post:", error);
+    }
+  };
+
   const handleUpdatePost = async (formData: FormData) => {
     if (!selectedPost) return;
 
-    formData.forEach((value, key) => {
-      console.log(`${key}:`, value); // 檢查 formData 中的字段
-    });
-
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
     try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
       const response = await fetch(`/api/post/${selectedPost.postId}`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
@@ -123,31 +108,21 @@ const Posts: React.FC = () => {
 
       if (!response.ok) throw new Error("Failed to update post");
 
-      const updatedPost = await response.json();
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.postId === selectedPost.postId
-            ? { ...post, ...updatedPost }
-            : post,
-        ),
-      );
+      await fetchPosts();
       setUpdateDialogOpen(false);
-      setSelectedPost(null);
     } catch (error) {
       console.error("Error updating post:", error);
+      alert("更新失敗，請稍後再試。");
     }
   };
 
   const handleDeletePost = async () => {
     if (!selectedPost) return;
 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      console.error("Token is missing in localStorage");
-      return;
-    }
-
     try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
       const response = await fetch(`/api/post/${selectedPost.postId}`, {
         method: "DELETE",
         headers: {
@@ -159,13 +134,10 @@ const Posts: React.FC = () => {
         throw new Error(`Failed to delete post: ${response.status}`);
       }
 
-      // 刪除成功後更新前端狀態
       setPosts((prev) =>
         prev.filter((post) => post.postId !== selectedPost.postId),
       );
       console.log("Post deleted successfully");
-
-      // 關閉選單
       handleMenuClose();
     } catch (error) {
       console.error("Error deleting post:", error);
@@ -188,13 +160,8 @@ const Posts: React.FC = () => {
   const handleConfirmDeleteClose = () => setConfirmDeleteOpen(false);
 
   useEffect(() => {
-    if (userData?.userId) {
-      console.log("Running fetchPosts for userId:", userData.userId);
-      fetchPosts();
-    } else {
-      console.warn("UserData is missing or incomplete:", userData);
-    }
-  }, [fetchPosts, userData]);
+    fetchPosts();
+  }, [fetchPosts]);
 
   return (
     <Box>
@@ -235,10 +202,10 @@ const Posts: React.FC = () => {
       <PostDialog
         open={dialogOpen}
         onClose={handleCloseDialog}
-        onSubmit={handleSubmit}
-        accountName={userData?.accountName}
-        avatarUrl={userData?.avatarUrl}
-        title={"新串文"}
+        onSubmit={handleCreatePost}
+        initialContent=""
+        initialImages={[]}
+        title="新串文"
       />
 
       <Divider sx={{ marginY: "16px" }} />
@@ -253,101 +220,111 @@ const Posts: React.FC = () => {
           尚無貼文
         </Typography>
       ) : (
-        posts.map((post) => (
-          <Box
-            key={`${post.postId}-${post.createdAt}`}
-            sx={{ marginBottom: "16px" }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Avatar
-                src={
-                  post.author.id === userId
-                    ? `${avatarUrl}` // 使用全局 avatarUrl（已包含時間戳）
-                    : post.author.avatarUrl
-                }
-                alt={`${post.author.accountName}'s Avatar`}
-                sx={{ width: 40, height: 40, marginRight: "8px" }}
-              />
-              <Box>
-                <Typography sx={{ fontSize: "15px", fontWeight: "bold" }}>
-                  {post.author.accountName}
-                </Typography>
-                <Typography sx={{ fontSize: "12px", color: "#aaa" }}>
-                  {new Date(post.createdAt).toLocaleString()}
-                </Typography>
-              </Box>
-              <IconButton
-                onClick={(e) => handleMenuOpen(e, post)}
-                sx={{ marginLeft: "auto" }}
-              >
-                <MoreHoriz />
-              </IconButton>
-            </Box>
-            <Typography
-              sx={{ marginY: "8px", fontSize: "15px", paddingLeft: "8px" }}
-            >
-              {post.content}
-            </Typography>
+        posts.map((post) => {
+          if (!post.author) {
+            console.error("Post author is missing:", post);
+            return null;
+          }
 
-            {/* 顯示圖片 */}
+          return (
             <Box
-              sx={{
-                display: "flex",
-                gap: "8px",
-                flexWrap: "wrap",
-                marginBottom: "8px",
-              }}
+              key={`${post.postId}-${post.createdAt}`}
+              sx={{ marginBottom: "16px" }}
             >
-              {(post.images || []).map((image, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    width: "500px",
-                    height: "500px",
-                    borderRadius: "8px",
-                    overflow: "hidden",
-                  }}
-                >
-                  <img
-                    src={image}
-                    alt={`Post image ${index}`}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
-                  />
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Avatar
+                  src={
+                    post.author.id === userData?.userId
+                      ? userData?.avatarUrl || "/default_avatar.jpg"
+                      : post.author.avatarUrl || "/default_avatar.jpg"
+                  }
+                  alt={`${post.author.accountName}'s Avatar`}
+                  sx={{ width: 40, height: 40, marginRight: "8px" }}
+                />
+                <Box>
+                  <Typography sx={{ fontSize: "15px", fontWeight: "bold" }}>
+                    {post.author.accountName}
+                  </Typography>
+                  <Typography sx={{ fontSize: "12px", color: "#aaa" }}>
+                    {new Date(post.createdAt).toLocaleString()}
+                  </Typography>
                 </Box>
-              ))}
-            </Box>
+                <IconButton
+                  onClick={(e) => handleMenuOpen(e, post)}
+                  sx={{ marginLeft: "auto" }}
+                >
+                  <MoreHoriz />
+                </IconButton>
+              </Box>
+              <Typography
+                sx={{ marginY: "8px", fontSize: "15px", paddingLeft: "8px" }}
+              >
+                {post.content}
+              </Typography>
 
-            <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
+              {/* 顯示圖片 */}
               <Box
                 sx={{
                   display: "flex",
-                  marginRight: "16px",
-                  alignItems: "center",
+                  gap: "8px",
+                  overflowX: "auto",
+                  marginBottom: "8px",
+                  scrollSnapType: "x mandatory",
                 }}
               >
-                <IconButton>
-                  <FavoriteBorderIcon fontSize="small" />
-                </IconButton>
-                <Typography sx={{ fontSize: "13px" }}>
-                  {post.likesCount}
-                </Typography>
+                {(post.images || []).map((image, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      width: "500px",
+                      height: "500px",
+                      flexShrink: 0,
+                      borderRadius: "8px",
+                      overflow: "hidden",
+                      scrollSnapAlign: "start",
+                    }}
+                  >
+                    <img
+                      src={image}
+                      alt={`Post`}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  </Box>
+                ))}
               </Box>
+
               <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
-                <IconButton>
-                  <ChatBubbleOutlineIcon fontSize="small" />
-                </IconButton>
-                <Typography sx={{ fontSize: "13px" }}>
-                  {post.commentCount}
-                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    marginRight: "16px",
+                    alignItems: "center",
+                  }}
+                >
+                  <IconButton>
+                    <FavoriteBorderIcon fontSize="small" />
+                  </IconButton>
+                  <Typography sx={{ fontSize: "13px" }}>
+                    {post.likesCount}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                  <IconButton>
+                    <ChatBubbleOutlineIcon fontSize="small" />
+                  </IconButton>
+                  <Typography sx={{ fontSize: "13px" }}>
+                    {post.commentCount}
+                  </Typography>
+                </Box>
               </Box>
+              <Divider sx={{ marginY: "8px" }} />
             </Box>
-            <Divider sx={{ marginY: "8px" }} />
-          </Box>
-        ))
+          );
+        })
       )}
 
       <Menu
@@ -377,9 +354,8 @@ const Posts: React.FC = () => {
           handleMenuClose();
         }}
         onSubmit={handleUpdatePost}
-        accountName={userData?.accountName || ""}
-        avatarUrl={userData?.avatarUrl || ""}
         initialContent={updatedContent}
+        initialImages={selectedPost?.images || []}
         title="編輯貼文"
       />
 

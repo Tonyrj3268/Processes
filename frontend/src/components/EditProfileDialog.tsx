@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -10,48 +10,33 @@ import {
   Typography,
   Switch,
 } from "@mui/material";
+import { useUser } from "../contexts/UserContext";
 
-interface EditProfileDialogProps {
+const EditProfileDialog: React.FC<{
   open: boolean;
   onClose: () => void;
-  userName: string;
-  avatarUrl: string;
-  bio: string;
-  isPublic: boolean;
-  // eslint-disable-next-line no-unused-vars
-  onSaveSuccess: (updatedProfile: {
-    userName: string;
-    avatarUrl: string;
-    bio: string;
-    isPublic: boolean;
-  }) => void;
-}
-
-const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
-  open,
-  onClose,
-  userName: initialUserName,
-  avatarUrl: initialAvatarUrl,
-  bio: initialBio,
-  isPublic: initialIsPublic,
-  onSaveSuccess,
-}) => {
-  const [userName, setUserName] = useState(initialUserName);
-  const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl);
-  const [bio, setBio] = useState(initialBio);
-  const [isPublic, setIsPublic] = useState(initialIsPublic);
+}> = ({ open, onClose }) => {
+  const { userData, updateUserData } = useUser();
+  const [userName, setUserName] = useState(userData?.userName || "");
+  const [avatarUrl, setAvatarUrl] = useState(userData?.avatarUrl || "");
+  const [bio, setBio] = useState(userData?.bio || "");
+  const [isPublic, setIsPublic] = useState(userData?.isPublic || false);
   const [loading, setLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    setUserName(initialUserName);
-    setAvatarUrl(initialAvatarUrl);
-    setBio(initialBio);
-    setIsPublic(initialIsPublic);
-  }, [initialUserName, initialAvatarUrl, initialBio, initialIsPublic]);
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarUrl(URL.createObjectURL(file)); // 預覽圖片
+      setSelectedFile(file); // 將檔案保存到狀態中
+    }
+  };
 
   const handleSave = async () => {
     setLoading(true);
+
     try {
       const token = localStorage.getItem("token");
       const formData = new FormData();
@@ -59,9 +44,9 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
       formData.append("bio", bio.trim() || "");
       formData.append("isPublic", JSON.stringify(isPublic));
 
-      const fileInput = fileInputRef.current;
-      if (fileInput && fileInput.files?.[0]) {
-        formData.append("avatarUrl", fileInput.files[0]);
+      // 使用狀態中的檔案
+      if (selectedFile) {
+        formData.append("avatarUrl", selectedFile);
       }
 
       const response = await fetch("/api/user", {
@@ -76,13 +61,11 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
         throw new Error("Failed to update user profile");
       }
 
-      const data = await response.json();
-      // setAvatarUrl(data.user.avatarUrl);
-      onSaveSuccess({
-        userName: data.user.userName,
-        avatarUrl: data.user.avatarUrl,
-        bio: data.user.bio || "",
-        isPublic: data.user.isPublic,
+      const updatedUser = await response.json();
+
+      updateUserData({
+        ...updatedUser.user,
+        avatarUrl: updatedUser.user.avatarUrl,
       });
 
       onClose();
@@ -91,13 +74,6 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
       alert("更新失敗，請稍後再試！");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarUrl(URL.createObjectURL(file)); // 預覽圖片
     }
   };
 
@@ -201,7 +177,7 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
             是否公開個人檔案
           </Typography>
           <Switch
-            checked={isPublic}
+            checked={isPublic || false}
             onChange={(e) => setIsPublic(e.target.checked)}
             sx={{
               "& .MuiSwitch-switchBase.Mui-checked": {
@@ -240,7 +216,7 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
             },
           }}
         >
-          {loading ? "保存中..." : "完成"}
+          {loading ? "儲存中..." : "完成"}
         </Button>
       </DialogActions>
     </Dialog>

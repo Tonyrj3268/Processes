@@ -11,8 +11,9 @@ import {
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import PostDialog from "../components/PostDialog";
-import { useOutletContext } from "react-router-dom";
+import GuestDialog from "../components/GuestDialog";
 import usePostHandler from "../hooks/usePostHandler";
+import { useUser } from "../contexts/UserContext";
 
 interface Post {
   postId: string;
@@ -30,73 +31,73 @@ interface Post {
 }
 
 const Home: React.FC = () => {
+  const { userData, isLoading: userLoading, isGuest } = useUser();
   const [posts, setPosts] = useState<Post[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isGuestDialogOpen, setGuestDialogOpen] = useState(false);
 
-  const userData = useOutletContext<{
-    accountName: string;
-    avatarUrl: string;
-  }>();
   const { dialogOpen, handleOpenDialog, handleCloseDialog, handleSubmit } =
     usePostHandler();
 
   const loaderRef = useRef<HTMLDivElement | null>(null);
 
-  const fetchPosts = useCallback(async (cursor: string | null = null) => {
-    try {
-      if (cursor) {
-        setIsLoadingMore(true);
-      } else {
-        setLoading(true);
-      }
+  const fetchPosts = useCallback(
+    async (cursor: string | null = null) => {
+      try {
+        if (cursor) {
+          setIsLoadingMore(true);
+        } else {
+          setLoading(true);
+        }
 
-      const token = localStorage.getItem("token");
-      const isGuest = !token; // 判斷是否為訪客
+        const token = localStorage.getItem("token");
 
-      const queryParams = new URLSearchParams();
-      queryParams.append("limit", "10");
-      if (cursor) queryParams.append("cursor", cursor);
+        const queryParams = new URLSearchParams();
+        queryParams.append("limit", "10");
+        if (cursor) queryParams.append("cursor", cursor);
 
-      // 根據是否為訪客選擇不同的 API 端點
-      const apiEndpoint = isGuest ? `/api/post/guest` : `/api/post`;
+        const apiEndpoint = isGuest ? `/api/post/guest` : `/api/post`;
 
-      // 設置請求頭
-      let headers = {};
-      if (token) {
-        headers = {
-          Authorization: `Bearer ${token}`,
-        };
-      }
+        let headers = {};
+        if (token) {
+          headers = {
+            Authorization: `Bearer ${token}`,
+          };
+        }
 
-      const response = await fetch(`${apiEndpoint}?${queryParams.toString()}`, {
-        headers,
-      });
+        const response = await fetch(
+          `${apiEndpoint}?${queryParams.toString()}`,
+          {
+            headers,
+          },
+        );
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch posts: ${response.status}`);
-      }
+        if (!response.ok) {
+          throw new Error(`Failed to fetch posts: ${response.status}`);
+        }
 
-      const data = await response.json();
-      // setPosts((prev) => [...prev, ...data.posts]);
+        const data = await response.json();
 
-      setPosts((prev) => {
-        const uniquePosts = new Map();
-        [...prev, ...data.posts].forEach((post) => {
-          uniquePosts.set(post.postId, post);
+        setPosts((prev) => {
+          const uniquePosts = new Map();
+          [...prev, ...data.posts].forEach((post) => {
+            uniquePosts.set(post.postId, post);
+          });
+          return Array.from(uniquePosts.values());
         });
-        return Array.from(uniquePosts.values());
-      });
 
-      setNextCursor(data.nextCursor);
-    } catch (error) {
-      console.error("Error fetching posts:", error);
-    } finally {
-      setLoading(false);
-      setIsLoadingMore(false);
-    }
-  }, []);
+        setNextCursor(data.nextCursor);
+      } catch (error) {
+        console.error("Error fetching posts:", error);
+      } finally {
+        setLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [isGuest],
+  );
 
   useEffect(() => {
     fetchPosts();
@@ -104,6 +105,8 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     if (!loaderRef.current) return;
+
+    const currentLoader = loaderRef.current;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -114,14 +117,30 @@ const Home: React.FC = () => {
       { root: null, rootMargin: "0px", threshold: 0.1 },
     );
 
-    observer.observe(loaderRef.current);
+    observer.observe(currentLoader);
 
     return () => {
-      if (loaderRef.current) {
-        observer.unobserve(loaderRef.current);
+      if (currentLoader) {
+        observer.unobserve(currentLoader);
       }
     };
   }, [nextCursor, isLoadingMore, fetchPosts]);
+
+  if (userLoading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  const handleNewPostClick = () => {
+    if (isGuest) {
+      setGuestDialogOpen(true);
+    } else {
+      handleOpenDialog();
+    }
+  };
 
   return (
     <Box className="page">
@@ -133,7 +152,7 @@ const Home: React.FC = () => {
           margin: "10px 0",
           cursor: "pointer",
         }}
-        onClick={handleOpenDialog}
+        onClick={handleNewPostClick}
       >
         <Avatar
           src={userData?.avatarUrl}
@@ -194,8 +213,9 @@ const Home: React.FC = () => {
               sx={{
                 display: "flex",
                 gap: "8px",
-                flexWrap: "wrap",
+                overflowX: "auto",
                 marginBottom: "8px",
+                scrollSnapType: "x mandatory",
               }}
             >
               {(post.images || []).map((image, index) => (
@@ -204,13 +224,15 @@ const Home: React.FC = () => {
                   sx={{
                     width: "500px",
                     height: "500px",
+                    flexShrink: 0,
                     borderRadius: "8px",
                     overflow: "hidden",
+                    scrollSnapAlign: "start",
                   }}
                 >
                   <img
                     src={image}
-                    alt={`Post image ${index}`}
+                    alt={`Post`}
                     style={{
                       width: "100%",
                       height: "100%",
@@ -260,9 +282,14 @@ const Home: React.FC = () => {
         open={dialogOpen}
         onClose={handleCloseDialog}
         onSubmit={handleSubmit}
-        accountName={userData?.accountName}
-        avatarUrl={userData?.avatarUrl}
+        initialContent=""
+        initialImages={[]}
         title="新串文"
+      />
+
+      <GuestDialog
+        isOpen={isGuestDialogOpen}
+        onClose={() => setGuestDialogOpen(false)}
       />
     </Box>
   );
