@@ -118,10 +118,10 @@ export class UserService {
           await Follow.deleteOne({ _id: follow._id });
           return false;
         }
-        await this.eventService.createEvent(user._id, followedUserId, "follow", { status: "accepted" });
+        await this.eventService.createEvent(user._id, followedUserId, "friend_request", { status: "accepted" });
       }
       else {
-        await this.eventService.createEvent(user._id, followedUserId, "follow", { status: "pending" });
+        await this.eventService.createEvent(user._id, followedUserId, "friend_request", { status: "pending" });
       }
 
       return true;
@@ -263,7 +263,7 @@ export class UserService {
       }
       await Event.findOneAndDelete({ follower: followerId, following: userId, eventType: "friend_request" });
 
-      // 由於是拒絕追蹤請求，不需要更新計數器
+      await this.updateFollowEventCache(userId.toString(), followerId.toString(), "rejected");
 
       return true;
     } catch (error: unknown) {
@@ -312,9 +312,16 @@ export class UserService {
           (evt?.eventType === "friend_request") &&
           evt?.details?.status === "pending"
         ) {
-          // 將事件改為新的狀態
-          evt.details.status = newStatus;
           isUpdated = true;
+          if (newStatus === "accepted") {
+            // 將事件改為新的狀態
+            evt.details.status = newStatus;
+          }
+          if (newStatus === "rejected") {
+
+            // 刪除事件
+            return null;
+          }
         }
         return evt;
       });
