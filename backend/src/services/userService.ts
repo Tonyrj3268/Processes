@@ -319,8 +319,7 @@ export class UserService {
           }
           if (newStatus === "rejected") {
 
-            // 刪除事件
-            return null;
+            evt.details.status = newStatus;
           }
         }
         return evt;
