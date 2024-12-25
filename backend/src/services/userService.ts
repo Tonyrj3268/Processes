@@ -6,13 +6,9 @@ import { Event } from "@src/models/event"; // Add this line to import the correc
 import { MongoServerError } from "mongodb";
 import { Redis } from 'ioredis';
 import redisClient from '@src/config/redis';
-
+import { eventService, EventService } from "@src/services/eventService";
 export class UserService {
-  private redisClient: Redis;
-
-  constructor(redisClient: Redis) {
-    this.redisClient = redisClient;
-  }
+  constructor(private redisClient: Redis, private eventService: EventService) { }
   // 查找用戶
   async findUserById(userId: string): Promise<IUserDocument | null> {
     try {
@@ -122,6 +118,10 @@ export class UserService {
           await Follow.deleteOne({ _id: follow._id });
           return false;
         }
+        await this.eventService.createEvent(user._id, followedUserId, "follow", { status: "accepted" });
+      }
+      else {
+        await this.eventService.createEvent(user._id, followedUserId, "follow", { status: "pending" });
       }
 
       return true;
@@ -288,7 +288,7 @@ export class UserService {
   private async updateFollowEventCache(
     userId: string,
     followerId: string,
-    newEventType: string
+    newStatus: string
   ): Promise<void> {
     try {
       const redisKey = `events:${userId}`;
@@ -309,10 +309,11 @@ export class UserService {
         if (
           evt?.sender?._id === followerId &&
           evt?.receiver?._id === userId &&
-          (evt?.eventType === "followRequest" || evt?.eventType === "pending")
+          (evt?.eventType === "friend_request") &&
+          evt?.details?.status === "pending"
         ) {
           // 將事件改為新的狀態
-          evt.eventType = newEventType;
+          evt.details.status = newStatus;
           isUpdated = true;
         }
         return evt;
@@ -337,4 +338,4 @@ export class UserService {
   }
 }
 
-export const userService = new UserService(redisClient);
+export const userService = new UserService(redisClient, eventService);
