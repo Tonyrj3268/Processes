@@ -2,8 +2,17 @@
 import { User, IUserDocument } from "@src/models/user";
 import { Follow } from "@src/models/follow";
 import mongoose, { Types, FilterQuery } from "mongoose";
+import { Event } from "@src/models/event"; // Add this line to import the correct Event model
 import { MongoServerError } from "mongodb";
+import { Redis } from 'ioredis';
+import redisClient from '@src/config/redis';
+
 export class UserService {
+  private redisClient: Redis;
+
+  constructor(redisClient: Redis) {
+    this.redisClient = redisClient;
+  }
   // 查找用戶
   async findUserById(userId: string): Promise<IUserDocument | null> {
     try {
@@ -100,18 +109,19 @@ export class UserService {
         following: followedUserId,
         status: user.isPublic ? "accepted" : "pending",
       });
+      if (user.isPublic) {
+        // 更新關注者和被關注者的計數器
+        const [updateFollower, updateFollowing] = await Promise.all([
+          User.updateOne({ _id: userId }, { $inc: { followingCount: 1 } }),
+          User.updateOne({ _id: followedUserId }, { $inc: { followersCount: 1 } }),
+        ]);
 
-      // 更新關注者和被關注者的計數器
-      const [updateFollower, updateFollowing] = await Promise.all([
-        User.updateOne({ _id: userId }, { $inc: { followingCount: 1 } }),
-        User.updateOne({ _id: followedUserId }, { $inc: { followersCount: 1 } }),
-      ]);
-
-      // 檢查是否所有更新都成功
-      if (updateFollower.modifiedCount === 0 || updateFollowing.modifiedCount === 0) {
-        // 若其中一個更新失敗，進行補償性操作，刪除剛剛建立的 Follow 記錄
-        await Follow.deleteOne({ _id: follow._id });
-        return false;
+        // 檢查是否所有更新都成功
+        if (updateFollower.modifiedCount === 0 || updateFollowing.modifiedCount === 0) {
+          // 若其中一個更新失敗，進行補償性操作，刪除剛剛建立的 Follow 記錄
+          await Follow.deleteOne({ _id: follow._id });
+          return false;
+        }
       }
 
       return true;
@@ -224,6 +234,8 @@ export class UserService {
         return false;
       }
 
+      await this.updateFollowEventCache(userId.toString(), followerId.toString(), "accepted");
+
       return true;
     } catch (error: unknown) {
       console.error('Error in acceptFollowRequest:', error);
@@ -245,11 +257,11 @@ export class UserService {
         following: userId,
         status: "pending",
       });
-
       // 如果沒有找到記錄，返回 false
       if (!deletedFollow) {
         return false;
       }
+      await Event.findOneAndDelete({ follower: followerId, following: userId, eventType: "friend_request" });
 
       // 由於是拒絕追蹤請求，不需要更新計數器
 
@@ -273,6 +285,56 @@ export class UserService {
     }
     return cachedPublicUserIds;
   }
+  private async updateFollowEventCache(
+    userId: string,
+    followerId: string,
+    newEventType: string
+  ): Promise<void> {
+    try {
+      const redisKey = `events:${userId}`;
+
+      // 從 Redis 中取得所有事件
+      const cachedEvents = await this.redisClient.lrange(redisKey, 0, -1);
+      if (!cachedEvents || !cachedEvents.length) {
+        return; // 快取中沒有事件可更新
+      }
+
+      const parsedEvents = cachedEvents.map((item) => JSON.parse(item));
+
+      // 找到對應的事件並更新
+      // 您可以根據通知欄位做判斷，如：sender._id === followerId && eventType === "pending"
+      // 以下是範例判斷：
+      let isUpdated = false;
+      const updatedEvents = parsedEvents.map((evt) => {
+        if (
+          evt?.sender?._id === followerId &&
+          evt?.receiver?._id === userId &&
+          (evt?.eventType === "followRequest" || evt?.eventType === "pending")
+        ) {
+          // 將事件改為新的狀態
+          evt.eventType = newEventType;
+          isUpdated = true;
+        }
+        return evt;
+      });
+
+      // 如果有更新，再重新寫回 Redis
+      if (isUpdated) {
+        // 重新覆蓋該 key 
+        const pipeline = this.redisClient.pipeline();
+        pipeline.del(redisKey); // 先刪除
+        updatedEvents.forEach((evt) => {
+          pipeline.rpush(redisKey, JSON.stringify(evt));
+        });
+        pipeline.expire(redisKey, 600); // 依需求重新設定過期時間
+        await pipeline.exec();
+      }
+
+    } catch (err) {
+      console.error("Error updating follow event cache:", err);
+    }
+
+  }
 }
 
-export const userService = new UserService();
+export const userService = new UserService(redisClient);
