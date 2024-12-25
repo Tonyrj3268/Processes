@@ -11,7 +11,9 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import PostDialog from "../components/PostDialog";
+import GuestDialog from "../components/GuestDialog";
 import usePostHandler from "../hooks/usePostHandler";
+import { useUser } from "../contexts/UserContext";
 
 interface SidebarProps {
   userData: {
@@ -20,15 +22,22 @@ interface SidebarProps {
   } | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ userData }) => {
+const Sidebar: React.FC<SidebarProps> = () => {
+  const { isGuest } = useUser();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [isGuestDialogOpen, setGuestDialogOpen] = useState(false); //
+
   const { dialogOpen, handleOpenDialog, handleCloseDialog, handleSubmit } =
     usePostHandler();
 
-  const handleNavigate = (path: string) => {
+  const handleNavigate = (path: string, requireAuth = false) => {
+    if (requireAuth && isGuest) {
+      setGuestDialogOpen(true);
+      return;
+    }
+
     if (path === "") {
-      // 使用 usePostHandler 打開對話框
       handleOpenDialog();
     } else {
       navigate(path);
@@ -74,15 +83,15 @@ const Sidebar: React.FC<SidebarProps> = ({ userData }) => {
         }}
       >
         {[
-          { Icon: HomeOutlined, path: "/" },
-          { Icon: SearchOutlined, path: "/search" },
-          { Icon: Add, path: "" }, // Dialog
-          { Icon: FavoriteBorder, path: "/activity" },
-          { Icon: PersonOutlined, path: "/profile" },
-        ].map(({ Icon, path }, index) => (
+          { Icon: HomeOutlined, path: "/", requireAuth: false },
+          { Icon: SearchOutlined, path: "/search", requireAuth: false },
+          { Icon: Add, path: "", requireAuth: true }, // Dialog
+          { Icon: FavoriteBorder, path: "/activity", requireAuth: true },
+          { Icon: PersonOutlined, path: "/profile", requireAuth: true },
+        ].map(({ Icon, path, requireAuth }, index) => (
           <IconButton
             key={index}
-            onClick={() => handleNavigate(path)}
+            onClick={() => handleNavigate(path, requireAuth)}
             sx={{
               borderRadius: "16px",
               padding: "10px",
@@ -122,27 +131,34 @@ const Sidebar: React.FC<SidebarProps> = ({ userData }) => {
         ))}
       </Box>
 
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        PaperProps={{
-          sx: { width: 150, borderRadius: "10px" },
-        }}
-      >
-        <MenuItem onClick={handleLogout}>
-          <Typography color="error">登出</Typography>
-        </MenuItem>
-      </Menu>
+      {!isGuest && (
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+          PaperProps={{
+            sx: { width: 150, borderRadius: "10px" },
+          }}
+        >
+          <MenuItem onClick={handleLogout}>
+            <Typography color="error">登出</Typography>
+          </MenuItem>
+        </Menu>
+      )}
 
       {/* PostDialog */}
       <PostDialog
         open={dialogOpen}
         onClose={handleCloseDialog}
         onSubmit={handleSubmit}
-        accountName={userData?.accountName || "Default User"}
-        avatarUrl={userData?.avatarUrl || "/default_avatar.jpg"}
+        initialContent=""
+        initialImages={[]}
         title="新串文"
+      />
+
+      <GuestDialog
+        isOpen={isGuestDialogOpen}
+        onClose={() => setGuestDialogOpen(false)}
       />
     </Box>
   );

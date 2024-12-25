@@ -2,8 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Box, Button, Slide, TextField, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useUser } from "../contexts/UserContext";
 
 const Login: React.FC = () => {
+  const { refreshUserData } = useUser();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -32,8 +34,10 @@ const Login: React.FC = () => {
       if (response.status === 200) {
         alert("登入成功！");
         localStorage.setItem("token", response.data.token);
+        await refreshUserData();
         navigate("/");
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       if (error.response && error.response.data.error) {
         setErrorMessage(error.response.data.error);
