@@ -7,6 +7,7 @@ import { User } from '@src/models/user';
 import { MongoServerError } from "mongodb";
 import { Follow } from '@src/models/follow';
 import redisClient from '@src/config/redis';
+import client from '@src/config/elasticsearch';
 
 export class PostService {
     async getPersonalPosts(userId: Types.ObjectId, skip: number, limit: number): Promise<IPostDocument[]> {
@@ -491,37 +492,36 @@ export class PostService {
         }
     }
 
-    async getPostComments(postId: Types.ObjectId): Promise<IPost | null> {
+    async searchPosts(query: string) {
         try {
-            // 验证 postId 是否为有效的 ObjectId
-            if (!postId || !Types.ObjectId.isValid(postId)) {
-                throw new Error("Invalid postId");
-            }
+            const result = await client.search({
+                index: 'posts',
+                query: {
+                    multi_match: {
+                        query,
+                        fields: ['content', 'userName'],
+                        fuzziness: 'AUTO'  // 模糊匹配
+                    }
+                },
+                sort: [
+                    { _score: { order: 'desc' } },    // 按相關度排序
+                    { createdAt: { order: 'desc' } }  // 相關度相同時按時間排序
+                ]
+            });
 
-            // 查找指定 postId 的贴文，并同时加载相关的评论和用户信息
-            const post = await Post.findOne({ _id: postId })
-                .populate({
-                    path: "comments", // 加载评论
-                    populate: {
-                        path: "user", // 加载评论的用户信息
-                        select: "userName accountName avatarUrl isPublic", // 选择必要的字段
-                    },
-                })
-                .populate({
-                    path: "user", // 貼文作者
-                    select: "userName accountName avatarUrl isPublic", // 限制貼文作者字段
-                })
-                .select("content images likesCount commentCount createdAt user comments") // 限制字段返回
-                .lean(); // 使用 lean() 提升查询性能
+            const hits = result.hits.hits;
+            const posts = await Post.find({
+                _id: { $in: hits.map(hit => hit._id).filter((id): id is string => id !== undefined) }
+            }).populate('user', 'userName accountName avatarUrl');
 
-            if (!post) {
-                console.error("Post not found for postId:", postId);
-                return null;
-            }
+            // 按照搜尋結果的順序排序
+            const postsMap = new Map(posts.map(post => [post._id.toString(), post]));
+            return hits
+                .map(hit => hit._id ? postsMap.get(hit._id) : undefined)
+                .filter((post): post is NonNullable<typeof post> => post !== undefined);
 
-            return post;
         } catch (error) {
-            console.error("Error in getPostComments:", error);
+            console.error('Error in searchPosts:', error);
             throw error;
         }
     }

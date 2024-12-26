@@ -1,7 +1,10 @@
-// routes/feedRoutes.ts
+// routes/searchRoutes.ts
 import { Router } from "express";
 import { Request, Response } from "express";
 import { authenticateJWT } from "@src/middlewares/authenticateJWT";
+import { postService } from "@src/services/postService";
+import { IUserDocument } from "@src/models/user";
+
 
 const router = Router();
 
@@ -92,42 +95,36 @@ const router = Router();
  *         description: Internal server error.
  */
 router.get("/", authenticateJWT, async (req: Request, res: Response): Promise<void> => {
-    const { query } = req.query;
-    if (!query) {
-        res.status(400).json({ message: "Query parameter is required." });
-        return;
+    try {
+        const { query } = req.query;
+        if (!query || typeof query !== 'string') {
+            res.status(400).json({ message: "Query parameter is required." });
+            return;
+        }
+
+        const searchResults = await postService.searchPosts(query);
+
+        res.status(200).json({
+            posts: searchResults
+                .filter((post): post is NonNullable<typeof post> => post !== undefined)
+                .map(post => ({
+                    postId: post._id,
+                    author: {
+                        id: post.user._id,
+                        userName: (post.user as IUserDocument).userName,
+                        accountName: (post.user as IUserDocument).accountName,
+                        avatarUrl: (post.user as IUserDocument).avatarUrl
+                    },
+                    content: post.content,
+                    likesCount: post.likesCount,
+                    commentCount: post.comments?.length || 0,
+                    createdAt: post.createdAt
+                }))
+        });
+    } catch (error) {
+        console.error('Error in search route:', error);
+        res.status(500).json({ message: "Internal server error" });
     }
-
-    const mockSearchResults = [
-        {
-            postId: "posf8c44b54764421b7156c9",
-            author: "5f8f8c44b54764421b7156c9",
-            timestamp: "2024-10-30T08:15:30Z",
-            content: "Exploring the city today!",
-            likesCount: 20,
-            commentCount: 5,
-        },
-        {
-            postId: "posf8c44b54764421b7156e1",
-            author: "5f8f8c44b54764421b7156c9",
-            timestamp: "2024-10-29T14:20:30Z",
-            content: "A day well spent with friends.",
-            likesCount: 30,
-            commentCount: 7,
-        },
-    ];
-
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-
-    if (page < 1) {
-        res.status(400).json({ message: "Invalid page number." });
-        return;
-    }
-
-    res.status(200).json({
-        posts: mockSearchResults.slice((page - 1) * limit, page * limit),
-    });
 });
 
 export default router;
