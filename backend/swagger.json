@@ -907,37 +907,42 @@
         }
       }
     },
-    "/api/search/posts": {
+    "/api/search": {
       "get": {
-        "summary": "Search posts using cursor pagination",
+        "summary": "Search feed based on keywords",
+        "description": "Search posts in the user's feed by keywords with pagination",
         "tags": [
-          "Search"
+          "Feed"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
         ],
         "parameters": [
           {
             "in": "query",
-            "name": "q",
-            "required": true,
+            "name": "query",
             "schema": {
               "type": "string"
             },
-            "description": "Search query string"
+            "required": true,
+            "description": "Search query for finding posts"
           },
           {
             "in": "query",
-            "name": "cursor",
+            "name": "page",
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "default": 1
             },
-            "description": "Cursor for pagination (ID of the last item from previous page)"
+            "description": "Page number"
           },
           {
             "in": "query",
             "name": "limit",
             "schema": {
               "type": "integer",
-              "minimum": 1,
-              "maximum": 50,
               "default": 10
             },
             "description": "Number of items per page"
@@ -945,7 +950,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response with posts and next cursor",
+            "description": "Successful response.",
             "content": {
               "application/json": {
                 "schema": {
@@ -957,244 +962,63 @@
                         "type": "object",
                         "properties": {
                           "postId": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Unique identifier for the post"
                           },
                           "author": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "userName": {
-                                "type": "string"
-                              },
-                              "accountName": {
-                                "type": "string"
-                              },
-                              "avatarUrl": {
-                                "type": "string"
-                              }
-                            }
+                            "type": "string",
+                            "description": "ID of the post author"
+                          },
+                          "timestamp": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Time the post was created"
                           },
                           "content": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "Content of the post"
                           },
                           "likesCount": {
-                            "type": "integer"
+                            "type": "integer",
+                            "description": "Number of likes on the post"
                           },
                           "commentCount": {
-                            "type": "integer"
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time"
+                            "type": "integer",
+                            "description": "Number of comments on the post"
                           }
                         }
                       }
-                    },
-                    "nextCursor": {
-                      "type": "string",
-                      "nullable": true,
-                      "description": "Cursor for the next page, null if no more results"
                     }
                   }
+                },
+                "example": {
+                  "posts": [
+                    {
+                      "postId": "posf8c44b5476442122156c9",
+                      "author": "5f8f8c44b54764421b7156c9",
+                      "timestamp": "2024-10-30T08:15:30Z",
+                      "content": "Exploring the city today!",
+                      "likesCount": 20,
+                      "commentCount": 5
+                    },
+                    {
+                      "postId": "posf8c44b54764421b7156c9",
+                      "author": "5f8f8c44b54764421b7156c9",
+                      "timestamp": "2024-10-29T14:20:30Z",
+                      "content": "A day well spent with friends.",
+                      "likesCount": 30,
+                      "commentCount": 7
+                    }
+                  ]
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/api/search/users": {
-      "get": {
-        "summary": "Search users using cursor pagination",
-        "tags": [
-          "Search"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "q",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Search query string"
           },
-          {
-            "in": "query",
-            "name": "cursor",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Cursor for pagination (ID of the last item from previous page)"
+          "400": {
+            "description": "Invalid query parameters."
           },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 50,
-              "default": 10
-            },
-            "description": "Number of items per page"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response with users and next cursor",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "users": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "userName": {
-                            "type": "string"
-                          },
-                          "accountName": {
-                            "type": "string"
-                          },
-                          "avatarUrl": {
-                            "type": "string"
-                          },
-                          "bio": {
-                            "type": "string"
-                          },
-                          "followersCount": {
-                            "type": "integer"
-                          },
-                          "followingCount": {
-                            "type": "integer"
-                          }
-                        }
-                      }
-                    },
-                    "nextCursor": {
-                      "type": "string",
-                      "nullable": true,
-                      "description": "Cursor for the next page, null if no more results"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/search/comments": {
-      "get": {
-        "summary": "Search comments using cursor pagination",
-        "tags": [
-          "Search"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "q",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Search query string"
-          },
-          {
-            "in": "query",
-            "name": "cursor",
-            "schema": {
-              "type": "string"
-            },
-            "description": "Cursor for pagination (ID of the last item from previous page)"
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 50,
-              "default": 10
-            },
-            "description": "Number of items per page"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response with comments and next cursor",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "comments": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "commentId": {
-                            "type": "string"
-                          },
-                          "author": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "userName": {
-                                "type": "string"
-                              },
-                              "accountName": {
-                                "type": "string"
-                              },
-                              "avatarUrl": {
-                                "type": "string"
-                              }
-                            }
-                          },
-                          "content": {
-                            "type": "string"
-                          },
-                          "likesCount": {
-                            "type": "integer"
-                          },
-                          "repliesCount": {
-                            "type": "integer"
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          }
-                        }
-                      }
-                    },
-                    "nextCursor": {
-                      "type": "string",
-                      "nullable": true,
-                      "description": "Cursor for the next page, null if no more results"
-                    }
-                  }
-                }
-              }
-            }
+          "500": {
+            "description": "Internal server error."
           }
         }
       }
@@ -1631,8 +1455,7 @@
       "description": "API endpoints for managing posts"
     },
     {
-      "name": "Search",
-      "description": "Search API endpoints"
+      "name": "Search"
     },
     {
       "name": "Users",
