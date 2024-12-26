@@ -7,6 +7,7 @@ import { User } from '@src/models/user';
 import { MongoServerError } from "mongodb";
 import { Follow } from '@src/models/follow';
 import redisClient from '@src/config/redis';
+import client from '@src/config/elasticsearch';
 
 export class PostService {
     async getPersonalPosts(userId: Types.ObjectId): Promise<IPostDocument[]> {
@@ -474,6 +475,40 @@ export class PostService {
             return true;
         } catch (error: unknown) {
             console.error('Error in addComment service:', error);
+            throw error;
+        }
+    }
+
+    async searchPosts(query: string) {
+        try {
+            const result = await client.search({
+                index: 'posts',
+                query: {
+                    multi_match: {
+                        query,
+                        fields: ['content', 'userName'],
+                        fuzziness: 'AUTO'  // 模糊匹配
+                    }
+                },
+                sort: [
+                    { _score: { order: 'desc' } },    // 按相關度排序
+                    { createdAt: { order: 'desc' } }  // 相關度相同時按時間排序
+                ]
+            });
+
+            const hits = result.hits.hits;
+            const posts = await Post.find({
+                _id: { $in: hits.map(hit => hit._id).filter((id): id is string => id !== undefined) }
+            }).populate('user', 'userName accountName avatarUrl');
+
+            // 按照搜尋結果的順序排序
+            const postsMap = new Map(posts.map(post => [post._id.toString(), post]));
+            return hits
+                .map(hit => hit._id ? postsMap.get(hit._id) : undefined)
+                .filter((post): post is NonNullable<typeof post> => post !== undefined);
+
+        } catch (error) {
+            console.error('Error in searchPosts:', error);
             throw error;
         }
     }

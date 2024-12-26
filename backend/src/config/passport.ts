@@ -2,11 +2,11 @@
 import { PassportStatic } from "passport";
 import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 // import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { UserService } from "@src/services/userService";
+import { userService } from "@src/services/userService";
 import { JWT_SECRET } from "@src/config/config";
 export default function initializePassport(passport: PassportStatic) {
-  const userService = new UserService();
 
+  // JWT 策略
   passport.use(
     new JwtStrategy(
       {
