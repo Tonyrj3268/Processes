@@ -477,6 +477,19 @@ export class PostService {
             throw error;
         }
     }
+    async getPostComments(postId: Types.ObjectId): Promise<IPostDocument | null> {
+        try {
+            const post = await Post.findOne({ _id: postId })
+                .populate("comments")
+                .populate('user', 'userName accountName avatarUrl isPublic')
+                .lean(); // 使用 lean() 提升效能
+
+            return post;
+        } catch (error) {
+            console.error('Error in getPostComments:', error);
+            throw error;
+        }
+    }
 
 }
 

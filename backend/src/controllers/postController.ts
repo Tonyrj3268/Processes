@@ -454,6 +454,17 @@ export class PostController {
         }
         return array;
     };
+
+    getPostComments = async (req: Request, res: Response): Promise<void> => {
+        try {
+            const { postId } = req.params;
+            const postWithComments = await this.postService.getPostComments(new Types.ObjectId(postId));
+            res.status(200).json({ postWithComments });
+        } catch (error) {
+            console.error('Error in getPostComments:', error);
+            res.status(500).json({ msg: '伺服器錯誤' });
+        }
+    }
 }
 
 export const postController = new PostController(postService, hotPostService, redisClient);
