@@ -6,7 +6,7 @@ import { Types } from 'mongoose';
 import { IUserDocument, User } from '@src/models/user';
 import { Redis } from "ioredis";
 import redisClient from "@src/config/redis";
-
+import { Like } from '@src/models/like';
 export class PostController {
     constructor(private postService: PostService = new PostService(), private hotPostsService: HotPostService = new HotPostService(), private redisClient: Redis) { }
 
@@ -45,6 +45,18 @@ export class PostController {
 
             // Shuffle the combined posts
             const shuffledPosts = this.shuffleArray([...allPosts, ...followPosts, ...hotPosts]);
+            // 取得所有貼文的 `_id`
+            const postIds = shuffledPosts.map(post => post._id);
+
+            // 查詢目前使用者對這些貼文的按讚狀態
+            const likeStatuses = await Like.find({
+                user: currentUserId,
+                targetModel: 'Post',
+                target: { $in: postIds },
+            }).select('target').lean();
+
+            // 將按讚的貼文 ID 放入集合
+            const likedPostIds = new Set(likeStatuses.map(like => like.target.toString()));
 
             // 如果有貼文，取得最後一篇的_id作為下一個 cursor）
             const nextCursor = shuffledPosts.length > 0
@@ -64,7 +76,8 @@ export class PostController {
                     likesCount: post.likesCount,
                     commentCount: post.comments.length || 0,
                     createdAt: post.createdAt,
-                    images: post.images
+                    images: post.images,
+                    isLiked: likedPostIds.has(post._id.toString()), // 判斷是否按讚
                 })),
                 nextCursor,  // 提供給前端下次請求使用
             });
@@ -458,7 +471,26 @@ export class PostController {
     getPostComments = async (req: Request, res: Response): Promise<void> => {
         try {
             const { postId } = req.params;
+            let currentUserId = undefined;
+
             const postWithComments = await this.postService.getPostComments(new Types.ObjectId(postId));
+            if (!postWithComments) {
+                res.status(404).json({ msg: '找不到貼文' });
+                return;
+            }
+
+            if (req.user) {
+                currentUserId = (req.user as IUserDocument)._id;  // currentUserId 由 authenticateJWT 中間件注入
+                const likeStatus = await Like.findOne({
+                    user: currentUserId,
+                    targetModel: 'Post',
+                    target: new Types.ObjectId(postId), // 應該是單一目標的查詢
+                }).lean();
+
+                // 加入是否按讚的資訊
+                postWithComments.isLiked = Boolean(likeStatus);
+            }
+
             res.status(200).json({ postWithComments });
         } catch (error) {
             console.error('Error in getPostComments:', error);
