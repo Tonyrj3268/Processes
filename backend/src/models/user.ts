@@ -1,6 +1,6 @@
 // src/models/user.ts
-
 import { Schema, model, HydratedDocument } from "mongoose";
+import client from "@src/config/elasticsearch";
 
 export interface IUser {
   accountName: string;
@@ -18,6 +18,39 @@ export interface IUser {
 }
 
 export type IUserDocument = HydratedDocument<IUser>
+
+// 同步到 Elasticsearch 的輔助函數
+async function syncToElasticsearch(doc: IUserDocument, operation: 'index' | 'delete') {
+  try {
+    if (!doc) return;
+
+    if (operation === 'index') {
+      await client.index({
+        index: 'users',
+        id: doc._id.toString(),
+        body: {
+          userName: doc.userName,
+          accountName: doc.accountName,
+          bio: doc.bio || '',
+          isPublic: doc.isPublic,
+          avatarUrl: doc.avatarUrl,
+          followersCount: doc.followersCount,
+          followingCount: doc.followingCount,
+          createdAt: doc.createdAt
+        },
+      });
+      console.log(`User ${doc._id} indexed in Elasticsearch`);
+    } else if (operation === 'delete') {
+      await client.delete({
+        index: 'users',
+        id: doc._id.toString(),
+      });
+      console.log(`User ${doc._id} deleted from Elasticsearch`);
+    }
+  } catch (error) {
+    console.error(`Error during Elasticsearch ${operation} operation for user ${doc._id}:`, error);
+  }
+}
 
 const userSchema: Schema = new Schema<IUserDocument>({
   accountName: {
@@ -45,12 +78,10 @@ const userSchema: Schema = new Schema<IUserDocument>({
     required: true,
     select: false,
   },
-  // 用戶的粉絲數
   followersCount: {
     type: Number,
     default: 0,
   },
-  // 用戶的被關注數
   followingCount: {
     type: Number,
     default: 0,
@@ -81,6 +112,37 @@ const userSchema: Schema = new Schema<IUserDocument>({
   googleId: {
     type: String,
   },
+});
+
+// 保存後同步到 Elasticsearch
+userSchema.post('save', async function (doc: IUserDocument) {
+  await syncToElasticsearch(doc, 'index');
+});
+
+// 更新後同步到 Elasticsearch
+userSchema.post('findOneAndUpdate', async function (doc: IUserDocument) {
+  if (doc) {
+    await syncToElasticsearch(doc, 'index');
+  }
+});
+
+// 刪除時從 Elasticsearch 移除
+userSchema.post('findOneAndDelete', async function (doc: IUserDocument) {
+  if (doc) {
+    await syncToElasticsearch(doc, 'delete');
+  }
+});
+
+userSchema.post('deleteOne', async function (doc: IUserDocument) {
+  if (doc) {
+    await syncToElasticsearch(doc, 'delete');
+  }
+});
+
+userSchema.post('deleteMany', async function (doc: IUserDocument) {
+  if (doc) {
+    await syncToElasticsearch(doc, 'delete');
+  }
 });
 
 userSchema.index({ accountName: 1 });
