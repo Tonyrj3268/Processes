@@ -28,7 +28,7 @@ export async function setupElasticsearch() {
                         analyzer: {
                             my_analyzer: {
                                 type: 'custom',
-                                tokenizer: 'smartcn_tokenizer',
+                                tokenizer: 'standard',
                                 filter: [
                                     'lowercase',
                                     'asciifolding'
@@ -64,7 +64,7 @@ export async function setupElasticsearch() {
                         analyzer: {
                             my_analyzer: {
                                 type: 'custom',
-                                tokenizer: 'smartcn_tokenizer',
+                                tokenizer: 'standard',
                                 filter: [
                                     'lowercase',
                                     'asciifolding'
@@ -108,7 +108,7 @@ export async function setupElasticsearch() {
                         analyzer: {
                             my_analyzer: {
                                 type: 'custom',
-                                tokenizer: 'smartcn_tokenizer',
+                                tokenizer: 'standard',
                                 filter: [
                                     'lowercase',
                                     'asciifolding'

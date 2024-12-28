@@ -4,7 +4,7 @@ import client from "@src/config/elasticsearch";
 import { IUserDocument } from "./user";
 
 export interface IComment {
-  user: Types.ObjectId;
+  user: Types.ObjectId | IUserDocument;
   content: string;
   createdAt: Date;
   updatedAt: Date;
