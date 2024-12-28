@@ -11,6 +11,7 @@ export interface IPost {
   updatedAt: Date;
   likesCount: number;
   comments: Types.ObjectId[];
+  isLiked?: boolean;
 }
 
 export type IPostDocument = HydratedDocument<IPost>;
