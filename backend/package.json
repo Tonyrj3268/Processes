@@ -9,7 +9,7 @@
     "start": "node dist/src/server.js",
     "dev": "ts-node -r tsconfig-paths/register src/server.ts",
     "lint": "eslint .",
-    "test": "NODE_ENV=test jest",
+    "test": "NODE_ENV=test jest --detectOpenHandles --forceExit",
     "coverage": "jest --coverage"
   },
   "keywords": [],
