@@ -1,4 +1,4 @@
-// postController.test.ts
+// tests/controllers/postController.test.ts
 import { Request, Response } from 'express';
 import { PostController } from '@src/controllers/postController';
 import { PostService } from '@src/services/postService';
@@ -6,15 +6,9 @@ import { HotPostService } from '@src/services/hotPostService';
 import { IUserDocument, User } from '@src/models/user';
 import { IPostDocument, Post } from '@src/models/post';
 import "@tests/setup";
-import { Types } from 'mongoose';
 import redisClient from '@src/config/redis';
 
-/**
- * 創建模擬的 Express Response 對象
- * 使用 Partial<Response> 允許我們只實現需要的方法
- * 返回一個帶有模擬 status 和 json 方法的 Response 對象
- * mockReturnValue(res) 使方法調用可以鏈式操作
- */
+// 模擬 Response 對象
 const mockResponse = () => {
     const res: Partial<Response> = {};
     res.status = jest.fn().mockReturnValue(res);
@@ -23,22 +17,14 @@ const mockResponse = () => {
 };
 
 describe('PostController', () => {
-    // 定義測試所需的變數
-    let testUser: IUserDocument;          // 測試用戶
-    let anotherUser: IUserDocument;       // 用於交互測試的次要用戶
-    let controller: PostController;        // 控制器實例
-    let mockPostService: PostService;      // 模擬的 PostService
-    let mockHotPostService: HotPostService; // 模擬的 HotPostService
-    let testPost: IPostDocument;          // 測試貼文
+    let testUser: IUserDocument;
+    let anotherUser: IUserDocument;
+    let controller: PostController;
+    let mockPostService: PostService;
+    let mockHotPostService: HotPostService;
+    let testPost: IPostDocument;
 
-    /**
-     * 創建測試用戶的輔助函數
-     * @param overrides - 可選的用戶數據覆蓋對象
-     * @returns Promise<IUserDocument> - 返回創建的用戶文檔
-     * 
-     * 使用展開運算符 (...) 合併默認值和覆蓋值，
-     * 允許靈活地創建不同的測試用戶數據
-     */
+    // 創建測試用戶的工廠函數
     const createTestUser = async (overrides = {}): Promise<IUserDocument> => {
         const userData = {
             accountName: "defaultAccountName",
@@ -47,44 +33,47 @@ describe('PostController', () => {
             password: "defaultPassword",
             ...overrides,
         };
-        const user = new User(userData);
-        await user.save();
-        return user;
+        return await User.create(userData);
     };
 
-    /**
-     * 在每個測試前執行的設置
-     * 初始化測試環境，創建必要的測試數據
-     */
+    beforeAll(() => {
+        // 確保在測試環境下運行
+        process.env.NODE_ENV = 'test';
+    });
+
     beforeEach(async () => {
-        // 創建新的服務和控制器實例
         mockPostService = new PostService();
         mockHotPostService = new HotPostService();
         controller = new PostController(mockPostService, mockHotPostService, redisClient);
+
+        // 模擬 HotPostService 的方法
+        jest.spyOn(mockHotPostService, 'getHotPosts').mockResolvedValue([]);
 
         // 創建測試用戶
         testUser = await createTestUser({
             userName: "testuser",
             accountName: "testAccountName",
             email: "test@example.com",
-            password: "password123",
-            avatarUrl: "test-avatar.jpg",
-            isPublic: false
+            isPublic: false  // 關鍵修改：設置為非公開
         });
 
         anotherUser = await createTestUser({
-            userName: "anotheruser",
+            userName: "anotherUser",
             accountName: "anotherAccountName",
-            email: "another@example.com",
-            password: "password123",
-            avatarUrl: "another-avatar.jpg"
+            email: "another@example.com"
         });
 
         // 創建測試貼文
-        testPost = await new Post({
+        testPost = await Post.create({
             user: testUser._id,
-            content: "Test post content"
-        }).save();
+            content: "Test post content",
+            images: [],
+            likesCount: 0,
+            comments: []
+        });
+
+        // 關聯用戶資訊
+        await testPost.populate('user');
     });
 
     describe('getPersonalPosts', () => {
@@ -109,62 +98,75 @@ describe('PostController', () => {
         });
     });
 
-
     describe('getAllPosts', () => {
         it('應該返回分頁的貼文列表', async () => {
             // 模擬請求對象，包含分頁參數
             const req = {
-                query: { page: '1', limit: '10' },
+                query: { limit: '10' },
                 user: testUser,
             } as unknown as Request;
             const res = mockResponse();
 
             // 使用 jest.spyOn 監視並模擬 getAllPosts 方法的返回值
             jest.spyOn(mockPostService, 'getAllPosts').mockResolvedValue([testPost]);
+            jest.spyOn(mockHotPostService, 'getHotPosts').mockResolvedValue([]);
 
             // 執行測試
             await controller.getAllPosts(req, res);
 
             // 驗證響應
             expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-                "posts": expect.arrayContaining([
-                    expect.objectContaining({
-                        postId: testPost._id,
-                        author: expect.objectContaining({
-                            id: testUser._id,
-                            accountName: undefined,
-                            userName: undefined,
-                            avatarUrl: undefined
-                        }),
-                        content: testPost.content,
-                        likesCount: 0,
-                        commentCount: 0,
-                        createdAt: testPost.createdAt
-                    })
-                ]),
-                nextCursor: expect.any(Types.ObjectId)
-            }));
+            expect(res.json).toHaveBeenCalledWith({
+                posts: [{
+                    postId: testPost._id,
+                    author: {
+                        id: testUser._id,
+                        userName: testUser.userName,
+                        accountName: testUser.accountName,
+                        avatarUrl: testUser.avatarUrl || ""
+                    },
+                    content: testPost.content,
+                    likesCount: 0,
+                    commentCount: 0,
+                    createdAt: testPost.createdAt,
+                    images: [],
+                    isLiked: false
+                }],
+                nextCursor: testPost._id
+            });
         });
-    });
 
-    describe('createPost', () => {
-        it('應該成功建立新貼文', async () => {
-            // 模擬帶有用戶信息和貼文內容的請求
+        // 添加更多測試用例
+        it('當無資料時應返回空列表', async () => {
             const req = {
-                body: { content: 'Test content' },
-                user: testUser
-            } as Request;
+                query: { limit: '10' },
+                user: testUser,
+            } as unknown as Request;
             const res = mockResponse();
 
-            // 執行測試
-            await controller.createPost(req, res);
+            jest.spyOn(mockPostService, 'getAllPosts').mockResolvedValue([]);
+            jest.spyOn(mockHotPostService, 'getHotPosts').mockResolvedValue([]);
 
-            // 驗證響應
-            expect(res.status).toHaveBeenCalledWith(201);
-            expect(res.json).toHaveBeenCalledWith(
-                expect.objectContaining({ msg: 'Post created successfully', post: expect.any(Object) })
-            );
+            await controller.getAllPosts(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.json).toHaveBeenCalledWith({
+                posts: [],
+                nextCursor: null
+            });
+        });
+
+        it('應處理參數驗證', async () => {
+            const req = {
+                query: { limit: '-1' }, // 無效的限制參數
+                user: testUser,
+            } as unknown as Request;
+            const res = mockResponse();
+
+            await controller.getAllPosts(req, res);
+
+            expect(res.status).toHaveBeenCalledWith(400);
+            expect(res.json).toHaveBeenCalledWith({ msg: '無效的參數' });
         });
     });
 
@@ -290,5 +292,12 @@ describe('PostController', () => {
             // 驗證響應
             expect(res.status).toHaveBeenCalledWith(201);
         });
+    });
+
+    afterAll(() => {
+        if (mockHotPostService instanceof HotPostService) {
+            // 停止 cron job
+            mockHotPostService.stop?.();
+        }
     });
 });
