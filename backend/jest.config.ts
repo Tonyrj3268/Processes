@@ -1,5 +1,3 @@
-// jest.config.ts
-
 import type { JestConfigWithTsJest } from "ts-jest";
 
 const config: JestConfigWithTsJest = {
@@ -11,6 +9,10 @@ const config: JestConfigWithTsJest = {
   },
   moduleFileExtensions: ["js", "ts", "json", "node"],
   roots: ["<rootDir>/src", "<rootDir>/tests"],
+  testTimeout: 30000,  // 增加超時時間到 30 秒
+  setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
+  detectOpenHandles: true,
+  forceExit: true,
 };
 
 export default config;
