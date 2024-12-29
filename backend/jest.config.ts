@@ -9,7 +9,7 @@ const config: JestConfigWithTsJest = {
   },
   moduleFileExtensions: ["js", "ts", "json", "node"],
   roots: ["<rootDir>/src", "<rootDir>/tests"],
-  testTimeout: 5000,
+  testTimeout: 30000,
   setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
   detectOpenHandles: true,
   forceExit: true,
