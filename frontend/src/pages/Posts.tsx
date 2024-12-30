@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import React, { useEffect, useState, useCallback } from "react";
 import {
   Avatar,
@@ -10,10 +9,6 @@ import {
   Button,
   Menu,
   MenuItem,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Dialog,
 } from "@mui/material";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import FavoriteIcon from "@mui/icons-material/Favorite";
@@ -22,6 +17,8 @@ import PostDialog from "../components/PostDialog";
 import usePostHandler from "../hooks/usePostHandler";
 import { MoreHoriz } from "@mui/icons-material";
 import { useUser } from "../contexts/UserContext";
+import DeleteConfirmation from "../components/DeleteConfirmation";
+import { useNavigate } from "react-router-dom";
 
 interface Post {
   postId: string;
@@ -36,7 +33,7 @@ interface Post {
   likesCount: number;
   commentCount: number;
   createdAt: string;
-  likedByUser: boolean;
+  isLiked: boolean;
 }
 
 const Posts: React.FC = () => {
@@ -48,6 +45,7 @@ const Posts: React.FC = () => {
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [updatedContent, setUpdatedContent] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const navigate = useNavigate();
 
   const { dialogOpen, handleOpenDialog, handleCloseDialog, handleSubmit } =
     usePostHandler();
@@ -78,7 +76,18 @@ const Posts: React.FC = () => {
       }
 
       const data = await response.json();
-      setPosts(data.posts || []);
+      // setPosts(data.posts || []);
+      setPosts((prev) => {
+        const uniquePosts = new Map();
+        [...prev, ...data.posts].forEach((post) => {
+          uniquePosts.set(post.postId, {
+            ...post,
+            likesCount: post.likesCount || 0,
+            commentCount: post.commentCount || 0,
+          });
+        });
+        return Array.from(uniquePosts.values());
+      });
     } catch (error) {
       console.error("Error fetching user posts:", error);
     } finally {
@@ -166,21 +175,22 @@ const Posts: React.FC = () => {
     const token = localStorage.getItem("token");
     const method = liked ? "DELETE" : "POST";
 
-    // 1. 即時更新前端 UI
+    // 即時更新 UI 狀態
     setPosts((prev) =>
       prev.map((post) =>
         post.postId === postId
           ? {
             ...post,
-            likesCount: liked ? post.likesCount - 1 : post.likesCount + 1,
-            likedByUser: !liked,
+            likesCount: post.isLiked
+              ? post.likesCount - 1
+              : post.likesCount + 1,
+            isLiked: !post.isLiked,
           }
           : post,
       ),
     );
 
     try {
-      // 2. 發送後端請求
       const response = await fetch(`/api/post/${postId}/like`, {
         method,
         headers: { Authorization: `Bearer ${token}` },
@@ -189,31 +199,18 @@ const Posts: React.FC = () => {
       if (!response.ok) {
         throw new Error("Failed to toggle like");
       }
-
-      // 3. 使用後端返回數據更新前端狀態
-      const data = await response.json();
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.postId === postId
-            ? {
-              ...post,
-              likesCount: data.likesCount,
-              likedByUser: data.likedByUser,
-            }
-            : post,
-        ),
-      );
     } catch (error) {
       console.error("Error toggling like:", error);
 
-      // 4. 如果請求失敗，回滾前端狀態
       setPosts((prev) =>
         prev.map((post) =>
           post.postId === postId
             ? {
               ...post,
-              likesCount: liked ? post.likesCount + 1 : post.likesCount - 1,
-              likedByUser: liked,
+              likesCount: post.isLiked
+                ? post.likesCount + 1
+                : post.likesCount - 1,
+              isLiked: post.isLiked,
             }
             : post,
         ),
@@ -290,8 +287,9 @@ const Posts: React.FC = () => {
 
           return (
             <Box
-              key={`${post.postId}-${post.createdAt}`}
-              sx={{ marginBottom: "16px" }}
+              key={post.postId}
+              sx={{ marginBottom: "16px", cursor: "pointer" }}
+              onClick={() => navigate(`/posts/${post.postId}`)}
             >
               <Box sx={{ display: "flex", alignItems: "center" }}>
                 <Avatar
@@ -338,8 +336,8 @@ const Posts: React.FC = () => {
                   <Box
                     key={index}
                     sx={{
-                      width: "500px",
-                      height: "500px",
+                      width: "550px",
+                      height: "550px",
                       flexShrink: 0,
                       borderRadius: "8px",
                       overflow: "hidden",
@@ -368,11 +366,12 @@ const Posts: React.FC = () => {
                   }}
                 >
                   <IconButton
-                    onClick={() =>
-                      handleToggleLike(post.postId, post.likedByUser)
-                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleLike(post.postId, post.isLiked);
+                    }}
                   >
-                    {post.likedByUser ? (
+                    {post.isLiked ? (
                       <FavoriteIcon color="error" fontSize="small" />
                     ) : (
                       <FavoriteBorderIcon fontSize="small" />
@@ -429,41 +428,13 @@ const Posts: React.FC = () => {
         title="編輯貼文"
       />
 
-      {/* 刪除確認對話框 */}
-      <Dialog
+      <DeleteConfirmation
         open={confirmDeleteOpen}
         onClose={handleConfirmDeleteClose}
-        PaperProps={{
-          sx: { borderRadius: "20px", padding: "8px" },
-        }}
-      >
-        <DialogTitle>刪除貼文？</DialogTitle>
-        <DialogContent>
-          <Typography>刪除這則貼文後，即無法恢復顯示。</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={handleConfirmDeleteClose}
-            sx={{ color: "#888", fontSize: "16px", textTransform: "none" }}
-          >
-            取消
-          </Button>
-          <Button
-            onClick={async () => {
-              await handleDeletePost(); // 執行刪除貼文邏輯
-              handleConfirmDeleteClose(); // 關閉對話框
-            }}
-            sx={{
-              textTransform: "none",
-              color: "red",
-              fontWeight: "bold",
-              fontSize: "16px",
-            }}
-          >
-            刪除
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onConfirm={handleDeletePost}
+        title="刪除貼文？"
+        content="刪除這則貼文後，即無法恢復顯示。"
+      />
     </Box>
   );
 };
