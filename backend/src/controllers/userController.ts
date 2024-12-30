@@ -89,7 +89,7 @@ export class UserController {
     const { userId } = req.body as { userId: string };
     try {
       const followedId = new Types.ObjectId(userId);
-      const result = await this.userService.followUser(user._id, followedId);
+      const result = await this.userService.followUser(user, followedId);
       if (!result) {
         res.status(404).json({ msg: "找不到或已經追蹤該使用者" });
         return;

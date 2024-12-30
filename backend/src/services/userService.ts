@@ -86,29 +86,29 @@ export class UserService {
   }
 
   // 關注用戶
-  async followUser(userId: Types.ObjectId, followedUserId: Types.ObjectId): Promise<boolean> {
+  async followUser(user: IUserDocument, followedUserId: Types.ObjectId): Promise<boolean> {
     // 防止用戶追蹤自己
-    if (userId.equals(followedUserId)) {
+    if (user._id.equals(followedUserId)) {
       return false;
     }
 
     // 查找執行追蹤的用戶
-    const user = await User.findById(userId);
-    if (!user) {
+    const followeduser = await User.findById(followedUserId);
+    if (!followeduser) {
       throw new Error("用戶不存在");
     }
 
     try {
       // 嘗試創建 Follow 記錄，捕獲重複關注的錯誤
       const follow = await Follow.create({
-        follower: userId,
+        follower: user,
         following: followedUserId,
-        status: user.isPublic ? "accepted" : "pending",
+        status: followeduser.isPublic ? "accepted" : "pending",
       });
-      if (user.isPublic) {
+      if (followeduser.isPublic) {
         // 更新關注者和被關注者的計數器
         const [updateFollower, updateFollowing] = await Promise.all([
-          User.updateOne({ _id: userId }, { $inc: { followingCount: 1 } }),
+          User.updateOne({ _id: user }, { $inc: { followingCount: 1 } }),
           User.updateOne({ _id: followedUserId }, { $inc: { followersCount: 1 } }),
         ]);
 
