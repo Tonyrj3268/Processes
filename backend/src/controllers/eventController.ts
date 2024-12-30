@@ -1,11 +1,9 @@
 import { Request, Response } from "express";
 import { IUserDocument } from "@src/models/user";
 import { eventService, EventService } from "@src/services/eventService";
-import redisClient from "@src/config/redis";
-import { Redis } from "ioredis";
 
 export class EventController {
-    constructor(private eventService: EventService, private redisClient: Redis) { }
+    constructor(private eventService: EventService) { }
 
     getEvents = async (req: Request, res: Response): Promise<void> => {
         try {
@@ -13,26 +11,8 @@ export class EventController {
             const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
             const user = req.user as IUserDocument;
 
-            const redisKey = `events:${user._id}`;
-            let eventsArray = [];
-            const cachedLength = await this.redisClient.llen(redisKey);
-
-            if (cachedLength > 0) {
-                // 從 Redis 列表中取數據
-                const cachedData = await this.redisClient.lrange(redisKey, 0, -1);
-                eventsArray = cachedData.map(data => JSON.parse(data));
-            } else {
-                const notifications = await this.eventService.getEvents(user._id);
-                eventsArray = this.formatNotifications(notifications);
-
-                // 存入 Redis 列表
-                const pipeline = this.redisClient.pipeline();
-                eventsArray.forEach(event =>
-                    pipeline.rpush(redisKey, JSON.stringify(event))
-                );
-                pipeline.expire(redisKey, 600); // 設置過期時間為 10 分鐘
-                await pipeline.exec();
-            }
+            const notifications = await this.eventService.getEvents(user._id);
+            const eventsArray = this.formatNotifications(notifications);
 
             // 根據 cursor 和 limit 取數據
             const slicedEvents = eventsArray.slice(cursor, cursor + limit);
@@ -74,4 +54,4 @@ export class EventController {
     }
 }
 
-export const eventController = new EventController(eventService, redisClient);
+export const eventController = new EventController(eventService);
