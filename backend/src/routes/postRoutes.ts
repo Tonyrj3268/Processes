@@ -32,6 +32,9 @@ router.get("/guest", optionalAuthenticateJWT, getPostValidator, postController.g
  *      required: true
  * 
  */
+
+router.get("/:postId/comments", optionalAuthenticateJWT, postIdValidator, postController.getPostComments);
+
 router.get("/:userId", authenticateJWT, getPostValidator, postController.getPersonalPosts);
 
 /**

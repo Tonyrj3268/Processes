@@ -1,5 +1,5 @@
 import { FilterQuery, Types } from 'mongoose';
-import { Post, IPostDocument } from '@src/models/post';
+import { Post, IPost, IPostDocument } from '@src/models/post';
 import { Comment } from '@src/models/comment';
 import { Like } from '@src/models/like';
 import { Event } from '@src/models/event';
@@ -474,6 +474,18 @@ export class PostService {
             return true;
         } catch (error: unknown) {
             console.error('Error in addComment service:', error);
+            throw error;
+        }
+    }
+    async getPostComments(postId: Types.ObjectId): Promise<IPost | null> {
+        try {
+            const post = await Post.findOne({ _id: postId })
+                .populate("comments")
+                .populate('user', 'userName accountName avatarUrl isPublic')
+                .lean(); // 使用 lean() 提升效能
+            return post;
+        } catch (error) {
+            console.error('Error in getPostComments:', error);
             throw error;
         }
     }

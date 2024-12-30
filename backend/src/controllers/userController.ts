@@ -89,7 +89,7 @@ export class UserController {
     const { userId } = req.body as { userId: string };
     try {
       const followedId = new Types.ObjectId(userId);
-      const result = await this.userService.followUser(user._id, followedId);
+      const result = await this.userService.followUser(user, followedId);
       if (!result) {
         res.status(404).json({ msg: "找不到或已經追蹤該使用者" });
         return;
@@ -102,6 +102,7 @@ export class UserController {
   }
 
   // 取消關注用戶
+  // TODO: 這裡的取消關注用戶的功能有點問題，因為我們沒有檢查用戶是否已經追蹤該使用者
   unfollowUser = async (req: Request, res: Response): Promise<void> => {
     const user = req.user as IUserDocument;
     const { userId } = req.body as { userId: string };
