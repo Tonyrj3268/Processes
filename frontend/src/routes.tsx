@@ -12,6 +12,7 @@ import Reposts from "./pages/Reposts";
 import Posts from "./pages/Posts";
 import { useUser } from "./contexts/UserContext";
 import CircularProgress from "@mui/material/CircularProgress";
+import PostDetail from "./pages/PostDetail";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isLoading } = useUser();
@@ -94,6 +95,15 @@ const router = createBrowserRouter([
             element: <Reposts />,
           },
         ],
+      },
+      {
+        path: "/posts/:postId",
+        element: (
+          <ProtectedRoute>
+            <PostDetail />
+          </ProtectedRoute>
+        ),
+        handle: { title: "串文" },
       },
     ],
   },
