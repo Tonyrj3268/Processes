@@ -257,7 +257,7 @@ export class UserService {
       if (!deletedFollow) {
         return false;
       }
-      await Event.findOneAndDelete({ sender: userId, receiver: followerId, eventType: "friend_request" });
+      await Event.findOneAndDelete({ sender: followerId, receiver: userId, eventType: "friend_request" });
 
       return true;
     } catch (error: unknown) {
