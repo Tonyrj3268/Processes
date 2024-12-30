@@ -40,12 +40,13 @@ export class EventController {
             eventType: notification.eventType,
             timestamp: notification.timestamp.toISOString(),
             sender: {
-                _id: notification.sender._id.toString(),
+                _id: (notification.sender as IUserDocument)._id.toString(),
                 accountName: (notification.sender as IUserDocument).accountName,
                 avatarUrl: (notification.sender as IUserDocument).avatarUrl,
+                isPublic: (notification.sender as IUserDocument).isPublic,
             },
             receiver: {
-                _id: notification.receiver._id.toString(),
+                _id: (notification.sender as IUserDocument)._id.toString(),
                 accountName: (notification.receiver as IUserDocument).accountName,
                 avatarUrl: (notification.receiver as IUserDocument).avatarUrl,
             },
