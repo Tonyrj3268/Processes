@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import React, { useEffect, useState, useCallback } from "react";
 import {
   Avatar,
@@ -15,6 +16,7 @@ import {
   Dialog,
 } from "@mui/material";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import FavoriteIcon from "@mui/icons-material/Favorite";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import PostDialog from "../components/PostDialog";
 import usePostHandler from "../hooks/usePostHandler";
@@ -34,6 +36,7 @@ interface Post {
   likesCount: number;
   commentCount: number;
   createdAt: string;
+  likedByUser: boolean;
 }
 
 const Posts: React.FC = () => {
@@ -158,6 +161,65 @@ const Posts: React.FC = () => {
 
   const handleConfirmDeleteOpen = () => setConfirmDeleteOpen(true);
   const handleConfirmDeleteClose = () => setConfirmDeleteOpen(false);
+
+  const handleToggleLike = async (postId: string, liked: boolean) => {
+    const token = localStorage.getItem("token");
+    const method = liked ? "DELETE" : "POST";
+
+    // 1. 即時更新前端 UI
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.postId === postId
+          ? {
+            ...post,
+            likesCount: liked ? post.likesCount - 1 : post.likesCount + 1,
+            likedByUser: !liked,
+          }
+          : post,
+      ),
+    );
+
+    try {
+      // 2. 發送後端請求
+      const response = await fetch(`/api/post/${postId}/like`, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to toggle like");
+      }
+
+      // 3. 使用後端返回數據更新前端狀態
+      const data = await response.json();
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.postId === postId
+            ? {
+              ...post,
+              likesCount: data.likesCount,
+              likedByUser: data.likedByUser,
+            }
+            : post,
+        ),
+      );
+    } catch (error) {
+      console.error("Error toggling like:", error);
+
+      // 4. 如果請求失敗，回滾前端狀態
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.postId === postId
+            ? {
+              ...post,
+              likesCount: liked ? post.likesCount + 1 : post.likesCount - 1,
+              likedByUser: liked,
+            }
+            : post,
+        ),
+      );
+    }
+  };
 
   useEffect(() => {
     fetchPosts();
@@ -305,8 +367,16 @@ const Posts: React.FC = () => {
                     alignItems: "center",
                   }}
                 >
-                  <IconButton>
-                    <FavoriteBorderIcon fontSize="small" />
+                  <IconButton
+                    onClick={() =>
+                      handleToggleLike(post.postId, post.likedByUser)
+                    }
+                  >
+                    {post.likedByUser ? (
+                      <FavoriteIcon color="error" fontSize="small" />
+                    ) : (
+                      <FavoriteBorderIcon fontSize="small" />
+                    )}
                   </IconButton>
                   <Typography sx={{ fontSize: "13px" }}>
                     {post.likesCount}
