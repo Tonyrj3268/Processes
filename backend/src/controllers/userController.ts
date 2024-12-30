@@ -72,6 +72,7 @@ export class UserController {
         avatarUrl: updatedUser.avatarUrl,
         followersCount: updatedUser.followersCount,
         followingCount: updatedUser.followingCount,
+        isPublic: updatedUser.isPublic,
       };
       const redisKey = `userProfile:${updatedUser._id}`;
       await this.redisClient.setex(redisKey, 600, JSON.stringify(publicFields));
