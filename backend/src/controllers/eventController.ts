@@ -45,6 +45,11 @@ export class EventController {
                 avatarUrl: (notification.sender as IUserDocument).avatarUrl,
                 isPublic: (notification.sender as IUserDocument).isPublic,
             },
+            receiver: {
+                _id: (notification.receiver as IUserDocument)._id.toString(),
+                accountName: (notification.receiver as IUserDocument).accountName,
+                avatarUrl: (notification.receiver as IUserDocument).avatarUrl,
+            },
             details: notification.details || {},
         }));
     }
