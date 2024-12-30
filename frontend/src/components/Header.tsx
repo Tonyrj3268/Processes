@@ -97,7 +97,9 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
               aria-label="back"
               sx={{
                 position: "absolute",
-                left: "330px",
+                left: "calc(50% - 80px)",
+                transform: "translateX(-100%)",
+                marginRight: "50px",
                 color: "black",
               }}
             >
