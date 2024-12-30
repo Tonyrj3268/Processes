@@ -9,8 +9,6 @@ import {
 import React, { useEffect, useState } from "react";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate, useLocation } from "react-router-dom";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { useNavigate, useLocation } from "react-router-dom";
 
 interface HeaderProps {
   title: string;
@@ -18,7 +16,6 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ title }) => {
   const navigate = useNavigate();
-  const location = useLocation();
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -34,12 +31,6 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
   const handleLoginClick = () => {
     navigate("/login");
   };
-
-  const handleBackClick = () => {
-    navigate(-1); // 返回上一頁
-  };
-
-  const showBackButton = location.pathname.startsWith("/posts/");
 
   const handleBackClick = () => {
     navigate(-1); // 返回上一頁
@@ -97,9 +88,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
               aria-label="back"
               sx={{
                 position: "absolute",
-                left: "calc(50% - 80px)",
-                transform: "translateX(-100%)",
-                marginRight: "50px",
+                left: "330px",
                 color: "black",
               }}
             >

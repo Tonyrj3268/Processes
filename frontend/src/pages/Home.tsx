@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   Avatar,
@@ -10,13 +11,11 @@ import {
 } from "@mui/material";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import FavoriteIcon from "@mui/icons-material/Favorite";
-import FavoriteIcon from "@mui/icons-material/Favorite";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import PostDialog from "../components/PostDialog";
 import GuestDialog from "../components/GuestDialog";
 import usePostHandler from "../hooks/usePostHandler";
 import { useUser } from "../contexts/UserContext";
-import { useNavigate } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 
 interface Post {
@@ -33,7 +32,6 @@ interface Post {
   commentCount: number;
   createdAt: string;
   isLiked: boolean;
-  isLiked: boolean;
 }
 
 const Home: React.FC = () => {
@@ -43,7 +41,6 @@ const Home: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isGuestDialogOpen, setGuestDialogOpen] = useState(false);
-  const navigate = useNavigate();
   const navigate = useNavigate();
 
   const { dialogOpen, handleOpenDialog, handleCloseDialog, handleSubmit } =
@@ -96,11 +93,6 @@ const Home: React.FC = () => {
               likesCount: post.likesCount || 0,
               commentCount: post.commentCount || 0,
             });
-            uniquePosts.set(post.postId, {
-              ...post,
-              likesCount: post.likesCount || 0,
-              commentCount: post.commentCount || 0,
-            });
           });
           return Array.from(uniquePosts.values());
         });
@@ -125,12 +117,12 @@ const Home: React.FC = () => {
       prev.map((post) =>
         post.postId === postId
           ? {
-              ...post,
-              likesCount: post.isLiked
-                ? post.likesCount - 1
-                : post.likesCount + 1,
-              isLiked: !post.isLiked,
-            }
+            ...post,
+            likesCount: post.isLiked
+              ? post.likesCount - 1
+              : post.likesCount + 1,
+            isLiked: !post.isLiked,
+          }
           : post,
       ),
     );
@@ -144,6 +136,22 @@ const Home: React.FC = () => {
       if (!response.ok) {
         throw new Error("Failed to toggle like");
       }
+
+      // // 同步後端的最新數據
+      // const data = await response.json();
+      // setPosts((prev) =>
+      //   prev.map((post) =>
+      //     post.postId === postId
+      //       ? {
+      //         ...post,
+      //         likesCount: post.isLiked
+      //           ? post.likesCount + 1
+      //           : post.likesCount - 1,
+      //         isLiked: post.isLiked,
+      //       }
+      //       : post,
+      //   ),
+      // );
     } catch (error) {
       console.error("Error toggling like:", error);
 
@@ -152,12 +160,12 @@ const Home: React.FC = () => {
         prev.map((post) =>
           post.postId === postId
             ? {
-                ...post,
-                likesCount: post.isLiked
-                  ? post.likesCount + 1
-                  : post.likesCount - 1,
-                isLiked: post.isLiked,
-              }
+              ...post,
+              likesCount: post.isLiked
+                ? post.likesCount + 1
+                : post.likesCount - 1,
+              isLiked: post.isLiked,
+            }
             : post,
         ),
       );
@@ -256,11 +264,6 @@ const Home: React.FC = () => {
             sx={{ marginBottom: "16px", cursor: "pointer" }}
             onClick={() => navigate(`/posts/${post.postId}`)}
           >
-          <Box
-            key={post.postId}
-            sx={{ marginBottom: "16px", cursor: "pointer" }}
-            onClick={() => navigate(`/posts/${post.postId}`)}
-          >
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <Avatar
                 src={post.author.avatarUrl}
@@ -332,17 +335,6 @@ const Home: React.FC = () => {
                   alignItems: "center",
                 }}
               >
-                <IconButton
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleToggleLike(post.postId, post.isLiked);
-                  }}
-                >
-                  {post.isLiked ? (
-                    <FavoriteIcon color="error" fontSize="small" />
-                  ) : (
-                    <FavoriteBorderIcon fontSize="small" />
-                  )}
                 <IconButton
                   onClick={(e) => {
                     e.stopPropagation();
