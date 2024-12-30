@@ -48,6 +48,20 @@ export class UserService {
     }
   }
 
+  async isFollowing(userId: Types.ObjectId, followedUserId: Types.ObjectId): Promise<boolean> {
+    try {
+      const follow = await Follow.findOne({
+        follower: userId,
+        following: followedUserId,
+        status: "accepted",
+      });
+      return !!follow;
+    } catch (err) {
+      console.error(err);
+      throw new Error("伺服器錯誤");
+    }
+  }
+
   // 創建用戶
   async createUser(data: {
     userName: string;
@@ -116,10 +130,10 @@ export class UserService {
           await Follow.deleteOne({ _id: follow._id });
           return false;
         }
-        await this.eventService.createEvent(user._id, followedUserId, "friend_request", { status: "accepted" });
+        await this.eventService.createEvent(user._id, followedUserId, "follow", { status: "accepted" });
       }
       else {
-        await this.eventService.createEvent(user._id, followedUserId, "friend_request", { status: "pending" });
+        await this.eventService.createEvent(user._id, followedUserId, "follow", { status: "pending" });
       }
 
       return true;
@@ -257,7 +271,7 @@ export class UserService {
       if (!deletedFollow) {
         return false;
       }
-      await Event.findOneAndDelete({ sender: followerId, receiver: userId, eventType: "friend_request" });
+      await Event.findOneAndDelete({ sender: followerId, receiver: userId, eventType: "follow" });
 
       return true;
     } catch (error: unknown) {

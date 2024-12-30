@@ -10,19 +10,19 @@ export class EventService {
         const notifications = await Event.find(query)
             .sort({ timestamp: -1 })
             .populate('sender', 'accountName avatarUrl isPublic')  // 僅選擇用戶名和圖片
-            .populate('receiver', 'accountName avatarUrl')
+            // .populate('receiver', 'accountName avatarUrl')
             .lean();
         return notifications;
     }
 
-    // Event種類：follow, comment, like, friend_request
+    // Event種類：follow, comment, like
     // 如果eventType是comment，details應該包含commentText, postId, commentId
     // 如果eventType是like，details應該包含contentId, contentType
     // 其他事件不需要特別驗證details，但是get後details會是{}
     async createEvent(
         sender: Types.ObjectId,
         receiver: Types.ObjectId,
-        eventType: "follow" | "comment" | "like" | "friend_request",
+        eventType: "follow" | "comment" | "like",
         details: Record<string, unknown>
     ) {
         const validateDetails = (requiredFields: string[]) => {

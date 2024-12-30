@@ -190,17 +190,13 @@ const createMockData = async () => {
             // 確保 sender 和 receiver 不相同
             if (sender._id.equals(receiver._id)) continue;
 
-            const eventType = faker.helpers.arrayElement(["follow", "comment", "like", "friend_request"]);
+            const eventType = faker.helpers.arrayElement(["follow", "comment", "like"]);
             let details = {};
 
             // 根據 eventType 生成適當的 details
             switch (eventType) {
                 case "follow":
                     // follow 不需要額外 details
-                    details = {};
-                    break;
-
-                case "friend_request":
                     details = {
                         friendRequestId: faker.database.mongodbObjectId(),
                         message: faker.lorem.sentence(10), // 隨機附加一條訊息
