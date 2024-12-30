@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import React, { useEffect, useState, useCallback } from "react";
 import {
   Avatar,
@@ -9,6 +10,9 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import PostDialog from "../components/PostDialog";
 import usePostHandler from "../hooks/usePostHandler";
 import { useUser } from "../contexts/UserContext";
@@ -28,7 +32,7 @@ interface Post {
   likesCount: number;
   commentCount: number;
   createdAt: string;
-  isLiked: boolean;
+  likedByUser: boolean;
 }
 
 const Posts: React.FC = () => {
@@ -169,22 +173,21 @@ const Posts: React.FC = () => {
     const token = localStorage.getItem("token");
     const method = liked ? "DELETE" : "POST";
 
-    // 即時更新 UI 狀態
+    // 1. 即時更新前端 UI
     setPosts((prev) =>
       prev.map((post) =>
         post.postId === postId
           ? {
-              ...post,
-              likesCount: post.isLiked
-                ? post.likesCount - 1
-                : post.likesCount + 1,
-              isLiked: !post.isLiked,
-            }
+            ...post,
+            likesCount: liked ? post.likesCount - 1 : post.likesCount + 1,
+            likedByUser: !liked,
+          }
           : post,
       ),
     );
 
     try {
+      // 2. 發送後端請求
       const response = await fetch(`/api/post/${postId}/like`, {
         method,
         headers: { Authorization: `Bearer ${token}` },
@@ -193,19 +196,32 @@ const Posts: React.FC = () => {
       if (!response.ok) {
         throw new Error("Failed to toggle like");
       }
-    } catch (error) {
-      console.error("Error toggling like:", error);
 
+      // 3. 使用後端返回數據更新前端狀態
+      const data = await response.json();
       setPosts((prev) =>
         prev.map((post) =>
           post.postId === postId
             ? {
-                ...post,
-                likesCount: post.isLiked
-                  ? post.likesCount + 1
-                  : post.likesCount - 1,
-                isLiked: post.isLiked,
-              }
+              ...post,
+              likesCount: data.likesCount,
+              likedByUser: data.likedByUser,
+            }
+            : post,
+        ),
+      );
+    } catch (error) {
+      console.error("Error toggling like:", error);
+
+      // 4. 如果請求失敗，回滾前端狀態
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.postId === postId
+            ? {
+              ...post,
+              likesCount: liked ? post.likesCount + 1 : post.likesCount - 1,
+              likedByUser: liked,
+            }
             : post,
         ),
       );
@@ -268,12 +284,119 @@ const Posts: React.FC = () => {
           <CircularProgress />
         </Box>
       ) : (
-        <PostList
-          posts={posts}
-          onToggleLike={handleToggleLike}
-          onMenuOpen={handleMenuOpen}
-          showActions
-        />
+        posts.map((post) => {
+          if (!post.author) {
+            console.error("Post author is missing:", post);
+            return null;
+          }
+
+          return (
+            <Box
+              key={`${post.postId}-${post.createdAt}`}
+              sx={{ marginBottom: "16px" }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Avatar
+                  src={
+                    post.author.id === userData?.userId
+                      ? userData?.avatarUrl || "/default_avatar.jpg"
+                      : post.author.avatarUrl || "/default_avatar.jpg"
+                  }
+                  alt={`${post.author.accountName}'s Avatar`}
+                  sx={{ width: 40, height: 40, marginRight: "8px" }}
+                />
+                <Box>
+                  <Typography sx={{ fontSize: "15px", fontWeight: "bold" }}>
+                    {post.author.accountName}
+                  </Typography>
+                  <Typography sx={{ fontSize: "12px", color: "#aaa" }}>
+                    {new Date(post.createdAt).toLocaleString()}
+                  </Typography>
+                </Box>
+                <IconButton
+                  onClick={(e) => handleMenuOpen(e, post)}
+                  sx={{ marginLeft: "auto" }}
+                >
+                  <MoreHoriz />
+                </IconButton>
+              </Box>
+              <Typography
+                sx={{ marginY: "8px", fontSize: "15px", paddingLeft: "8px" }}
+              >
+                {post.content}
+              </Typography>
+
+              {/* 顯示圖片 */}
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: "8px",
+                  overflowX: "auto",
+                  marginBottom: "8px",
+                  scrollSnapType: "x mandatory",
+                }}
+              >
+                {(post.images || []).map((image, index) => (
+                  <Box
+                    key={index}
+                    sx={{
+                      width: "500px",
+                      height: "500px",
+                      flexShrink: 0,
+                      borderRadius: "8px",
+                      overflow: "hidden",
+                      scrollSnapAlign: "start",
+                    }}
+                  >
+                    <img
+                      src={image}
+                      alt={`Post`}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  </Box>
+                ))}
+              </Box>
+
+              <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    marginRight: "16px",
+                    alignItems: "center",
+                  }}
+                >
+                  <IconButton
+                    onClick={() =>
+                      handleToggleLike(post.postId, post.likedByUser)
+                    }
+                  >
+                    {post.likedByUser ? (
+                      <FavoriteIcon color="error" fontSize="small" />
+                    ) : (
+                      <FavoriteBorderIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                  <Typography sx={{ fontSize: "13px" }}>
+                    {post.likesCount}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                  <IconButton>
+                    <ChatBubbleOutlineIcon fontSize="small" />
+                  </IconButton>
+                  <Typography sx={{ fontSize: "13px" }}>
+                    {post.commentCount}
+                  </Typography>
+                </Box>
+              </Box>
+              <Divider sx={{ marginY: "8px" }} />
+            </Box>
+          );
+        })
       )}
 
       <Menu
