@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   Avatar,
@@ -117,12 +116,12 @@ const Home: React.FC = () => {
       prev.map((post) =>
         post.postId === postId
           ? {
-            ...post,
-            likesCount: post.isLiked
-              ? post.likesCount - 1
-              : post.likesCount + 1,
-            isLiked: !post.isLiked,
-          }
+              ...post,
+              likesCount: post.isLiked
+                ? post.likesCount - 1
+                : post.likesCount + 1,
+              isLiked: !post.isLiked,
+            }
           : post,
       ),
     );
@@ -136,22 +135,6 @@ const Home: React.FC = () => {
       if (!response.ok) {
         throw new Error("Failed to toggle like");
       }
-
-      // // 同步後端的最新數據
-      // const data = await response.json();
-      // setPosts((prev) =>
-      //   prev.map((post) =>
-      //     post.postId === postId
-      //       ? {
-      //         ...post,
-      //         likesCount: post.isLiked
-      //           ? post.likesCount + 1
-      //           : post.likesCount - 1,
-      //         isLiked: post.isLiked,
-      //       }
-      //       : post,
-      //   ),
-      // );
     } catch (error) {
       console.error("Error toggling like:", error);
 
@@ -160,12 +143,12 @@ const Home: React.FC = () => {
         prev.map((post) =>
           post.postId === postId
             ? {
-              ...post,
-              likesCount: post.isLiked
-                ? post.likesCount + 1
-                : post.likesCount - 1,
-              isLiked: post.isLiked,
-            }
+                ...post,
+                likesCount: post.isLiked
+                  ? post.likesCount + 1
+                  : post.likesCount - 1,
+                isLiked: post.isLiked,
+              }
             : post,
         ),
       );

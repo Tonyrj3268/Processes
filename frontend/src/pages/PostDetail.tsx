@@ -1,70 +1,73 @@
-/* eslint-disable prettier/prettier */
 import React, { useEffect, useState, useCallback } from "react";
-import {
-  Avatar,
-  Box,
-  Typography,
-  CircularProgress,
-  Divider,
-  IconButton,
-} from "@mui/material";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import FavoriteIcon from "@mui/icons-material/Favorite";
-import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import { Box, Typography, CircularProgress, Divider } from "@mui/material";
 import { useParams } from "react-router-dom";
+import PostContent from "../components/PostContent";
+import CommentList from "../components/CommentList";
+import CommentDialog from "../components/CommentDialog";
+import DeleteConfirmation from "../components/DeleteConfirmation";
 
-interface Comment {
-  commentId: string;
-  content: string;
-  createdAt: string;
+interface PostWithComments {
+  _id: string;
   user: {
-    id: string;
+    _id: string;
     userName: string;
     accountName: string;
     avatarUrl: string;
-  };
-}
-
-interface Post {
-  postId: string;
-  author: {
-    id: string;
-    userName: string;
-    accountName: string;
-    avatarUrl: string;
+    isPublic: boolean;
   };
   content: string;
   images: string[];
   likesCount: number;
-  commentCount: number;
+  comments: {
+    _id: string;
+    user: {
+      _id: string;
+      userName: string;
+      accountName: string;
+      avatarUrl: string;
+      isPublic: boolean;
+    };
+    content: string;
+    likesCount: number;
+    createdAt: string;
+    comments: string[];
+    isLiked: boolean;
+  }[];
   createdAt: string;
   isLiked: boolean;
-  comments: Comment[];
 }
 
 const PostDetail: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
-  const [post, setPost] = useState<Post | null>(null);
+  const [post, setPost] = useState<PostWithComments | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [isCommentDialogOpen, setCommentDialogOpen] = useState(false);
+  const [isEditDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingCommentContent, setEditingCommentContent] = useState("");
+  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedCommentId, setSelectedCommentId] = useState<string | null>(
+    null,
+  );
+
+  // 獲取貼文詳情
   const fetchPostDetail = useCallback(async () => {
     setLoading(true);
-
     try {
       const token = localStorage.getItem("token");
-
       const response = await fetch(`/api/post/${postId}/comments`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch post detail");
-      }
-
+      if (!response.ok) throw new Error("Failed to fetch post detail");
       const data = await response.json();
-      setPost(data.postWithComments);
+      const postData = {
+        ...data.postWithComments,
+        comments: data.postWithComments.comments.map((comment: any) => ({
+          ...comment,
+          isLiked: false,
+        })),
+      };
+      setPost(postData);
     } catch (error) {
       console.error("Error fetching post detail:", error);
     } finally {
@@ -72,50 +75,142 @@ const PostDetail: React.FC = () => {
     }
   }, [postId]);
 
-  const handleToggleLike = async () => {
+  // 貼文愛心
+  const handleTogglePostLike = async () => {
     if (!post) return;
-
     const token = localStorage.getItem("token");
     const method = post.isLiked ? "DELETE" : "POST";
-
     setPost((prev) =>
       prev
         ? {
-          ...prev,
-          likesCount: post.isLiked
-            ? post.likesCount - 1
-            : post.likesCount + 1,
-          isLiked: !post.isLiked,
-        }
+            ...prev,
+            likesCount: post.isLiked
+              ? post.likesCount - 1
+              : post.likesCount + 1,
+            isLiked: !post.isLiked,
+          }
         : null,
     );
-
     try {
-      const response = await fetch(`/api/post/${postId}/like`, {
+      await fetch(`/api/post/${postId}/like`, {
         method,
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to toggle like");
-      }
     } catch (error) {
       console.error("Error toggling like:", error);
-
-      setPost((prev) =>
-        prev
-          ? {
-            ...prev,
-            likesCount: post.isLiked
-              ? post.likesCount + 1
-              : post.likesCount - 1,
-            isLiked: post.isLiked,
-          }
-          : null,
-      );
     }
   };
 
+  // 留言愛心
+  const handleToggleCommentLike = async (
+    commentId: string,
+    isLiked: boolean,
+  ) => {
+    const token = localStorage.getItem("token");
+    const method = isLiked ? "DELETE" : "POST";
+    try {
+      await fetch(`/api/comment/${commentId}/like`, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPost((prev) =>
+        prev
+          ? {
+              ...prev,
+              comments: prev.comments.map((comment) =>
+                comment._id === commentId
+                  ? {
+                      ...comment,
+                      likesCount: isLiked
+                        ? comment.likesCount - 1
+                        : comment.likesCount + 1,
+                      isLiked: !isLiked,
+                    }
+                  : comment,
+              ),
+            }
+          : null,
+      );
+    } catch (error) {
+      console.error("Failed to toggle like:", error);
+    }
+  };
+
+  // 新留言
+  const handleSubmitComment = async (content: string) => {
+    const token = localStorage.getItem("token");
+    try {
+      await fetch(`/api/post/${postId}/comments`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content }),
+      });
+      fetchPostDetail();
+      setCommentDialogOpen(false);
+    } catch (error) {
+      console.error("Error adding comment:", error);
+    }
+  };
+
+  // 編輯留言
+  const handleSubmitEditComment = async () => {
+    if (!selectedCommentId) return;
+    const token = localStorage.getItem("token");
+    try {
+      const response = await fetch(`/api/comment/${selectedCommentId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: editingCommentContent }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API Error:", errorData);
+        throw new Error(errorData.message || "Failed to edit comment");
+      }
+
+      const updatedComment = await response.json(); // 獲取更新後的內容
+
+      // 更新本地狀態，避免重新拉取整個貼文列表
+      setPost((prevPost) =>
+        prevPost
+          ? {
+              ...prevPost,
+              comments: prevPost.comments.map((comment) =>
+                comment._id === updatedComment._id ? updatedComment : comment,
+              ),
+            }
+          : null,
+      );
+      setEditDialogOpen(false);
+    } catch (error) {
+      console.error("Error editing comment:", error);
+    }
+  };
+
+  // 刪除留言
+  const handleDeleteComment = async () => {
+    if (!selectedCommentId) return;
+    const token = localStorage.getItem("token");
+    try {
+      await fetch(`/api/comment/${selectedCommentId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchPostDetail();
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+    }
+  };
+
+  // 載入時獲取貼文詳情
   useEffect(() => {
     fetchPostDetail();
   }, [fetchPostDetail]);
@@ -136,115 +231,51 @@ const PostDetail: React.FC = () => {
 
   return (
     <Box className="page">
-      {/* 貼文內容 */}
-      <Box sx={{ margin: "16px 0" }}>
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Avatar
-            src={post.author?.avatarUrl || "default_avatar.jpg"}
-            alt={`${post.author?.accountName || "預設使用者"}'s Avatar`}
-            sx={{ width: 40, height: 40, marginRight: 2 }}
-          />
-          <Box>
-            <Typography sx={{ fontWeight: "bold" }}>
-              {post.author?.accountName || "預設使用者"}
-            </Typography>
-            <Typography sx={{ fontSize: "12px", color: "gray" }}>
-              {new Date(post.createdAt).toLocaleString()}
-            </Typography>
-          </Box>
-        </Box>
-        <Typography sx={{ mt: 2, fontSize: "15px", marginBottom: "16px" }}>
-          {post.content}
-        </Typography>
-        <Box
-          sx={{
-            display: "flex",
-            gap: "8px",
-            overflowX: "auto",
-            marginBottom: "8px",
-            scrollSnapType: "x mandatory",
-          }}
-        >
-          {post.images.map((image, index) => (
-            <img
-              key={index}
-              src={image}
-              alt={`Post`}
-              style={{
-                width: "600px",
-                height: "auto",
-                flexShrink: 0,
-                borderRadius: "8px",
-                overflow: "hidden",
-                scrollSnapAlign: "start",
-              }}
-            />
-          ))}
-        </Box>
-        <Box
-          sx={{
-            display: "flex",
-            gap: "4px",
-            alignItems: "center",
-            marginTop: "8px",
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              marginRight: "16px",
-              alignItems: "center",
-            }}
-          >
-            <IconButton onClick={handleToggleLike}>
-              {post.isLiked ? (
-                <FavoriteIcon color="error" />
-              ) : (
-                <FavoriteBorderIcon />
-              )}
-            </IconButton>
-            <Typography>{post.likesCount}</Typography>
-          </Box>
-          <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
-            <IconButton>
-              <ChatBubbleOutlineIcon />
-            </IconButton>
-            <Typography>{post.commentCount}</Typography>
-          </Box>
-        </Box>
-      </Box>
+      <PostContent
+        post={post}
+        onToggleLike={handleTogglePostLike}
+        onOpenCommentDialog={() => setCommentDialogOpen(true)}
+      />
       <Divider />
-
-      {/* 留言列表 */}
-      <Box>
-        <Typography sx={{ mt: 2, mb: 2, fontWeight: "bold" }}>留言</Typography>
-        {post.comments.length === 0 ? (
-          <Typography sx={{ color: "gray", textAlign: "center" }}>
-            尚無留言
-          </Typography>
-        ) : (
-          post.comments.map((comment) => (
-            <Box key={comment.commentId} sx={{ marginBottom: 2 }}>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Avatar
-                  src={comment.user?.avatarUrl || "default_avatar.jpg"}
-                  alt={`${comment.user.accountName || "預設使用者"}'s Avatar`}
-                  sx={{ width: 32, height: 32, marginRight: 1 }}
-                />
-                <Box>
-                  <Typography sx={{ fontWeight: "bold" }}>
-                    {comment.user.accountName || "預設使用者"}
-                  </Typography>
-                  <Typography sx={{ fontSize: "12px", color: "gray" }}>
-                    {new Date(comment.createdAt).toLocaleString()}
-                  </Typography>
-                </Box>
-              </Box>
-              <Typography sx={{ mt: 1, ml: 5 }}>{comment.content}</Typography>
-            </Box>
-          ))
-        )}
-      </Box>
+      <CommentList
+        comments={post.comments}
+        onToggleLike={handleToggleCommentLike}
+        onEdit={(commentId, currentContent) => {
+          setSelectedCommentId(commentId);
+          setEditingCommentContent(currentContent);
+          setEditDialogOpen(true);
+        }}
+        onDelete={(commentId) => {
+          setSelectedCommentId(commentId);
+          setDeleteDialogOpen(true);
+        }}
+      />
+      <CommentDialog
+        open={isCommentDialogOpen}
+        onClose={() => setCommentDialogOpen(false)}
+        onSubmit={handleSubmitComment}
+        originalPost={{
+          content: post.content,
+          user: {
+            accountName: post.user.accountName,
+            avatarUrl: post.user.avatarUrl,
+          },
+        }}
+      />
+      <DeleteConfirmation
+        open={isDeleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={handleDeleteComment}
+        title="刪除留言？"
+        content="刪除這則留言後，即無法恢復顯示。"
+      />
+      <CommentDialog
+        open={isEditDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        initialContent={editingCommentContent}
+        onSubmit={handleSubmitEditComment}
+        title="編輯留言"
+      />
     </Box>
   );
 };
