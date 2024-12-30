@@ -44,7 +44,11 @@ export class EventController {
                 accountName: (notification.sender as IUserDocument).accountName,
                 avatarUrl: (notification.sender as IUserDocument).avatarUrl,
                 isPublic: (notification.sender as IUserDocument).isPublic,
-                isFollowing: userService.isFollowing(notification.receiver._id, notification.sender._id),
+            },
+            receiver: {
+                _id: (notification.receiver as IUserDocument)._id.toString(),
+                accountName: (notification.receiver as IUserDocument).accountName,
+                avatarUrl: (notification.receiver as IUserDocument).avatarUrl,
             },
             details: notification.details || {},
         }));
