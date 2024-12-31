@@ -7,7 +7,8 @@ import {
   Box,
 } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useNavigate, useLocation } from "react-router-dom";
 
 interface HeaderProps {
   title: string;
@@ -15,6 +16,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ title }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -29,6 +31,12 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
   const handleLoginClick = () => {
     navigate("/login");
   };
+
+  const handleBackClick = () => {
+    navigate(-1); // 返回上一頁
+  };
+
+  const showBackButton = location.pathname.startsWith("/posts/");
 
   return (
     <AppBar
@@ -64,18 +72,44 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
         </Box>
 
         {/* 中間區域 - 標題 */}
-        <Typography
-          component="div"
+        <Box
           sx={{
-            textAlign: "center",
-            color: "black",
-            fontSize: "16px",
-            fontWeight: "600",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            position: "relative",
             flexGrow: 1,
           }}
         >
-          {title}
-        </Typography>
+          {showBackButton && (
+            <IconButton
+              edge="start"
+              onClick={handleBackClick}
+              aria-label="back"
+              sx={{
+                position: "absolute",
+                left: "calc(50% - 80px)",
+                transform: "translateX(-100%)",
+                marginRight: "50px",
+                color: "black",
+              }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+          )}
+          <Typography
+            component="div"
+            sx={{
+              textAlign: "center",
+              color: "black",
+              fontSize: "16px",
+              fontWeight: "600",
+              flexGrow: 1,
+            }}
+          >
+            {title}
+          </Typography>
+        </Box>
 
         {/* 右側區域 - 登入按鈕 */}
         <Box

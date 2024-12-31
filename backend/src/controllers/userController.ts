@@ -11,16 +11,9 @@ export class UserController {
 
   // 獲取用戶資料
   getUserProfile = async (req: Request, res: Response): Promise<void> => {
+    const user = req.user as IUserDocument;
     const requested_userId = req.params.userId;
-    const redisKey = `userProfile:${requested_userId}`;
     try {
-      const cachedData = await this.redisClient.get(redisKey);
-      if (cachedData) {
-        // 有快取，直接使用快取資料
-        const userData = JSON.parse(cachedData);
-        res.status(200).json(userData);
-        return;
-      }
       const requestedUser = await this.userService.findUserById(requested_userId);
       if (!requestedUser) {
         res.status(404).json({ msg: "使用者不存在" });
@@ -36,9 +29,17 @@ export class UserController {
         followingCount: requestedUser.followingCount,
         isPublic: requestedUser.isPublic,
       };
-      await this.redisClient.setex(redisKey, 600, JSON.stringify(publicFields));
 
+      if (user._id !== requestedUser._id) {
+        const extendedFields = {
+          ...publicFields,
+          isFollowing: await this.userService.isFollowing(user._id, requestedUser._id),
+        };
+        res.status(200).json(extendedFields);
+        return 
+      }
       res.status(200).json(publicFields);
+
     } catch (err) {
       console.error(err);
       res.status(500);
@@ -72,6 +73,7 @@ export class UserController {
         avatarUrl: updatedUser.avatarUrl,
         followersCount: updatedUser.followersCount,
         followingCount: updatedUser.followingCount,
+        isPublic: updatedUser.isPublic,
       };
       const redisKey = `userProfile:${updatedUser._id}`;
       await this.redisClient.setex(redisKey, 600, JSON.stringify(publicFields));
@@ -89,7 +91,7 @@ export class UserController {
     const { userId } = req.body as { userId: string };
     try {
       const followedId = new Types.ObjectId(userId);
-      const result = await this.userService.followUser(user._id, followedId);
+      const result = await this.userService.followUser(user, followedId);
       if (!result) {
         res.status(404).json({ msg: "找不到或已經追蹤該使用者" });
         return;
@@ -102,6 +104,7 @@ export class UserController {
   }
 
   // 取消關注用戶
+  // TODO: 這裡的取消關注用戶的功能有點問題，因為我們沒有檢查用戶是否已經追蹤該使用者
   unfollowUser = async (req: Request, res: Response): Promise<void> => {
     const user = req.user as IUserDocument;
     const { userId } = req.body as { userId: string };

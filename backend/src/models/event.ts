@@ -6,7 +6,7 @@ import { IUserDocument } from "@src/models/user";
 export interface IEvent {
     sender: Types.ObjectId | IUserDocument;
     receiver: Types.ObjectId | IUserDocument;
-    eventType: "follow" | "comment" | "like" | "friend_request";
+    eventType: "follow" | "comment" | "like";
     details: Record<string, unknown>;
     timestamp: Date;
 }
@@ -16,7 +16,7 @@ export type IEventDocument = HydratedDocument<IEvent>;
 const eventSchema: Schema = new Schema({
     sender: { type: Types.ObjectId, ref: "User", required: true },
     receiver: { type: Types.ObjectId, ref: "User", required: true },
-    eventType: { type: String, enum: ["follow", "comment", "like", "friend_request"], required: true },
+    eventType: { type: String, enum: ["follow", "comment", "like"], required: true },
     details: {
         type: Schema.Types.Mixed,
         default: {}

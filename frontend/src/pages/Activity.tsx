@@ -13,6 +13,7 @@ interface SenderUser {
   userName: string;
   accountName: string;
   avatarUrl: string;
+  isPublic: boolean;
 }
 
 interface Event {
@@ -23,6 +24,7 @@ interface Event {
     postText?: string;
     contentText?: string;
     commentText?: string;
+    status?: "pending" | "accepted" | "rejected";
     [key: string]: unknown;
   };
   timestamp: Date;
@@ -64,7 +66,28 @@ const Activity: React.FC = () => {
       }
 
       const data = await response.json();
-      setEvents((prev) => (cursor ? [...prev, ...data.events] : data.events));
+      // 過濾掉被拒絕的好友請求
+      // const filteredEvents = data.events.filter(
+      //   (event: Event) =>
+      //     !(
+      //       event.eventType === "friend_request" &&
+      //       event.details.status === "rejected"
+      //     ),
+      // );
+      // setEvents((prev) =>
+      //   cursor ? [...prev, ...filteredEvents.events] : data.events,
+      // );
+      const filteredEvents = data.events.filter(
+        (event: Event) =>
+          !(
+            event.eventType === "friend_request" &&
+            event.details.status === "rejected"
+          ),
+      );
+
+      setEvents((prev) =>
+        cursor ? [...prev, ...filteredEvents] : filteredEvents
+      );
       setNewCursor(data.newCursor);
     } catch (error) {
       console.error("Error fetching events:", error);
@@ -102,6 +125,10 @@ const Activity: React.FC = () => {
     fetchEvents();
   }, [fetchEvents]);
 
+  const handleEventUpdate = (eventId: string) => {
+    setEvents((prev) => prev.filter((event) => event._id !== eventId));
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" p={4}>
@@ -123,7 +150,7 @@ const Activity: React.FC = () => {
       <List disablePadding>
         {events.map((event, index) => (
           <React.Fragment key={event._id}>
-            <EventItem event={event} />
+            <EventItem event={event} onEventUpdate={handleEventUpdate} />
             {index < events.length - 1 && (
               <Divider
                 sx={{
@@ -141,7 +168,6 @@ const Activity: React.FC = () => {
         )}
       </List>
 
-      {/* Loading Indicator for Auto-Load */}
       <Box ref={loaderRef} sx={{ textAlign: "center", marginY: "16px" }}>
         {isLoadingMore && <CircularProgress size={24} />}
       </Box>

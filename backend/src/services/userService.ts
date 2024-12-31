@@ -4,11 +4,9 @@ import { Follow } from "@src/models/follow";
 import mongoose, { Types, FilterQuery } from "mongoose";
 import { Event } from "@src/models/event"; // Add this line to import the correct Event model
 import { MongoServerError } from "mongodb";
-import { Redis } from 'ioredis';
-import redisClient from '@src/config/redis';
 import { eventService, EventService } from "@src/services/eventService";
 export class UserService {
-  constructor(private redisClient: Redis, private eventService: EventService) { }
+  constructor(private eventService: EventService) { }
   // 查找用戶
   async findUserById(userId: string): Promise<IUserDocument | null> {
     try {
@@ -44,6 +42,20 @@ export class UserService {
     try {
       return await User.findOne(condition
       ).select("-password").lean();
+    } catch (err) {
+      console.error(err);
+      throw new Error("伺服器錯誤");
+    }
+  }
+
+  async isFollowing(userId: Types.ObjectId, followedUserId: Types.ObjectId): Promise<boolean> {
+    try {
+      const follow = await Follow.findOne({
+        follower: userId,
+        following: followedUserId,
+        status: "accepted",
+      });
+      return !!follow;
     } catch (err) {
       console.error(err);
       throw new Error("伺服器錯誤");
@@ -86,29 +98,29 @@ export class UserService {
   }
 
   // 關注用戶
-  async followUser(userId: Types.ObjectId, followedUserId: Types.ObjectId): Promise<boolean> {
+  async followUser(user: IUserDocument, followedUserId: Types.ObjectId): Promise<boolean> {
     // 防止用戶追蹤自己
-    if (userId.equals(followedUserId)) {
+    if (user._id.equals(followedUserId)) {
       return false;
     }
 
     // 查找執行追蹤的用戶
-    const user = await User.findById(userId);
-    if (!user) {
-      throw new Error("用戶不存在");
+    const followeduser = await User.findById(followedUserId);
+    if (!followeduser) {
+      return false;
     }
 
     try {
       // 嘗試創建 Follow 記錄，捕獲重複關注的錯誤
       const follow = await Follow.create({
-        follower: userId,
+        follower: user,
         following: followedUserId,
-        status: user.isPublic ? "accepted" : "pending",
+        status: followeduser.isPublic ? "accepted" : "pending",
       });
-      if (user.isPublic) {
+      if (followeduser.isPublic) {
         // 更新關注者和被關注者的計數器
         const [updateFollower, updateFollowing] = await Promise.all([
-          User.updateOne({ _id: userId }, { $inc: { followingCount: 1 } }),
+          User.updateOne({ _id: user }, { $inc: { followingCount: 1 } }),
           User.updateOne({ _id: followedUserId }, { $inc: { followersCount: 1 } }),
         ]);
 
@@ -118,10 +130,10 @@ export class UserService {
           await Follow.deleteOne({ _id: follow._id });
           return false;
         }
-        await this.eventService.createEvent(user._id, followedUserId, "friend_request", { status: "accepted" });
+        await this.eventService.createEvent(user._id, followedUserId, "follow", { status: "accepted" });
       }
       else {
-        await this.eventService.createEvent(user._id, followedUserId, "friend_request", { status: "pending" });
+        await this.eventService.createEvent(user._id, followedUserId, "follow", { status: "pending" });
       }
 
       return true;
@@ -234,8 +246,6 @@ export class UserService {
         return false;
       }
 
-      await this.updateFollowEventCache(userId.toString(), followerId.toString(), "accepted");
-
       return true;
     } catch (error: unknown) {
       console.error('Error in acceptFollowRequest:', error);
@@ -261,9 +271,7 @@ export class UserService {
       if (!deletedFollow) {
         return false;
       }
-      await Event.findOneAndDelete({ follower: followerId, following: userId, eventType: "friend_request" });
-
-      await this.updateFollowEventCache(userId.toString(), followerId.toString(), "rejected");
+      await Event.findOneAndDelete({ sender: followerId, receiver: userId, eventType: "follow" });
 
       return true;
     } catch (error: unknown) {
@@ -285,63 +293,5 @@ export class UserService {
     }
     return cachedPublicUserIds;
   }
-  private async updateFollowEventCache(
-    userId: string,
-    followerId: string,
-    newStatus: string
-  ): Promise<void> {
-    try {
-      const redisKey = `events:${userId}`;
-
-      // 從 Redis 中取得所有事件
-      const cachedEvents = await this.redisClient.lrange(redisKey, 0, -1);
-      if (!cachedEvents || !cachedEvents.length) {
-        return; // 快取中沒有事件可更新
-      }
-
-      const parsedEvents = cachedEvents.map((item) => JSON.parse(item));
-
-      // 找到對應的事件並更新
-      // 您可以根據通知欄位做判斷，如：sender._id === followerId && eventType === "pending"
-      // 以下是範例判斷：
-      let isUpdated = false;
-      const updatedEvents = parsedEvents.map((evt) => {
-        if (
-          evt?.sender?._id === followerId &&
-          evt?.receiver?._id === userId &&
-          (evt?.eventType === "friend_request") &&
-          evt?.details?.status === "pending"
-        ) {
-          isUpdated = true;
-          if (newStatus === "accepted") {
-            // 將事件改為新的狀態
-            evt.details.status = newStatus;
-          }
-          if (newStatus === "rejected") {
-
-            evt.details.status = newStatus;
-          }
-        }
-        return evt;
-      });
-
-      // 如果有更新，再重新寫回 Redis
-      if (isUpdated) {
-        // 重新覆蓋該 key 
-        const pipeline = this.redisClient.pipeline();
-        pipeline.del(redisKey); // 先刪除
-        updatedEvents.forEach((evt) => {
-          pipeline.rpush(redisKey, JSON.stringify(evt));
-        });
-        pipeline.expire(redisKey, 600); // 依需求重新設定過期時間
-        await pipeline.exec();
-      }
-
-    } catch (err) {
-      console.error("Error updating follow event cache:", err);
-    }
-
-  }
 }
-
-export const userService = new UserService(redisClient, eventService);
+export const userService = new UserService(eventService);

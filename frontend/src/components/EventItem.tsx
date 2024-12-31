@@ -7,9 +7,9 @@ import {
   ListItem,
   ListItemAvatar,
   Stack,
+  CircularProgress,
 } from "@mui/material";
 
-// 移動 Event 介面定義
 interface Event {
   _id: string;
   sender: {
@@ -17,24 +17,29 @@ interface Event {
     userName: string;
     accountName: string;
     avatarUrl: string;
+    isPublic: boolean;
   };
   eventType: "follow" | "comment" | "like" | "friend_request";
   details: {
     postText?: string;
     contentText?: string;
     commentText?: string;
+    status?: "pending" | "accepted" | "rejected";
     [key: string]: unknown;
   };
   timestamp: Date;
 }
 
-// 定義 props 介面
 interface EventItemProps {
   event: Event;
+  onEventUpdate: (eventId: string) => void;
 }
 
-const EventItem: React.FC<EventItemProps> = ({ event }) => {
-  const [isFollowing, setIsFollowing] = useState(false);
+const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
+  const [followStatus, setFollowStatus] = useState<'none' | 'following' | 'requested'>('none');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [acceptLoading, setAcceptLoading] = useState(false);
+  const [rejectLoading, setRejectLoading] = useState(false);
 
   const baseTypographyStyle = {
     color: "#666",
@@ -104,7 +109,6 @@ const EventItem: React.FC<EventItemProps> = ({ event }) => {
     }
   };
 
-  // 把 event created_time 轉換成 O天前、O週前 ...
   const formatTime = (timestamp: Date) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -122,43 +126,88 @@ const EventItem: React.FC<EventItemProps> = ({ event }) => {
   };
 
   const handleFollow = async () => {
+    if (actionLoading) return;
+
     try {
+      setActionLoading(true);
       const token = localStorage.getItem("token");
-      const response = await fetch("/api/follow", {
+      if (!token) throw new Error("No auth token found");
+
+      const response = await fetch("/api/user/follow", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ followerId: event.sender._id }),
+        body: JSON.stringify({ userId: event.sender._id }),
       });
 
-      if (response.ok) {
-        setIsFollowing(true);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      // 根據用戶的公開狀態設置不同的追蹤狀態
+      setFollowStatus(event.sender.isPublic ? 'following' : 'requested');
+
     } catch (error) {
       console.error("Failed to follow user:", error);
+      // 可以在這裡添加錯誤通知邏輯
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handleHide = async () => {
+  const handleAcceptFollow = async () => {
+    if (acceptLoading) return;
+    setAcceptLoading(true);
+
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(
-        `/api/friend-request/${event.sender._id}/hide`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const response = await fetch("/api/user/accept-follow", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({ userId: event.sender._id }),
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to hide request");
+        throw new Error("Failed to accept follow request");
       }
+
+      onEventUpdate(event._id);
     } catch (error) {
-      console.error("Failed to hide request:", error);
+      console.error("Failed to accept follow request:", error);
+    } finally {
+      setAcceptLoading(false);
+    }
+  };
+
+  const handleRejectFollow = async () => {
+    if (rejectLoading) return;
+    setRejectLoading(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/user/reject-follow", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: event.sender._id }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to reject follow request");
+      }
+
+      onEventUpdate(event._id);
+    } catch (error) {
+      console.error("Failed to reject follow request:", error);
+    } finally {
+      setRejectLoading(false);
     }
   };
 
@@ -172,42 +221,114 @@ const EventItem: React.FC<EventItemProps> = ({ event }) => {
     px: 2,
     py: 0.5,
     minWidth: "64px",
+    position: "relative",
+    "&:disabled": {
+      backgroundColor: "#f5f5f5",
+      color: "transparent",
+    },
   };
 
   const renderActionButtons = () => {
     if (event.eventType === "friend_request") {
+      if (event.details.status === "accepted") {
+        return (
+          <Typography
+            sx={{
+              fontSize: "14px",
+              color: "#666",
+            }}
+          >
+            你已接受追蹤
+          </Typography>
+        );
+      }
       return (
         <Stack direction="row" spacing={1}>
           <Button
             variant="outlined"
             size="small"
-            onClick={handleFollow}
+            onClick={handleAcceptFollow}
+            disabled={acceptLoading || rejectLoading}
             sx={buttonStyles}
           >
-            確認
+            {acceptLoading ? (
+              <CircularProgress
+                size={16}
+                sx={{
+                  position: "absolute",
+                  left: "50%",
+                  top: "50%",
+                  marginLeft: "-8px",
+                  marginTop: "-8px",
+                  color: "#666"
+                }}
+              />
+            ) : "確認"}
           </Button>
           <Button
             variant="outlined"
             size="small"
-            onClick={handleHide}
+            onClick={handleRejectFollow}
+            disabled={acceptLoading || rejectLoading}
             sx={buttonStyles}
           >
-            拒絕
+            {rejectLoading ? (
+              <CircularProgress
+                size={16}
+                sx={{
+                  position: "absolute",
+                  left: "50%",
+                  top: "50%",
+                  marginLeft: "-8px",
+                  marginTop: "-8px",
+                  color: "#666"
+                }}
+              />
+            ) : "拒絕"}
           </Button>
         </Stack>
       );
     }
 
-    if (event.eventType === "follow" && !isFollowing) {
+    if (event.eventType === "follow" && followStatus === 'none') {
       return (
         <Button
           variant="outlined"
           size="small"
           onClick={handleFollow}
+          disabled={actionLoading}
           sx={buttonStyles}
         >
-          追蹤對方
+          {actionLoading ? (
+            <CircularProgress
+              size={16}
+              sx={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                marginLeft: "-8px",
+                marginTop: "-8px",
+                color: "#666"
+              }}
+            />
+          ) : "追蹤對方"}
         </Button>
+      );
+    }
+
+    if (followStatus === 'following') {
+      return (
+        <Typography sx={{ fontSize: "14px", color: "#666" }}>
+          追蹤中
+        </Typography>
+      );
+    }
+
+    if (followStatus === 'requested') {
+      return (
+        <Typography sx={{ fontSize: "14px", color: "#666" }}>
+          已提出要求
+        </Typography>
       );
     }
 

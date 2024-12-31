@@ -46,6 +46,10 @@ export class PostController {
             // Shuffle the combined posts
             const shuffledPosts = this.shuffleArray([...allPosts, ...followPosts, ...hotPosts]);
             // 取得所有貼文的 `_id`
+            if (shuffledPosts.length === 0) {
+                res.status(200).json({ posts: [], nextCursor: null });
+                return;
+            }
             const postIds = shuffledPosts.map(post => post._id);
 
             // 查詢目前使用者對這些貼文的按讚狀態
