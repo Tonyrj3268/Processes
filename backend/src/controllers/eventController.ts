@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { IUserDocument } from "@src/models/user";
 import { eventService, EventService } from "@src/services/eventService";
-
+import { userService } from "@src/services/userService";
 export class EventController {
     constructor(private eventService: EventService) { }
 
@@ -44,11 +44,6 @@ export class EventController {
                 accountName: (notification.sender as IUserDocument).accountName,
                 avatarUrl: (notification.sender as IUserDocument).avatarUrl,
                 isPublic: (notification.sender as IUserDocument).isPublic,
-            },
-            receiver: {
-                _id: (notification.receiver as IUserDocument)._id.toString(),
-                accountName: (notification.receiver as IUserDocument).accountName,
-                avatarUrl: (notification.receiver as IUserDocument).avatarUrl,
             },
             details: notification.details || {},
         }));
