@@ -1,14 +1,27 @@
-// src/services/hotPostsService.ts
+// src/services/hotPostService.ts
 import cron from 'node-cron';
 import redisClient from '@src/config/redis';
 import { Post, IPostDocument } from '@src/models/post';
+import { ScheduledTask } from 'node-cron';
 
 export class HotPostService {
+    private cronJob?: ScheduledTask;
+
     constructor() {
-        // 每天凌晨 2 點更新熱門貼文
-        cron.schedule('0 0 * * *', this.updateHotPosts);
+        // 在非測試環境下才啟動 cron job
+        if (process.env.NODE_ENV !== 'test') {
+            // 每天凌晨 2 點更新熱門貼文
+            this.cronJob = cron.schedule('0 0 * * *', this.updateHotPosts);
+        }
     }
-    getHotPosts = async (): Promise<IPostDocument[]> => { // 明確回傳類型為 IPostDocument[] 或更具體的型別
+
+    stop(): void {
+        if (this.cronJob) {
+            this.cronJob.stop();
+        }
+    }
+
+    getHotPosts = async (): Promise<IPostDocument[]> => {
         try {
             const hotPostsKey = 'hot:posts';
             // 獲取熱門貼文，帶有分數
