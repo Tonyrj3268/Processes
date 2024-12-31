@@ -12,7 +12,7 @@ export class EventController {
             const user = req.user as IUserDocument;
 
             const notifications = await this.eventService.getEvents(user._id);
-            const eventsArray = this.formatNotifications(notifications);
+            const eventsArray = await this.formatNotifications(notifications);
 
             // 根據 cursor 和 limit 取數據
             const slicedEvents = eventsArray.slice(cursor, cursor + limit);
@@ -35,19 +35,30 @@ export class EventController {
     // 格式化通知
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private formatNotifications(notifications: any[]) {
-        return notifications.map(notification => ({
-            _id: notification._id.toString(),
-            eventType: notification.eventType,
-            timestamp: notification.timestamp.toISOString(),
-            sender: {
-                _id: (notification.sender as IUserDocument)._id.toString(),
-                accountName: (notification.sender as IUserDocument).accountName,
-                avatarUrl: (notification.sender as IUserDocument).avatarUrl,
-                isPublic: (notification.sender as IUserDocument).isPublic,
-            },
-            details: notification.details || {},
-        }));
+        // 如果量少且沒有批次需求，可以簡單改成這樣
+        return Promise.all(
+            notifications.map(async (notification) => {
+                const isFollowing = await userService.isFollowing(
+                    notification.receiver._id,
+                    notification.sender._id
+                );
+                return {
+                    _id: notification._id.toString(),
+                    eventType: notification.eventType,
+                    timestamp: notification.timestamp.toISOString(),
+                    sender: {
+                        _id: notification.sender._id.toString(),
+                        accountName: notification.sender.accountName,
+                        avatarUrl: notification.sender.avatarUrl,
+                        isPublic: notification.sender.isPublic,
+                        isFollowing, // 使用剛剛 await 的結果
+                    },
+                    details: notification.details || {},
+                };
+            })
+        );
     }
+
 }
 
 export const eventController = new EventController(eventService);
