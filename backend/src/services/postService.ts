@@ -279,6 +279,17 @@ export class PostService {
                 throw new Error("Post not found");
             }
 
+            // 檢查是否已按讚
+            const existingLike = await Like.findOne({
+                user: userId,
+                target: postId,
+                targetModel: 'Post',
+            });
+
+            if (existingLike) {
+                return true; // 已經按讚，直接返回成功
+            }
+
             // 嘗試插入按讚記錄
             await Like.create({
                 user: userId,
@@ -477,15 +488,38 @@ export class PostService {
             throw error;
         }
     }
+
     async getPostComments(postId: Types.ObjectId): Promise<IPost | null> {
         try {
+            // 验证 postId 是否为有效的 ObjectId
+            if (!postId || !Types.ObjectId.isValid(postId)) {
+                throw new Error("Invalid postId");
+            }
+
+            // 查找指定 postId 的贴文，并同时加载相关的评论和用户信息
             const post = await Post.findOne({ _id: postId })
-                .populate("comments")
-                .populate('user', 'userName accountName avatarUrl isPublic')
-                .lean(); // 使用 lean() 提升效能
+                .populate({
+                    path: "comments", // 加载评论
+                    populate: {
+                        path: "user", // 加载评论的用户信息
+                        select: "userName accountName avatarUrl isPublic", // 选择必要的字段
+                    },
+                })
+                .populate({
+                    path: "user", // 貼文作者
+                    select: "userName accountName avatarUrl isPublic", // 限制貼文作者字段
+                })
+                .select("content images likesCount commentCount createdAt user comments") // 限制字段返回
+                .lean(); // 使用 lean() 提升查询性能
+
+            if (!post) {
+                console.error("Post not found for postId:", postId);
+                return null;
+            }
+
             return post;
         } catch (error) {
-            console.error('Error in getPostComments:', error);
+            console.error("Error in getPostComments:", error);
             throw error;
         }
     }
