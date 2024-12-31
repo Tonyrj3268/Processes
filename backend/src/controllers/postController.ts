@@ -128,7 +128,7 @@ export class PostController {
 
             // 查詢目前使用者對這些貼文的按讚狀態
             const likeStatuses = await Like.find({
-                user: targetUserId,
+                user: currentUserId,
                 targetModel: 'Post',
                 target: { $in: postIds },
             }).select('target').lean();
