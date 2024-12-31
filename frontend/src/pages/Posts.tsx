@@ -94,7 +94,6 @@ const Posts: React.FC = () => {
       await handleSubmit(formData);
       await fetchPosts();
       // handleCloseDialog();
-      // handleCloseDialog();
     } catch (error) {
       console.error("Error creating post:", error);
     }
