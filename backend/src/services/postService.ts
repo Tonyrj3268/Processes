@@ -525,7 +525,6 @@ export class PostService {
             throw error;
         }
     }
-
 }
 
 export const postService = new PostService();

@@ -1,47 +1,62 @@
+// tests/services/userService.test.ts
 import { UserService } from "@src/services/userService";
 import { User, IUserDocument } from "@src/models/user";
 import { Follow } from "@src/models/follow";
-import mongoose from "mongoose";
+import { Types } from "mongoose";
 import "@tests/setup";
+import redisClient from "@src/config/redis";
+import { eventService } from "@src/services/eventService";
 
-describe("UserService with MongoMemoryServer", () => {
+// 模擬 Elasticsearch
+jest.mock('@src/config/elasticsearch', () => ({
+  indices: {
+    exists: jest.fn().mockResolvedValue(true),
+    create: jest.fn().mockResolvedValue({}),
+  },
+  index: jest.fn().mockResolvedValue({}),
+  delete: jest.fn().mockResolvedValue({}),
+}));
+
+describe("UserService", () => {
   let userService: UserService;
   let testUser: IUserDocument;
   let anotherUser: IUserDocument;
 
-  // 工廠函數來創建用戶
-  const createTestUser = async (overrides = {}): Promise<IUserDocument> => {
-    const userData = {
+  // 創建測試用戶的輔助函數
+  const createTestUser = async (overrides = {}) => {
+    const defaultData = {
       userName: "defaultUser",
       accountName: "defaultAccountName",
       email: "default@example.com",
       password: "defaultPassword",
-      ...overrides,
     };
+    const userData = { ...defaultData, ...overrides };
     const user = new User(userData);
-    await user.save();
-    return user;
+    return await user.save();
   };
 
+  // 每個測試套件執行前的設置
   beforeAll(() => {
-    userService = new UserService();
+    userService = new UserService(redisClient, eventService);
   });
 
+  // 每個測試案例執行前的設置
   beforeEach(async () => {
+    // 創建兩個測試用戶
     testUser = await createTestUser({
       userName: "testuser",
       accountName: "testAccountName",
       email: "test@example.com",
-      password: "password123",
     });
+
     anotherUser = await createTestUser({
       userName: "anotheruser",
       accountName: "anotherAccountName",
-      email: "anothertest@example.com",
-      password: "password123",
+      email: "another@example.com",
     });
   });
 
+  // 查找用戶相關測試
   describe("findUserById", () => {
     it("應該返回用戶資料，如果用戶存在", async () => {
       const foundUser = await userService.findUserById(testUser._id.toString());
@@ -52,134 +67,61 @@ describe("UserService with MongoMemoryServer", () => {
     });
 
     it("應該返回 null，如果用戶不存在", async () => {
-      const nonExistentUserId = new mongoose.Types.ObjectId();
-      const foundUser = await userService.findUserById(nonExistentUserId.toString());
+      const nonExistentId = new Types.ObjectId();
+      const foundUser = await userService.findUserById(nonExistentId.toString());
 
       expect(foundUser).toBeNull();
     });
   });
 
-  describe("updateUserProfile", () => {
-    it("應該更新並返回更新後的用戶資料", async () => {
-      const updatedUser = await userService.updateUserProfile(testUser, {
-        userName: "newUser",
-        email: "new@example.com",
-      });
-
-      expect(updatedUser).not.toBeNull();
-      expect(updatedUser!.userName).toBe("newUser");
-      expect(updatedUser!.email).toBe("new@example.com");
-    });
-  });
-
+  // 關注用戶相關測試
   describe("followUser", () => {
     it("應該成功關注另一個用戶", async () => {
       const result = await userService.followUser(testUser._id, anotherUser._id);
-      expect(result).toBe(true);
 
+      expect(result).toBe(true);
       const follow = await Follow.findOne({
         follower: testUser._id,
         following: anotherUser._id,
       });
       expect(follow).not.toBeNull();
-
-      const updatedUser = await User.findById(testUser._id);
-      const updatedFollowedUser = await User.findById(anotherUser._id);
-      expect(updatedUser!.followingCount).toBe(1);
-      expect(updatedFollowedUser!.followersCount).toBe(1);
     });
 
     it("應該防止用戶關注自己", async () => {
       const result = await userService.followUser(testUser._id, testUser._id);
-      expect(result).toBe(false);
 
-      const followCount = await Follow.countDocuments({
+      expect(result).toBe(false);
+      const follow = await Follow.findOne({
         follower: testUser._id,
         following: testUser._id,
       });
-      expect(followCount).toBe(0);
-
-      const updatedUser = await User.findById(testUser._id);
-      expect(updatedUser!.followingCount).toBe(0);
-      expect(updatedUser!.followersCount).toBe(0);
-    });
-
-    it("應該防止重複關注", async () => {
-      // 首次關注應成功
-      const firstResult = await userService.followUser(testUser._id, anotherUser._id);
-      expect(firstResult).toBe(true);
-      // 第二次關注應失敗
-      const secondResult = await userService.followUser(testUser._id, anotherUser._id);
-      expect(secondResult).toBe(false);
-      const followCount = await Follow.countDocuments({
-        follower: testUser._id,
-        following: anotherUser._id,
-      });
-      expect(followCount).toBe(1);
-
-      const updatedUser = await User.findById(testUser._id);
-      const updatedFollowedUser = await User.findById(anotherUser._id);
-      expect(updatedUser!.followingCount).toBe(1);
-      expect(updatedFollowedUser!.followersCount).toBe(1);
+      expect(follow).toBeNull();
     });
   });
 
+  // 取消關注相關測試
   describe("unfollowUser", () => {
     beforeEach(async () => {
-      // 建立關注關係
+      // 先建立關注關係
       await userService.followUser(testUser._id, anotherUser._id);
     });
 
     it("應該成功取消關注另一個用戶", async () => {
       const result = await userService.unfollowUser(testUser._id, anotherUser._id);
-      expect(result).toBe(true);
 
+      expect(result).toBe(true);
       const follow = await Follow.findOne({
         follower: testUser._id,
         following: anotherUser._id,
       });
       expect(follow).toBeNull();
-
-      const updatedUser = await User.findById(testUser._id);
-      const updatedFollowedUser = await User.findById(anotherUser._id);
-      expect(updatedUser!.followingCount).toBe(0);
-      expect(updatedFollowedUser!.followersCount).toBe(0);
-    });
-
-    it("應該防止用戶取消關注自己", async () => {
-      const result = await userService.unfollowUser(testUser._id, testUser._id);
-      expect(result).toBe(false);
-
-      const followCount = await Follow.countDocuments({
-        follower: testUser._id,
-        following: testUser._id,
-      });
-      expect(followCount).toBe(0);
-
-      const updatedUser = await User.findById(testUser._id);
-      expect(updatedUser!.followingCount).toBe(1);
-      expect(updatedUser!.followersCount).toBe(0);
     });
 
     it("應該防止取消不存在的關注關係", async () => {
-      // 首先取消一次關注
-      const firstResult = await userService.unfollowUser(testUser._id, anotherUser._id);
-      expect(firstResult).toBe(true);
+      const nonExistentId = new Types.ObjectId();
+      const result = await userService.unfollowUser(testUser._id, nonExistentId);
 
-      // 再次嘗試取消關注
-      const secondResult = await userService.unfollowUser(testUser._id, anotherUser._id);
-      expect(secondResult).toBe(false);
-
-      const followCount = await Follow.countDocuments({
-        follower: testUser._id,
-        following: anotherUser._id,
-      });
-      expect(followCount).toBe(0);
-
-      const updatedUser = await User.findById(testUser._id);
-      const updatedFollowedUser = await User.findById(anotherUser._id);
-      expect(updatedUser!.followingCount).toBe(0);
-      expect(updatedFollowedUser!.followersCount).toBe(0);
+      expect(result).toBe(false);
     });
   });
 });

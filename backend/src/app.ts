@@ -9,6 +9,7 @@ import postRoutes from "@src/routes/postRoutes";
 import commentRoutes from "@src/routes/commentRoutes";
 import searchRoutes from "@src/routes/searchRoutes";
 import eventRoutes from "@src/routes/eventRoutes";
+import { setupElasticsearch } from '@src/utils/elasticSearchSetup';
 
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
@@ -28,9 +29,13 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+// 在 MongoDB 連接成功後調用
 mongoose
   .connect(MONGO_URI)
-  .then(() => console.log("MongoDB 已連接"))
+  .then(() => {
+    console.log("MongoDB 已連接");
+    setupElasticsearch();  // 初始化 Elasticsearch
+  })
   .catch((err) => console.log(err));
 
 // routes
