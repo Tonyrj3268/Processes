@@ -9,17 +9,11 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
-<<<<<<< HEAD
-=======
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import FavoriteIcon from "@mui/icons-material/Favorite";
-import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
->>>>>>> ebeea28 (feat: add comment page and like post function)
 import PostDialog from "../components/PostDialog";
 import usePostHandler from "../hooks/usePostHandler";
 import { useUser } from "../contexts/UserContext";
 import DeleteConfirmation from "../components/DeleteConfirmation";
-import { useNavigate } from "react-router-dom";
+import PostList from "../components/PostList";
 
 interface Post {
   postId: string;
@@ -46,7 +40,6 @@ const Posts: React.FC = () => {
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [updatedContent, setUpdatedContent] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const navigate = useNavigate();
 
   const { dialogOpen, handleOpenDialog, handleCloseDialog, handleSubmit } =
     usePostHandler();
@@ -77,18 +70,18 @@ const Posts: React.FC = () => {
       }
 
       const data = await response.json();
-      // setPosts(data.posts || []);
-      setPosts((prev) => {
-        const uniquePosts = new Map();
-        [...prev, ...data.posts].forEach((post) => {
-          uniquePosts.set(post.postId, {
-            ...post,
-            likesCount: post.likesCount || 0,
-            commentCount: post.commentCount || 0,
-          });
-        });
-        return Array.from(uniquePosts.values());
-      });
+      setPosts(data.posts || []);
+      // setPosts((prev) => {
+      //   const uniquePosts = new Map();
+      //   [...prev, ...data.posts].forEach((post) => {
+      //     uniquePosts.set(post.postId, {
+      //       ...post,
+      //       likesCount: post.likesCount || 0,
+      //       commentCount: post.commentCount || 0,
+      //     });
+      //   });
+      //   return Array.from(uniquePosts.values());
+      // });
     } catch (error) {
       console.error("Error fetching user posts:", error);
     } finally {
@@ -100,6 +93,7 @@ const Posts: React.FC = () => {
     try {
       await handleSubmit(formData);
       await fetchPosts();
+      // handleCloseDialog();
       // handleCloseDialog();
     } catch (error) {
       console.error("Error creating post:", error);
@@ -181,21 +175,12 @@ const Posts: React.FC = () => {
       prev.map((post) =>
         post.postId === postId
           ? {
-<<<<<<< HEAD
               ...post,
               likesCount: post.isLiked
                 ? post.likesCount - 1
                 : post.likesCount + 1,
               isLiked: !post.isLiked,
             }
-=======
-            ...post,
-            likesCount: post.isLiked
-              ? post.likesCount - 1
-              : post.likesCount + 1,
-            isLiked: !post.isLiked,
-          }
->>>>>>> ebeea28 (feat: add comment page and like post function)
           : post,
       ),
     );
@@ -216,13 +201,12 @@ const Posts: React.FC = () => {
         prev.map((post) =>
           post.postId === postId
             ? {
-              ...post,
-              likesCount: post.isLiked
-                ? post.likesCount + 1
-                : post.likesCount - 1,
-              isLiked: post.isLiked,
-            }
->>>>>>> ebeea28 (feat: add comment page and like post function)
+                ...post,
+                likesCount: post.isLiked
+                  ? post.likesCount + 1
+                  : post.likesCount - 1,
+                isLiked: post.isLiked,
+              }
             : post,
         ),
       );
@@ -285,130 +269,12 @@ const Posts: React.FC = () => {
           <CircularProgress />
         </Box>
       ) : (
-<<<<<<< HEAD
         <PostList
           posts={posts}
           onToggleLike={handleToggleLike}
           onMenuOpen={handleMenuOpen}
           showActions
         />
-=======
-        posts.map((post) => {
-          if (!post.author) {
-            console.error("Post author is missing:", post);
-            return null;
-          }
-
-          return (
-            <Box
-              key={post.postId}
-              sx={{ marginBottom: "16px", cursor: "pointer" }}
-              onClick={() => navigate(`/posts/${post.postId}`)}
-            >
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Avatar
-                  src={
-                    post.author.id === userData?.userId
-                      ? userData?.avatarUrl || "/default_avatar.jpg"
-                      : post.author.avatarUrl || "/default_avatar.jpg"
-                  }
-                  alt={`${post.author.accountName}'s Avatar`}
-                  sx={{ width: 40, height: 40, marginRight: "8px" }}
-                />
-                <Box>
-                  <Typography sx={{ fontSize: "15px", fontWeight: "bold" }}>
-                    {post.author.accountName}
-                  </Typography>
-                  <Typography sx={{ fontSize: "12px", color: "#aaa" }}>
-                    {new Date(post.createdAt).toLocaleString()}
-                  </Typography>
-                </Box>
-                <IconButton
-                  onClick={(e) => handleMenuOpen(e, post)}
-                  sx={{ marginLeft: "auto" }}
-                >
-                  <MoreHoriz />
-                </IconButton>
-              </Box>
-              <Typography
-                sx={{ marginY: "8px", fontSize: "15px", paddingLeft: "8px" }}
-              >
-                {post.content}
-              </Typography>
-
-              {/* 顯示圖片 */}
-              <Box
-                sx={{
-                  display: "flex",
-                  gap: "8px",
-                  overflowX: "auto",
-                  marginBottom: "8px",
-                  scrollSnapType: "x mandatory",
-                }}
-              >
-                {(post.images || []).map((image, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      width: "550px",
-                      height: "550px",
-                      flexShrink: 0,
-                      borderRadius: "8px",
-                      overflow: "hidden",
-                      scrollSnapAlign: "start",
-                    }}
-                  >
-                    <img
-                      src={image}
-                      alt={`Post`}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
-                    />
-                  </Box>
-                ))}
-              </Box>
-
-              <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    marginRight: "16px",
-                    alignItems: "center",
-                  }}
-                >
-                  <IconButton
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleLike(post.postId, post.isLiked);
-                    }}
-                  >
-                    {post.isLiked ? (
-                      <FavoriteIcon color="error" fontSize="small" />
-                    ) : (
-                      <FavoriteBorderIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                  <Typography sx={{ fontSize: "13px" }}>
-                    {post.likesCount}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
-                  <IconButton>
-                    <ChatBubbleOutlineIcon fontSize="small" />
-                  </IconButton>
-                  <Typography sx={{ fontSize: "13px" }}>
-                    {post.commentCount}
-                  </Typography>
-                </Box>
-              </Box>
-              <Divider sx={{ marginY: "8px" }} />
-            </Box>
-          );
-        })
->>>>>>> ebeea28 (feat: add comment page and like post function)
       )}
 
       <Menu
