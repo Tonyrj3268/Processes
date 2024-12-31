@@ -221,6 +221,8 @@ export class UserService {
         return false;
       }
 
+      await Event.findOneAndUpdate({ sender: followerId, receiver: userId, eventType: "follow" }, { details: { status: "accepted" } });
+
       // 更新被追蹤者和追蹤者的計數器
       const [updateReceiver, updateFollower] = await Promise.all([
         User.updateOne(
