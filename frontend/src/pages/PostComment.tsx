@@ -175,9 +175,8 @@ const PostDetail: React.FC = () => {
         throw new Error(errorData.message || "Failed to edit comment");
       }
 
-      const updatedComment = await response.json(); // 獲取更新後的內容
+      const updatedComment = await response.json();
 
-      // 更新本地狀態，避免重新拉取整個貼文列表
       setPost((prevPost) =>
         prevPost
           ? {
