@@ -253,7 +253,13 @@ const Home: React.FC = () => {
                 alt={`${post.author.accountName}'s Avatar`}
                 sx={{ width: 40, height: 40, marginRight: "8px" }}
               />
-              <Box>
+              <Box
+                sx={{ cursor: "pointer" }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/profile/${post.author.id}`); // 跳轉到 UserProfile
+                }}
+              >
                 <Typography sx={{ fontSize: "15px", fontWeight: "bold" }}>
                   {post.author.accountName}
                 </Typography>
