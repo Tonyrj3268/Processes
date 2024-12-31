@@ -37,7 +37,7 @@ interface PostWithComments {
   isLiked: boolean;
 }
 
-const PostDetail: React.FC = () => {
+const PostComment: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
   const [post, setPost] = useState<PostWithComments | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,14 +60,15 @@ const PostDetail: React.FC = () => {
       });
       if (!response.ok) throw new Error("Failed to fetch post detail");
       const data = await response.json();
-      const postData = {
+      setPost({
         ...data.postWithComments,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         comments: data.postWithComments.comments.map((comment: any) => ({
           ...comment,
-          isLiked: false,
+          user: comment.user || {}, // 確保 user 不為 undefined
         })),
-      };
-      setPost(postData);
+      });
+      // setPost(postData);
     } catch (error) {
       console.error("Error fetching post detail:", error);
     } finally {
@@ -177,16 +178,21 @@ const PostDetail: React.FC = () => {
 
       const updatedComment = await response.json();
 
-      setPost((prevPost) =>
-        prevPost
-          ? {
-              ...prevPost,
-              comments: prevPost.comments.map((comment) =>
-                comment._id === updatedComment._id ? updatedComment : comment,
-              ),
-            }
-          : null,
-      );
+      setPost((prevPost) => {
+        if (!prevPost) return null;
+
+        const updatedComments = prevPost.comments.map((comment) =>
+          comment._id === updatedComment._id
+            ? updatedComment // 使用後端返回的最新數據
+            : comment,
+        );
+
+        return {
+          ...prevPost,
+          comments: updatedComments,
+        };
+      });
+
       setEditDialogOpen(false);
     } catch (error) {
       console.error("Error editing comment:", error);
@@ -259,6 +265,7 @@ const PostDetail: React.FC = () => {
             accountName: post.user.accountName,
             avatarUrl: post.user.avatarUrl,
           },
+          images: post.images,
         }}
       />
       <DeleteConfirmation
@@ -279,4 +286,4 @@ const PostDetail: React.FC = () => {
   );
 };
 
-export default PostDetail;
+export default PostComment;

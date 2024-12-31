@@ -76,13 +76,13 @@ const CommentList: React.FC<CommentListProps> = ({
               sx={{ display: "flex", alignItems: "flex-start", mb: 1, mt: 2 }}
             >
               <Avatar
-                src={comment.user.avatarUrl || "default_avatar.jpg"}
-                alt={`${comment.user.accountName}'s Avatar`}
+                src={comment.user?.avatarUrl || "/default_avatar.jpg"}
+                alt={`${comment.user?.accountName || "預設使用者"}'s Avatar`}
                 sx={{ width: 40, height: 40, marginRight: 2 }}
               />
               <Box sx={{ flexGrow: 1 }}>
                 <Typography sx={{ fontWeight: "bold" }}>
-                  {comment.user.accountName}
+                  {comment.user?.accountName || "預設使用者"}
                 </Typography>
                 <Typography sx={{ fontSize: "12px", color: "gray" }}>
                   {comment.updatedAt
