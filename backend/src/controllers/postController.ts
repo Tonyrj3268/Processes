@@ -107,47 +107,34 @@ export class PostController {
                 return;
             }
 
-            // 定義 Redis 列表鍵
-            const redisKey = `user:${targetUserId}:posts`;
-
             let start: number = 0;
-
             if (cursorStr) {
-                // 使用數字作為分頁游標
                 const cursor = parseInt(cursorStr);
                 if (isNaN(cursor) || cursor < 0) {
                     res.status(400).json({ msg: '無效的游標' });
                     return;
                 }
-                start = cursor + 1; // 從游標位置的下一個貼文開始
+                // 例如：游標表示「上次拿到第 cursor 筆」，那就從下一筆開始取
+                start = cursor + 1;
             }
 
-            const end = start + limit - 1;
-
-            // 從 Redis 獲取貼文
-            const cachedPosts = await this.redisClient.lrange(redisKey, start, end);
-
-            if (cachedPosts.length > 0) {
-                const parsedPosts = cachedPosts.map(post => JSON.parse(post));
-
-                // 計算下一個游標
-                const listLength = await this.redisClient.llen(redisKey);
-                const hasMore = end + 1 < listLength;
-                const nextCursor = hasMore ? parsedPosts[parsedPosts.length - 1].createdAt : null;
-
-                res.status(200).json({
-                    posts: parsedPosts,
-                    nextCursor,  // 提供給前端下次請求使用
-                });
-                return;
-            }
-
-            // 如果 Redis 中沒有快取，從資料庫查詢
-            const posts = await this.postService.getPersonalPosts(new Types.ObjectId(targetUserId));
-
-            // 如果有貼文，取得最後一篇的 createdAt 作為下一個 cursor
+            const posts = await this.postService.getPersonalPosts(
+                new Types.ObjectId(targetUserId),
+                start,
+                limit
+            );
+            const postIds = posts.map(post => post._id);
             const nextCursor = posts.length > 0 ? start + posts.length - 1 : null;
 
+            // 查詢目前使用者對這些貼文的按讚狀態
+            const likeStatuses = await Like.find({
+                user: targetUserId,
+                targetModel: 'Post',
+                target: { $in: postIds },
+            }).select('target').lean();
+
+            // 將按讚的貼文 ID 放入集合
+            const likedPostIds = new Set(likeStatuses.map(like => like.target.toString()));
             // 組織回傳資料結構
             const responseData = {
                 posts: posts.map((post) => ({
@@ -162,19 +149,11 @@ export class PostController {
                     likesCount: post.likesCount,
                     commentCount: post.comments?.length || 0,
                     createdAt: post.createdAt.toISOString(),
-                    images: post.images
+                    images: post.images,
+                    isLiked: likedPostIds.has(post._id.toString()), // 判斷是否按讚
                 })),
                 nextCursor,  // 提供給前端下次請求使用
             };
-
-            // 將貼文存入 Redis 列表，使用 LPUSH 將新貼文推入列表頭部
-            const pipeline = this.redisClient.pipeline();
-            responseData.posts.forEach(post => {
-                pipeline.lpush(redisKey, JSON.stringify(post));
-            });
-            // 限制列表長度，保留最新的 100 條貼文
-            pipeline.ltrim(redisKey, 0, 99);
-            await pipeline.exec();
 
             res.status(200).json(responseData);
 
@@ -203,30 +182,7 @@ export class PostController {
                 : [];
 
             const newPost = await this.postService.createPost(user._id, content, images);
-            // 組織 Redis 的貼文格式
-            const redisPost = {
-                postId: newPost._id.toString(),
-                author: {
-                    id: user._id.toString(),
-                    userName: user.userName,
-                    accountName: user.accountName,
-                    avatarUrl: user.avatarUrl,
-                },
-                content: newPost.content,
-                images: newPost.images,
-                likesCount: 0,
-                commentCount: 0,
-                createdAt: newPost.createdAt,
-            };
 
-            // 定義 Redis 鍵
-            const redisKey = `user:${user._id}:posts`;
-
-            // 使用 LPUSH 插入 Redis 並限制列表長度
-            const pipeline = this.redisClient.pipeline();
-            pipeline.lpush(redisKey, JSON.stringify(redisPost)); // 插入列表頭部
-            pipeline.ltrim(redisKey, 0, 99); // 保留最新 100 條貼文
-            await pipeline.exec();
             // 這樣可以讓前端立即獲得新建立的貼文資料，不需要再次請求。
             res.status(201).json({
                 msg: "Post created successfully",
@@ -281,36 +237,6 @@ export class PostController {
                 res.status(404).json({ msg: "Post not found or unauthorized" });
                 return;
             }
-            this.redisClient.lrange(`user:${userId}:posts`, 0, -1, async (err, posts) => {
-                if (err) {
-                    console.error('Error fetching posts from Redis:', err);
-                    return;
-                }
-
-                // 更新貼文內容
-                if (!posts) {
-                    res.status(500).json({ msg: '伺服器錯誤' });
-                    return;
-                }
-                const updatedPosts = posts.map(postStr => {
-                    const post = JSON.parse(postStr);
-                    if (post.postId === postId) {
-                        if (content !== undefined) {
-                            post.content = content; // 更新內容
-                        }
-                        if (images.length > 0) {
-                            post.images = images; // 更新圖片
-                        }
-                    }
-                    return JSON.stringify(post);
-                });
-
-                // 重新設置 Redis 列表
-                const pipeline = this.redisClient.pipeline();
-                pipeline.del(`user:${userId}:posts`); // 清空舊列表
-                pipeline.rpush(`user:${userId}:posts`, ...updatedPosts); // 推入更新後的列表
-                await pipeline.exec();
-            });
 
             res.status(200).json({ msg: "Post updated successfully" });
         } catch (error) {

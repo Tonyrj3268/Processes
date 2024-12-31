@@ -9,7 +9,7 @@ import { Follow } from '@src/models/follow';
 import redisClient from '@src/config/redis';
 
 export class PostService {
-    async getPersonalPosts(userId: Types.ObjectId): Promise<IPostDocument[]> {
+    async getPersonalPosts(userId: Types.ObjectId, skip: number, limit: number): Promise<IPostDocument[]> {
         try {
             const query: FilterQuery<IPostDocument> = {};
 
@@ -20,7 +20,9 @@ export class PostService {
 
             const posts = await Post.find(query)
                 .sort({ createdAt: -1 }) // 按 createdAt 排序
-                .lean(); // 使用 lean() 提升效能
+                .skip(skip)                 // 從第幾筆開始
+                .limit(limit)
+                .exec();
 
             return posts;
         } catch (error) {
