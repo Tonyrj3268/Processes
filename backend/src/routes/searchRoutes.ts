@@ -250,25 +250,25 @@ router.get("/users",
  *                   nullable: true
  *                   description: Cursor for the next page, null if no more results
  */
-router.get("/comments",
-    authenticateJWT,
-    [
-        query('q')
-            .exists()
-            .withMessage('Search query is required')
-            .isString()
-            .withMessage('Search query must be a string'),
-        query('cursor')
-            .optional()
-            .isString()
-            .withMessage('Cursor must be a string'),
-        query('limit')
-            .optional()
-            .isInt({ min: 1, max: 50 })
-            .withMessage('Limit must be between 1 and 50')
-            .toInt(),
-    ],
-    searchController.searchComments
-);
+// router.get("/comments",
+//     authenticateJWT,
+//     [
+//         query('q')
+//             .exists()
+//             .withMessage('Search query is required')
+//             .isString()
+//             .withMessage('Search query must be a string'),
+//         query('cursor')
+//             .optional()
+//             .isString()
+//             .withMessage('Cursor must be a string'),
+//         query('limit')
+//             .optional()
+//             .isInt({ min: 1, max: 50 })
+//             .withMessage('Limit must be between 1 and 50')
+//             .toInt(),
+//     ],
+//     searchController.searchComments
+// );
 
 export default router;

@@ -2,7 +2,7 @@
 import client from "@src/config/elasticsearch";
 import { Post } from "@src/models/post";
 import { User } from "@src/models/user";
-import { Comment } from "@src/models/comment";
+// import { Comment } from "@src/models/comment";
 import { IUserDocument } from "@src/models/user";
 import { SearchRequest, SearchHit, ElasticGetResponse } from "@src/types/elasticsearch";
 import { Follow } from "@src/models/follow";
@@ -129,6 +129,7 @@ export class SearchService {
                     createdAt: post!.createdAt,
                     highlight: hits.find(hit => hit._id === post!._id.toString())?._source
                 })),
+                users: [],
                 nextCursor: hasMore ? sortedPosts[sortedPosts.length - 1]?._id : null
             };
         } catch (error) {
@@ -140,72 +141,64 @@ export class SearchService {
     /**
      * 搜索用戶
      */
-    async searchUsers(query: string, cursor?: string, limit: number = 10) {
+    async searchUsers(query: string, currentUserId?: Types.ObjectId | string, limit: number = 10) {
         try {
-            const searchQuery: SearchRequest = {
-                index: 'users',
-                body: {
-                    size: limit + 1,
-                    query: {
-                        bool: {
-                            should: [
-                                {
-                                    multi_match: {
-                                        query,
-                                        fields: ['userName^3', 'accountName^2', 'bio'],
-                                        fuzziness: 'AUTO'
-                                    }
-                                }
-                            ],
-                            filter: [
-                                { term: { isPublic: true } }
-                            ]
-                        }
-                    },
-                    sort: [
-                        { createdAt: 'desc' }
-                    ]
-                }
-            };
+            // 使用正則表達式進行不分大小寫的搜尋
+            const searchRegex = new RegExp(query, 'i');
 
-            if (cursor) {
-                const cursorDoc = await client.get({
-                    index: 'users',
-                    id: cursor
-                }) as ElasticGetResponse;
-
-                if (cursorDoc._source?.createdAt) {
-                    searchQuery.body.search_after = [cursorDoc._source.createdAt];
-                }
-            }
-
-            const result = await client.search(searchQuery);
-
-            const hits = result.hits.hits;
-            const hasMore = hits.length > limit;
-            if (hasMore) {
-                hits.pop();
-            }
-
+            // 搜尋用戶
             const users = await User.find({
-                _id: { $in: hits.map(hit => hit._id) }
+                $or: [
+                    { accountName: { $regex: searchRegex } },
+                    { userName: { $regex: searchRegex } }
+                ]
+            })
+                .select('_id userName accountName avatarUrl isPublic')
+                .limit(limit);
+
+            // 如果有當前用戶，獲取關注狀態
+            let followData = null;
+            if (currentUserId) {
+                // 獲取所有被搜尋到的用戶的關注狀態
+                const follows = await Follow.find({
+                    follower: new Types.ObjectId(currentUserId),
+                    following: { $in: users.map(user => user._id) }
+                });
+
+                // 建立一個 Map 來存儲關注狀態
+                followData = new Map(
+                    follows.map(follow => [
+                        follow.following.toString(),
+                        {
+                            isFollowing: follow.status === 'accepted',
+                            hasRequestedFollow: follow.status === 'pending'
+                        }
+                    ])
+                );
+            }
+
+            // 格式化回傳結果
+            const formattedUsers = users.map(user => {
+                const followStatus = followData?.get(user._id.toString()) || {
+                    isFollowing: false,
+                    hasRequestedFollow: false
+                };
+
+                return {
+                    id: user._id,
+                    userName: user.userName,
+                    accountName: user.accountName,
+                    avatarUrl: user.avatarUrl,
+                    isPublic: user.isPublic,
+                    isFollowing: followStatus.isFollowing,
+                    hasRequestedFollow: followStatus.hasRequestedFollow
+                };
             });
 
-            const sortedUsers = hits.map(hit =>
-                users.find(user => user._id.toString() === hit._id)
-            ).filter(Boolean);
-
             return {
-                users: sortedUsers.map(user => ({
-                    id: user!._id,
-                    userName: user!.userName,
-                    accountName: user!.accountName,
-                    avatarUrl: user!.avatarUrl,
-                    bio: user!.bio,
-                    followersCount: user!.followersCount,
-                    followingCount: user!.followingCount
-                })),
-                nextCursor: hasMore ? sortedUsers[sortedUsers.length - 1]?._id : null
+                users: formattedUsers,
+                posts: [],
+                nextCursor: null // 暫時不實作分頁
             };
         } catch (error) {
             console.error('Error in searchUsers:', error);
@@ -213,81 +206,81 @@ export class SearchService {
         }
     }
 
-    /**
-     * 搜索評論
-     */
-    async searchComments(query: string, cursor?: string, limit: number = 10) {
-        try {
-            const searchQuery: SearchRequest = {
-                index: 'comments',
-                body: {
-                    size: limit + 1,
-                    query: {
-                        bool: {
-                            should: [{
-                                multi_match: {
-                                    query,
-                                    fields: ['content^3', 'userName^2'],
-                                    fuzziness: 'AUTO'
-                                }
-                            }]
-                        }
-                    },
-                    sort: [
-                        { createdAt: 'desc' }
-                    ]
-                }
-            };
+    // /**
+    //  * 搜索評論
+    //  */
+    // async searchComments(query: string, cursor?: string, limit: number = 10) {
+    //     try {
+    //         const searchQuery: SearchRequest = {
+    //             index: 'comments',
+    //             body: {
+    //                 size: limit + 1,
+    //                 query: {
+    //                     bool: {
+    //                         should: [{
+    //                             multi_match: {
+    //                                 query,
+    //                                 fields: ['content^3', 'userName^2'],
+    //                                 fuzziness: 'AUTO'
+    //                             }
+    //                         }]
+    //                     }
+    //                 },
+    //                 sort: [
+    //                     { createdAt: 'desc' }
+    //                 ]
+    //             }
+    //         };
 
-            if (cursor) {
-                const cursorDoc = await client.get({
-                    index: 'comments',
-                    id: cursor
-                }) as ElasticGetResponse;
+    //         if (cursor) {
+    //             const cursorDoc = await client.get({
+    //                 index: 'comments',
+    //                 id: cursor
+    //             }) as ElasticGetResponse;
 
-                if (cursorDoc._source?.createdAt) {
-                    searchQuery.body.search_after = [cursorDoc._source.createdAt];
-                }
-            }
+    //             if (cursorDoc._source?.createdAt) {
+    //                 searchQuery.body.search_after = [cursorDoc._source.createdAt];
+    //             }
+    //         }
 
-            const result = await client.search(searchQuery);
+    //         const result = await client.search(searchQuery);
 
-            const hits = result.hits.hits;
-            const hasMore = hits.length > limit;
-            if (hasMore) {
-                hits.pop();
-            }
+    //         const hits = result.hits.hits;
+    //         const hasMore = hits.length > limit;
+    //         if (hasMore) {
+    //             hits.pop();
+    //         }
 
-            const comments = await Comment.find({
-                _id: { $in: hits.map(hit => hit._id) }
-            }).populate('user', 'userName accountName avatarUrl');
+    //         const comments = await Comment.find({
+    //             _id: { $in: hits.map(hit => hit._id) }
+    //         }).populate('user', 'userName accountName avatarUrl');
 
-            const sortedComments = hits.map(hit =>
-                comments.find(comment => comment._id.toString() === hit._id)
-            ).filter(Boolean);
+    //         const sortedComments = hits.map(hit =>
+    //             comments.find(comment => comment._id.toString() === hit._id)
+    //         ).filter(Boolean);
 
-            return {
-                comments: sortedComments.map(comment => ({
-                    commentId: comment!._id,
-                    author: {
-                        id: comment!.user._id,
-                        userName: (comment!.user as IUserDocument).userName,
-                        accountName: (comment!.user as IUserDocument).accountName,
-                        avatarUrl: (comment!.user as IUserDocument).avatarUrl
-                    },
-                    content: comment!.content,
-                    likesCount: comment!.likesCount,
-                    repliesCount: comment!.comments.length,
-                    createdAt: comment!.createdAt,
-                    highlight: hits.find(hit => hit._id === comment!._id.toString())?._source
-                })),
-                nextCursor: hasMore ? sortedComments[sortedComments.length - 1]?._id : null
-            };
-        } catch (error) {
-            console.error('Error in searchComments:', error);
-            throw error;
-        }
-    }
+    //         return {
+    //             comments: sortedComments.map(comment => ({
+    //                 commentId: comment!._id,
+    //                 author: {
+    //                     id: comment!.user._id,
+    //                     userName: (comment!.user as IUserDocument).userName,
+    //                     accountName: (comment!.user as IUserDocument).accountName,
+    //                     avatarUrl: (comment!.user as IUserDocument).avatarUrl
+    //                 },
+    //                 content: comment!.content,
+    //                 likesCount: comment!.likesCount,
+    //                 repliesCount: comment!.comments.length,
+    //                 createdAt: comment!.createdAt,
+    //                 highlight: hits.find(hit => hit._id === comment!._id.toString())?._source
+    //             })),
+    //             nextCursor: hasMore ? sortedComments[sortedComments.length - 1]?._id : null
+    //         };
+    //     } catch (error) {
+    //         console.error('Error in searchComments:', error);
+    //         throw error;
+    //     }
+    // }
 }
 
 export const searchService = new SearchService();
