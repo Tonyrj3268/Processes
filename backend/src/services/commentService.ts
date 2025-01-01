@@ -169,7 +169,8 @@ export class CommentService {
                     eventType: 'like',
                     details: {
                         commentId: commentId.toString(),
-                        type: 'comment'
+                        type: 'comment',
+                        commentText: comment.content
                     }
                 });
             }
