@@ -5,6 +5,8 @@ import { User } from "@src/models/user";
 import { Comment } from "@src/models/comment";
 import { IUserDocument } from "@src/models/user";
 import { SearchRequest, SearchHit, ElasticGetResponse } from "@src/types/elasticsearch";
+import { Follow } from "@src/models/follow";
+import { Types } from "mongoose";
 
 export class SearchService {
     /**
@@ -12,32 +14,69 @@ export class SearchService {
      * @param query 搜索關鍵字
      * @param cursor 游標（上一頁最後一筆資料的ID）
      * @param limit 每頁數量
+     * @param currentUserId 當前登入用戶的ID（用於檢查追蹤關係）
      */
-    async searchPosts(query: string, cursor?: string, limit: number = 10) {
+    async searchPosts(query: string, cursor?: string, limit: number = 10, currentUserId?: string) {
         try {
+            let visibleUserIds = [];
+
+            // 1. 獲取所有公開用戶的 ID
+            const publicUsers = await User.find({ isPublic: true }).select('_id');
+            visibleUserIds = publicUsers.map(user => user._id.toString());
+
+            // 2. 如果用戶已登入，添加他追蹤的私人帳號
+            if (currentUserId) {
+                const followedUsers = await Follow.find({
+                    follower: new Types.ObjectId(currentUserId),
+                    status: 'accepted'  // 只考慮已接受的追蹤關係
+                }).select('following');
+
+                const followedUserIds = followedUsers.map(follow => follow.following.toString());
+
+                // 合併公開用戶和已追蹤用戶的 ID，確保沒有重複
+                visibleUserIds = [...new Set([...visibleUserIds, ...followedUserIds])];
+            }
+
             const searchQuery: SearchRequest = {
                 index: 'posts',
                 body: {
-                    size: limit + 1, // 多取一條用來判斷是否還有下一頁
+                    size: limit + 1,
                     sort: [
                         { "createdAt": "desc" }
                     ],
                     query: {
                         bool: {
-                            should: [
+                            must: [
                                 {
-                                    multi_match: {
-                                        query,
-                                        fields: ['content^3', 'userName^2'],
-                                        fuzziness: 'AUTO'
+                                    bool: {
+                                        should: [
+                                            {
+                                                multi_match: {
+                                                    query,
+                                                    fields: ['content^3', 'userName^2'],
+                                                    fuzziness: 'AUTO'
+                                                }
+                                            },
+                                            {
+                                                match_phrase: {
+                                                    content: {
+                                                        query,
+                                                        boost: 4
+                                                    }
+                                                }
+                                            }
+                                        ]
                                     }
-                                },
+                                }
+                            ],
+                            filter: [
                                 {
-                                    match_phrase: {
-                                        content: {
-                                            query,
-                                            boost: 4
-                                        }
+                                    bool: {
+                                        should: visibleUserIds.map(id => ({
+                                            term: {
+                                                "userId": id
+                                            }
+                                        }))
                                     }
                                 }
                             ]
@@ -46,7 +85,7 @@ export class SearchService {
                 }
             };
 
-            // 如果有游標，添加 search_after 條件
+            // 處理游標分頁
             if (cursor) {
                 const cursorDoc = await client.get({
                     index: 'posts',
@@ -61,7 +100,6 @@ export class SearchService {
             const result = await client.search(searchQuery);
             const hits = result.hits.hits as SearchHit[];
 
-            // 移除多取的那一條，用於下一頁的判斷
             const hasMore = hits.length > limit;
             if (hasMore) {
                 hits.pop();

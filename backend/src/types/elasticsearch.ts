@@ -22,30 +22,51 @@ export interface SearchHit {
     };
 }
 
-export interface SearchBody {
-    size: number;
-    query: {
-        bool: {
-            should: Array<{
-                multi_match?: {
-                    query: string;
-                    fields: string[];
-                    fuzziness: string;
-                };
-                match_phrase?: {
-                    content: {
-                        query: string;
-                        boost: number;
-                    };
-                };
-            }>;
-            filter?: Array<{
-                term: {
-                    [key: string]: boolean | string | number;
-                };
-            }>;
+interface MatchQuery {
+    match: {
+        [key: string]: {
+            query: string;
+            [key: string]: unknown;
         };
     };
+}
+
+interface MatchPhraseQuery {
+    match_phrase: {
+        [key: string]: {
+            query: string;
+            boost?: number;
+        };
+    };
+}
+
+interface MultiMatchQuery {
+    multi_match: {
+        query: string;
+        fields: string[];
+        fuzziness?: string;
+        [key: string]: unknown;
+    };
+}
+
+interface TermQuery {
+    term: {
+        [key: string]: string | number | boolean;
+    };
+}
+
+interface BoolQuery {
+    bool: {
+        must?: Array<MatchQuery | MatchPhraseQuery | MultiMatchQuery | BoolQuery>;
+        should?: Array<MatchQuery | MatchPhraseQuery | MultiMatchQuery | TermQuery | BoolQuery>;
+        filter?: Array<TermQuery | BoolQuery>;
+        [key: string]: unknown;
+    };
+}
+
+export interface SearchBody {
+    size: number;
+    query: BoolQuery;
     sort: Array<Record<string, 'desc' | 'asc'>>;
     search_after?: Array<string | number>;
 }
