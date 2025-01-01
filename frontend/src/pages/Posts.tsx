@@ -71,17 +71,6 @@ const Posts: React.FC = () => {
 
       const data = await response.json();
       setPosts(data.posts || []);
-      // setPosts((prev) => {
-      //   const uniquePosts = new Map();
-      //   [...prev, ...data.posts].forEach((post) => {
-      //     uniquePosts.set(post.postId, {
-      //       ...post,
-      //       likesCount: post.likesCount || 0,
-      //       commentCount: post.commentCount || 0,
-      //     });
-      //   });
-      //   return Array.from(uniquePosts.values());
-      // });
     } catch (error) {
       console.error("Error fetching user posts:", error);
     } finally {
@@ -93,7 +82,6 @@ const Posts: React.FC = () => {
     try {
       await handleSubmit(formData);
       await fetchPosts();
-      // handleCloseDialog();
     } catch (error) {
       console.error("Error creating post:", error);
     }
@@ -174,12 +162,12 @@ const Posts: React.FC = () => {
       prev.map((post) =>
         post.postId === postId
           ? {
-              ...post,
-              likesCount: post.isLiked
-                ? post.likesCount - 1
-                : post.likesCount + 1,
-              isLiked: !post.isLiked,
-            }
+            ...post,
+            likesCount: post.isLiked
+              ? post.likesCount - 1
+              : post.likesCount + 1,
+            isLiked: !post.isLiked,
+          }
           : post,
       ),
     );
@@ -200,12 +188,12 @@ const Posts: React.FC = () => {
         prev.map((post) =>
           post.postId === postId
             ? {
-                ...post,
-                likesCount: post.isLiked
-                  ? post.likesCount + 1
-                  : post.likesCount - 1,
-                isLiked: post.isLiked,
-              }
+              ...post,
+              likesCount: post.isLiked
+                ? post.likesCount + 1
+                : post.likesCount - 1,
+              isLiked: post.isLiked,
+            }
             : post,
         ),
       );

@@ -157,7 +157,7 @@ const PostComment: React.FC = () => {
   };
 
   // 編輯留言
-  const handleSubmitEditComment = async () => {
+  const handleSubmitEditComment = async (editingCommentContent: string) => {
     if (!selectedCommentId) return;
     const token = localStorage.getItem("token");
     try {
@@ -183,7 +183,7 @@ const PostComment: React.FC = () => {
 
         const updatedComments = prevPost.comments.map((comment) =>
           comment._id === updatedComment._id
-            ? updatedComment // 使用後端返回的最新數據
+            ? { ...comment, content: updatedComment.content } // 確保更新內容
             : comment,
         );
 
@@ -192,7 +192,7 @@ const PostComment: React.FC = () => {
           comments: updatedComments,
         };
       });
-
+      await fetchPostDetail();
       setEditDialogOpen(false);
     } catch (error) {
       console.error("Error editing comment:", error);
@@ -255,6 +255,8 @@ const PostComment: React.FC = () => {
           setDeleteDialogOpen(true);
         }}
       />
+
+      {/* 新增留言 */}
       <CommentDialog
         open={isCommentDialogOpen}
         onClose={() => setCommentDialogOpen(false)}
@@ -268,6 +270,8 @@ const PostComment: React.FC = () => {
           images: post.images,
         }}
       />
+
+      {/* 刪除留言 */}
       <DeleteConfirmation
         open={isDeleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
@@ -275,6 +279,8 @@ const PostComment: React.FC = () => {
         title="刪除留言？"
         content="刪除這則留言後，即無法恢復顯示。"
       />
+
+      {/* 編輯留言 */}
       <CommentDialog
         open={isEditDialogOpen}
         onClose={() => setEditDialogOpen(false)}

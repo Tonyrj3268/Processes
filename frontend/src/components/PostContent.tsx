@@ -41,7 +41,7 @@ const PostContent: React.FC<PostContentProps> = ({
   onOpenCommentDialog,
 }) => {
   const navigate = useNavigate();
-  const { isGuest } = useUser();
+  const { userData, isGuest } = useUser();
   const [isGuestDialogOpen, setGuestDialogOpen] = useState(false);
 
   const handleCommentClick = () => {
@@ -63,7 +63,13 @@ const PostContent: React.FC<PostContentProps> = ({
         }}
         onClick={(e) => {
           e.stopPropagation();
-          navigate(`/profile/${post.user._id}`); // 跳轉到 UserProfile
+          if (!isGuest) {
+            if (post.user._id === userData?.userId) {
+              navigate("/profile"); // 跳轉到自己的 Profile
+            } else {
+              navigate(`/profile/${post.user._id}`); // 跳轉到 UserProfile
+            }
+          }
         }}
       >
         <Avatar

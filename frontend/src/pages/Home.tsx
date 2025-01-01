@@ -252,7 +252,11 @@ const Home: React.FC = () => {
               onClick={(e) => {
                 e.stopPropagation();
                 if (!isGuest) {
-                  navigate(`/profile/${post.author.id}`); // 跳轉到 UserProfile
+                  if (post.author.id === userData?.userId) {
+                    navigate("/profile"); // 跳轉到自己的 Profile
+                  } else {
+                    navigate(`/profile/${post.author.id}`); // 跳轉到 UserProfile
+                  }
                 }
               }}
             >

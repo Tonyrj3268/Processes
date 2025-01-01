@@ -5,6 +5,7 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../contexts/UserContext";
+import { MoreHoriz } from "@mui/icons-material";
 
 interface Post {
   postId: string;
@@ -82,7 +83,7 @@ const PostList: React.FC<PostListProps> = ({
                     onMenuOpen && onMenuOpen(event, post);
                   }}
                 >
-                  ⋮
+                  <MoreHoriz />
                 </IconButton>
               </Box>
             )}

@@ -160,41 +160,44 @@ const CommentList: React.FC<CommentListProps> = ({
       >
         {selectedCommentId &&
         comments.find((c) => c._id === selectedCommentId)?.user.accountName ===
-          userData?.accountName ? (
-          <>
-            <MenuItem
-              onClick={() => {
-                const currentContent =
-                  comments.find((c) => c._id === selectedCommentId)?.content ||
-                  "";
-                onEdit(selectedCommentId, currentContent);
-                handleMenuClose();
-              }}
-            >
-              編輯
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                onDelete(selectedCommentId);
-                handleMenuClose();
-              }}
-              sx={{ color: "red" }}
-            >
-              刪除
-            </MenuItem>
-          </>
-        ) : (
-          <MenuItem
-            sx={{
-              textTransform: "none",
-              color: "red",
-              fontWeight: "bold",
-              fontSize: "16px",
-            }}
-          >
-            檢舉
-          </MenuItem>
-        )}
+          userData?.accountName
+          ? [
+              <MenuItem
+                key="edit"
+                onClick={() => {
+                  const currentContent =
+                    comments.find((c) => c._id === selectedCommentId)
+                      ?.content || "";
+                  onEdit(selectedCommentId, currentContent);
+                  handleMenuClose();
+                }}
+              >
+                編輯
+              </MenuItem>,
+              <MenuItem
+                key="delete"
+                onClick={() => {
+                  onDelete(selectedCommentId);
+                  handleMenuClose();
+                }}
+                sx={{ color: "red" }}
+              >
+                刪除
+              </MenuItem>,
+            ]
+          : [
+              <MenuItem
+                key="report"
+                sx={{
+                  textTransform: "none",
+                  color: "red",
+                  fontWeight: "bold",
+                  fontSize: "16px",
+                }}
+              >
+                檢舉
+              </MenuItem>,
+            ]}
       </Menu>
     </Box>
   );
