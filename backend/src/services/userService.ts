@@ -209,6 +209,7 @@ export class UserService {
 
       // 當我取消追隨他，他給我的事件需要被刪除
       await Event.find({ sender: followedUserId, receiver: userId }).deleteMany();
+      await Event.find({ sender: userId, receiver: followedUserId, eventType: "follows" }).deleteMany();
 
       return true;
     } catch (error: unknown) {
