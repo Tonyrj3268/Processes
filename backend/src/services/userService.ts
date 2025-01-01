@@ -62,6 +62,22 @@ export class UserService {
     }
   }
 
+  async hasRequestedFollow(userId: Types.ObjectId, followedUserId: Types.ObjectId): Promise<boolean> {
+    try {
+      // 尋找是否存在 pending 狀態的追蹤記錄
+      const followRequest = await Follow.findOne({
+        follower: userId,
+        following: followedUserId,
+        status: "pending"
+      });
+
+      return !!followRequest;
+    } catch (err) {
+      console.error(err);
+      throw new Error("伺服器錯誤");
+    }
+  }
+
   // 創建用戶
   async createUser(data: {
     userName: string;

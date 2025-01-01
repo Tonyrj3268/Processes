@@ -35,13 +35,19 @@ export class EventController {
     // 格式化通知
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private formatNotifications(notifications: any[]) {
-        // 如果量少且沒有批次需求，可以簡單改成這樣
         return Promise.all(
             notifications.map(async (notification) => {
-                const isFollowing = await userService.isFollowing(
-                    notification.receiver._id,
-                    notification.sender._id
-                );
+                const [isFollowing, hasRequestedFollow] = await Promise.all([
+                    userService.isFollowing(
+                        notification.receiver._id,
+                        notification.sender._id
+                    ),
+                    userService.hasRequestedFollow(
+                        notification.receiver._id,
+                        notification.sender._id
+                    )
+                ]);
+
                 return {
                     _id: notification._id.toString(),
                     eventType: notification.eventType,
@@ -51,14 +57,14 @@ export class EventController {
                         accountName: notification.sender.accountName,
                         avatarUrl: notification.sender.avatarUrl,
                         isPublic: notification.sender.isPublic,
-                        isFollowing, // 使用剛剛 await 的結果
+                        isFollowing,
+                        hasRequestedFollow,  // 新增這個欄位
                     },
                     details: notification.details || {},
                 };
             })
         );
     }
-
 }
 
 export const eventController = new EventController(eventService);
