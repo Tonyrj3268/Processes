@@ -68,7 +68,7 @@ const Activity: React.FC = () => {
       const filteredEvents = data.events;
 
       setEvents((prev) =>
-        cursor ? [...prev, ...filteredEvents] : filteredEvents
+        cursor ? [...prev, ...filteredEvents] : filteredEvents,
       );
       setNewCursor(data.newCursor);
     } catch (error) {
@@ -110,14 +110,6 @@ const Activity: React.FC = () => {
   const handleEventUpdate = (eventId: string, newData?: Partial<Event>) => {
     if (newData) {
       // 更新事件狀態
-      setEvents(prevEvents => prevEvents.map(event =>
-        event._id === eventId
-          ? { ...event, ...newData }
-          : event
-      ));
-    } else {
-      // 如果沒有新數據，則移除事件（用於拒絕操作）
-      setEvents(prevEvents => prevEvents.filter(event => event._id !== eventId));
     }
   };
 

@@ -12,6 +12,7 @@ interface ProfileHeaderProps {
     avatarUrl: string;
     followersCount: number;
     isFollowing?: boolean;
+    hasRequestedFollow?: boolean;
   };
   onFollowToggle?: () => void;
 }
@@ -93,23 +94,41 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </Button>
         ) : (
           <Button
-            variant={userProfile.isFollowing ? "outlined" : "contained"}
+            variant="contained"
             sx={{
               textTransform: "none",
               fontWeight: "bold",
               borderRadius: "10px",
               width: "100%",
               fontSize: "14px",
-              color: userProfile.isFollowing ? "#000" : "#fff",
-              backgroundColor: userProfile.isFollowing ? "#fff" : "#000",
-              borderColor: userProfile.isFollowing ? "#ccc" : "#000",
+              color:
+                userProfile.isFollowing || userProfile.hasRequestedFollow
+                  ? "#000"
+                  : "#fff", // 文字顏色：白色或黑色
+              backgroundColor:
+                userProfile.isFollowing || userProfile.hasRequestedFollow
+                  ? "#fff"
+                  : "#000", // 白色背景或黑色背景
+              border:
+                userProfile.isFollowing || userProfile.hasRequestedFollow
+                  ? "1px solid #ccc"
+                  : "none", // 邊框只在「追蹤中」和「已提出要求」時顯示
+              boxShadow: "none",
               "&:hover": {
-                backgroundColor: userProfile.isFollowing ? "#f5f5f5" : "#333",
+                backgroundColor:
+                  userProfile.isFollowing || userProfile.hasRequestedFollow
+                    ? "#f5f5f5"
+                    : "#333", // 淺灰背景（hover）或深灰背景（hover）
+                boxShadow: "none",
               },
             }}
             onClick={onFollowToggle}
           >
-            {userProfile.isFollowing ? "已追蹤" : "追蹤"}
+            {userProfile.isFollowing
+              ? "追蹤中"
+              : userProfile.hasRequestedFollow
+                ? "已提出要求"
+                : "追蹤"}
           </Button>
         )}
       </Box>

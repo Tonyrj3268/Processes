@@ -70,7 +70,6 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
     if (loading.accept) return;
 
     try {
-      setLoading(prev => ({ ...prev, accept: true }));
       const token = localStorage.getItem("token");
       const response = await fetch("/api/user/accept-follow", {
         method: "POST",
@@ -85,36 +84,15 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
 
       // 更新父組件中的事件狀態
       onEventUpdate(event._id, {
-        details: { ...event.details, status: "accepted" }
       });
     } catch (error) {
       console.error("Failed to accept follow request:", error);
     } finally {
-      setLoading(prev => ({ ...prev, accept: false }));
-    }
-  };
-
-  const handleRejectFollow = async () => {
-    if (loading.reject) return;
-
-    try {
-      setLoading(prev => ({ ...prev, reject: true }));
-      const token = localStorage.getItem("token");
-      const response = await fetch("/api/user/reject-follow", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId: event.sender._id }),
-      });
-
       if (!response.ok) throw new Error("Failed to reject follow request");
       onEventUpdate(event._id);
     } catch (error) {
       console.error("Failed to reject follow request:", error);
     } finally {
-      setLoading(prev => ({ ...prev, reject: false }));
     }
   };
 
@@ -122,7 +100,6 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
     if (loading.unfollow) return;
 
     try {
-      setLoading(prev => ({ ...prev, unfollow: true }));
       const token = localStorage.getItem("token");
       const response = await fetch("/api/user/unfollow", {
         method: "POST",
@@ -139,13 +116,10 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
       onEventUpdate(event._id, {
         sender: {
           ...event.sender,
-          hasRequestedFollow: false
-        }
       });
     } catch (error) {
       console.error("Failed to unfollow user:", error);
     } finally {
-      setLoading(prev => ({ ...prev, unfollow: false }));
     }
   };
 
@@ -153,7 +127,6 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
     if (loading.follow) return;
 
     try {
-      setLoading(prev => ({ ...prev, follow: true }));
       const token = localStorage.getItem("token");
       const response = await fetch("/api/user/follow", {
         method: "POST",
@@ -169,13 +142,10 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
       onEventUpdate(event._id, {
         sender: {
           ...event.sender,
-          hasRequestedFollow: true
-        }
       });
     } catch (error) {
       console.error("Failed to follow user:", error);
     } finally {
-      setLoading(prev => ({ ...prev, follow: false }));
     }
   };
 
@@ -209,15 +179,6 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
             sx={buttonStyles}
           >
             {loading.accept ? (
-              <CircularProgress size={16} sx={{
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                marginLeft: "-8px",
-                marginTop: "-8px",
-                color: "#666"
-              }} />
-            ) : "確認"}
           </Button>
           <Button
             variant="outlined"
@@ -227,15 +188,6 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
             sx={buttonStyles}
           >
             {loading.reject ? (
-              <CircularProgress size={16} sx={{
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                marginLeft: "-8px",
-                marginTop: "-8px",
-                color: "#666"
-              }} />
-            ) : "拒絕"}
           </Button>
         </Stack>
       );
@@ -274,38 +226,11 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
             sx={buttonStyles}
           >
             {loading.unfollow ? (
-              <CircularProgress size={16} sx={{
                 position: "absolute",
                 left: "50%",
                 top: "50%",
                 marginLeft: "-8px",
                 marginTop: "-8px",
-                color: "#666"
-              }} />
-            ) : (event.sender.isPublic ? "已追蹤" : "已提出要求")}
-          </Button>
-        );
-      }
-
-      // 還沒追蹤對方，顯示可點擊的追蹤按鈕
-      return (
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={handleFollow}
-          disabled={loading.follow}
-          sx={buttonStyles}
-        >
-          {loading.follow ? (
-            <CircularProgress size={16} sx={{
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              marginLeft: "-8px",
-              marginTop: "-8px",
-              color: "#666"
-            }} />
-          ) : "追蹤"}
         </Button>
       );
     }
@@ -344,9 +269,6 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
               · {formatTime(event.timestamp)}
             </Typography>
           </Box>
-          <Typography sx={baseTypographyStyle}>
-            已追蹤你
-          </Typography>
         </Box>
       </Box>
       <Box sx={{
