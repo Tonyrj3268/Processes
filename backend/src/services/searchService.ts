@@ -19,6 +19,9 @@ export class SearchService {
                 index: 'posts',
                 body: {
                     size: limit + 1, // 多取一條用來判斷是否還有下一頁
+                    sort: [
+                        { "createdAt": "desc" }
+                    ],
                     query: {
                         bool: {
                             should: [
@@ -39,11 +42,7 @@ export class SearchService {
                                 }
                             ]
                         }
-                    },
-                    sort: [
-                        { _score: 'desc' },
-                        { _id: 'desc' }
-                    ]
+                    }
                 }
             };
 
@@ -54,14 +53,12 @@ export class SearchService {
                     id: cursor
                 }) as ElasticGetResponse;
 
-                searchQuery.body.search_after = [
-                    cursorDoc._score,
-                    cursorDoc._id
-                ];
+                if (cursorDoc._source?.createdAt) {
+                    searchQuery.body.search_after = [cursorDoc._source.createdAt];
+                }
             }
 
             const result = await client.search(searchQuery);
-
             const hits = result.hits.hits as SearchHit[];
 
             // 移除多取的那一條，用於下一頁的判斷
@@ -128,8 +125,7 @@ export class SearchService {
                         }
                     },
                     sort: [
-                        { _score: 'desc' },
-                        { _id: 'desc' }
+                        { createdAt: 'desc' }
                     ]
                 }
             };
@@ -140,10 +136,9 @@ export class SearchService {
                     id: cursor
                 }) as ElasticGetResponse;
 
-                searchQuery.body.search_after = [
-                    cursorDoc._score,
-                    cursorDoc._id
-                ];
+                if (cursorDoc._source?.createdAt) {
+                    searchQuery.body.search_after = [cursorDoc._source.createdAt];
+                }
             }
 
             const result = await client.search(searchQuery);
@@ -201,8 +196,7 @@ export class SearchService {
                         }
                     },
                     sort: [
-                        { _score: 'desc' },
-                        { _id: 'desc' }
+                        { createdAt: 'desc' }
                     ]
                 }
             };
@@ -213,10 +207,9 @@ export class SearchService {
                     id: cursor
                 }) as ElasticGetResponse;
 
-                searchQuery.body.search_after = [
-                    cursorDoc._score,
-                    cursorDoc._id
-                ];
+                if (cursorDoc._source?.createdAt) {
+                    searchQuery.body.search_after = [cursorDoc._source.createdAt];
+                }
             }
 
             const result = await client.search(searchQuery);
