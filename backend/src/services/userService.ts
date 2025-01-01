@@ -184,27 +184,29 @@ export class UserService {
         return false;
       }
 
-      // 更新關注者和被關注者的計數器
-      const [updateFollower, updateFollowing] = await Promise.all([
-        User.updateOne(
-          { _id: userId },
-          { $inc: { followingCount: -1 } }
-        ),
-        User.updateOne(
-          { _id: followedUserId },
-          { $inc: { followersCount: -1 } }
-        ),
-      ]);
+      if (deletedFollow.status === "accepted") {
+        // 更新關注者和被關注者的計數器
+        const [updateFollower, updateFollowing] = await Promise.all([
+          User.updateOne(
+            { _id: userId },
+            { $inc: { followingCount: -1 } }
+          ),
+          User.updateOne(
+            { _id: followedUserId },
+            { $inc: { followersCount: -1 } }
+          ),
+        ]);
 
-      // 檢查是否所有更新都成功
-      if (updateFollower.modifiedCount === 0 || updateFollowing.modifiedCount === 0) {
-        // 若其中一個更新失敗，進行補償性操作，重新建立刪除的 Follow 記錄
-        await Follow.create({
-          follower: userId,
-          following: followedUserId,
-          status: deletedFollow.status,
-        });
-        return false;
+        // 檢查是否所有更新都成功
+        if (updateFollower.modifiedCount === 0 || updateFollowing.modifiedCount === 0) {
+          // 若其中一個更新失敗，進行補償性操作，重新建立刪除的 Follow 記錄
+          await Follow.create({
+            follower: userId,
+            following: followedUserId,
+            status: deletedFollow.status,
+          });
+          return false;
+        }
       }
 
       // 當我取消追隨他，他給我的事件需要被刪除
