@@ -2,14 +2,18 @@ import React, { useState } from "react";
 import { Box, IconButton, Menu, MenuItem, Typography } from "@mui/material";
 import {
   HomeOutlined,
+  Home,
   SearchOutlined,
+  Search,
   Add,
   FavoriteBorder,
+  Favorite,
   PersonOutlined,
+  Person,
   PushPinOutlined,
   MoreHoriz,
 } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import PostDialog from "../components/PostDialog";
 import GuestDialog from "../components/GuestDialog";
 import usePostHandler from "../hooks/usePostHandler";
@@ -25,6 +29,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = () => {
   const { isGuest } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [isGuestDialogOpen, setGuestDialogOpen] = useState(false); //
 
@@ -83,12 +88,32 @@ const Sidebar: React.FC<SidebarProps> = () => {
         }}
       >
         {[
-          { Icon: HomeOutlined, path: "/", requireAuth: false },
-          { Icon: SearchOutlined, path: "/search", requireAuth: false },
-          { Icon: Add, path: "", requireAuth: true }, // Dialog
-          { Icon: FavoriteBorder, path: "/activity", requireAuth: true },
-          { Icon: PersonOutlined, path: "/profile", requireAuth: true },
-        ].map(({ Icon, path, requireAuth }, index) => (
+          {
+            IconOutlined: HomeOutlined,
+            IconFilled: Home,
+            path: "/",
+            requireAuth: false,
+          },
+          {
+            IconOutlined: SearchOutlined,
+            IconFilled: Search,
+            path: "/search",
+            requireAuth: false,
+          },
+          { IconOutlined: Add, IconFilled: Add, path: "", requireAuth: true }, // Dialog
+          {
+            IconOutlined: FavoriteBorder,
+            IconFilled: Favorite,
+            path: "/activity",
+            requireAuth: true,
+          },
+          {
+            IconOutlined: PersonOutlined,
+            IconFilled: Person,
+            path: "/profile",
+            requireAuth: true,
+          },
+        ].map(({ IconOutlined, IconFilled, path, requireAuth }, index) => (
           <IconButton
             key={index}
             onClick={() => handleNavigate(path, requireAuth)}
@@ -100,7 +125,11 @@ const Sidebar: React.FC<SidebarProps> = () => {
               },
             }}
           >
-            <Icon sx={{ color: "#9e9e9e", fontSize: "30px" }} />{" "}
+            {location.pathname === path ? (
+              <IconFilled sx={{ color: "#000", fontSize: "30px" }} />
+            ) : (
+              <IconOutlined sx={{ color: "#9e9e9e", fontSize: "30px" }} />
+            )}
           </IconButton>
         ))}
       </Box>

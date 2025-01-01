@@ -37,7 +37,7 @@ interface PostWithComments {
   isLiked: boolean;
 }
 
-const PostDetail: React.FC = () => {
+const PostComment: React.FC = () => {
   const { postId } = useParams<{ postId: string }>();
   const [post, setPost] = useState<PostWithComments | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,14 +60,15 @@ const PostDetail: React.FC = () => {
       });
       if (!response.ok) throw new Error("Failed to fetch post detail");
       const data = await response.json();
-      const postData = {
+      setPost({
         ...data.postWithComments,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         comments: data.postWithComments.comments.map((comment: any) => ({
           ...comment,
-          isLiked: false,
+          user: comment.user || {}, // 確保 user 不為 undefined
         })),
-      };
-      setPost(postData);
+      });
+      // setPost(postData);
     } catch (error) {
       console.error("Error fetching post detail:", error);
     } finally {
@@ -156,7 +157,7 @@ const PostDetail: React.FC = () => {
   };
 
   // 編輯留言
-  const handleSubmitEditComment = async () => {
+  const handleSubmitEditComment = async (editingCommentContent: string) => {
     if (!selectedCommentId) return;
     const token = localStorage.getItem("token");
     try {
@@ -177,16 +178,21 @@ const PostDetail: React.FC = () => {
 
       const updatedComment = await response.json();
 
-      setPost((prevPost) =>
-        prevPost
-          ? {
-              ...prevPost,
-              comments: prevPost.comments.map((comment) =>
-                comment._id === updatedComment._id ? updatedComment : comment,
-              ),
-            }
-          : null,
-      );
+      setPost((prevPost) => {
+        if (!prevPost) return null;
+
+        const updatedComments = prevPost.comments.map((comment) =>
+          comment._id === updatedComment._id
+            ? { ...comment, content: updatedComment.content } // 確保更新內容
+            : comment,
+        );
+
+        return {
+          ...prevPost,
+          comments: updatedComments,
+        };
+      });
+      await fetchPostDetail();
       setEditDialogOpen(false);
     } catch (error) {
       console.error("Error editing comment:", error);
@@ -249,6 +255,8 @@ const PostDetail: React.FC = () => {
           setDeleteDialogOpen(true);
         }}
       />
+
+      {/* 新增留言 */}
       <CommentDialog
         open={isCommentDialogOpen}
         onClose={() => setCommentDialogOpen(false)}
@@ -259,8 +267,11 @@ const PostDetail: React.FC = () => {
             accountName: post.user.accountName,
             avatarUrl: post.user.avatarUrl,
           },
+          images: post.images,
         }}
       />
+
+      {/* 刪除留言 */}
       <DeleteConfirmation
         open={isDeleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
@@ -268,6 +279,8 @@ const PostDetail: React.FC = () => {
         title="刪除留言？"
         content="刪除這則留言後，即無法恢復顯示。"
       />
+
+      {/* 編輯留言 */}
       <CommentDialog
         open={isEditDialogOpen}
         onClose={() => setEditDialogOpen(false)}
@@ -279,4 +292,4 @@ const PostDetail: React.FC = () => {
   );
 };
 
-export default PostDetail;
+export default PostComment;

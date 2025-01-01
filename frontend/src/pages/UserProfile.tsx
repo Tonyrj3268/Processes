@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Box, CircularProgress, Divider } from "@mui/material";
-import { useParams } from "react-router-dom";
+import { useParams, useOutletContext } from "react-router-dom";
 import PostList from "../components/PostList";
 import ProfileHeader from "../components/ProfileHeader";
 
@@ -20,8 +20,14 @@ interface Post {
   isLiked: boolean;
 }
 
+interface OutletContext {
+  // eslint-disable-next-line no-unused-vars
+  setDynamicTitle: (title: string | null) => void;
+}
+
 const UserProfile: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
+  const { setDynamicTitle } = useOutletContext<OutletContext>();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -99,11 +105,16 @@ const UserProfile: React.FC = () => {
 
   useEffect(() => {
     if (userProfile?.accountName) {
+      setDynamicTitle(`${userProfile.accountName}`); // 動態更新標題
       document.title = `@${userProfile.accountName}`;
     } else {
-      document.title = "使用者檔案";
+      setDynamicTitle("使用者檔案");
     }
-  }, [userProfile]);
+
+    return () => {
+      setDynamicTitle(null); // 離開頁面時清除動態標題
+    };
+  }, [userProfile, setDynamicTitle]);
 
   if (loading) {
     return (

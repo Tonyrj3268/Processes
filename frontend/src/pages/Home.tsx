@@ -247,19 +247,25 @@ const Home: React.FC = () => {
             sx={{ marginBottom: "16px", cursor: "pointer" }}
             onClick={() => navigate(`/posts/${post.postId}`)}
           >
-            <Box sx={{ display: "flex", alignItems: "center" }}>
+            <Box
+              sx={{ display: "flex", alignItems: "center", cursor: "pointer" }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isGuest) {
+                  if (post.author.id === userData?.userId) {
+                    navigate("/profile"); // 跳轉到自己的 Profile
+                  } else {
+                    navigate(`/profile/${post.author.id}`); // 跳轉到 UserProfile
+                  }
+                }
+              }}
+            >
               <Avatar
                 src={post.author.avatarUrl}
                 alt={`${post.author.accountName}'s Avatar`}
                 sx={{ width: 40, height: 40, marginRight: "8px" }}
               />
-              <Box
-                sx={{ cursor: "pointer" }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/profile/${post.author.id}`); // 跳轉到 UserProfile
-                }}
-              >
+              <Box>
                 <Typography sx={{ fontSize: "15px", fontWeight: "bold" }}>
                   {post.author.accountName}
                 </Typography>

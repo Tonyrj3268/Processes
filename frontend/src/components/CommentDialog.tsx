@@ -22,6 +22,7 @@ interface CommentDialogProps {
       accountName: string;
       avatarUrl: string;
     };
+    images: string[];
   };
   initialContent?: string;
   title?: string;
@@ -109,9 +110,40 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
                 <Typography sx={{ fontWeight: "bold" }}>
                   {originalPost.user.accountName}
                 </Typography>
-                <Typography sx={{ fontSize: "15px", color: "black" }}>
+                <Typography
+                  sx={{ fontSize: "15px", color: "black", margin: "8px 0" }}
+                >
                   {originalPost.content}
                 </Typography>
+
+                {originalPost.images.length > 0 && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      gap: "8px",
+                      overflowX: "auto",
+                      marginBottom: "8px",
+                      scrollSnapType: "x mandatory",
+                    }}
+                  >
+                    {originalPost.images.map((image, index) => (
+                      <img
+                        key={index}
+                        src={image}
+                        alt={`Post`}
+                        style={{
+                          width: "200px",
+                          height: "200px",
+                          flexShrink: 0,
+                          borderRadius: "8px",
+                          overflow: "hidden",
+                          scrollSnapAlign: "start",
+                          objectFit: "cover",
+                        }}
+                      />
+                    ))}
+                  </Box>
+                )}
               </Box>
             </Box>
             <Divider sx={{ marginBottom: "16px" }} />
