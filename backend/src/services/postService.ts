@@ -310,7 +310,8 @@ export class PostService {
                     eventType: 'like',
                     details: {
                         postId: postId.toString(),
-                        type: 'post'
+                        type: 'post',
+                        postText: post.content.slice(0, 50) // 只保留部分內容
                     }
                 });
             }
@@ -466,7 +467,9 @@ export class PostService {
                     eventType: 'comment',
                     details: {
                         postId: postId.toString(),
-                        commentId: comment._id.toString()
+                        commentId: comment._id.toString(),
+                        postText: post.content.slice(0, 50), // 只保留部分內容
+                        commentText: content.slice(0, 50) // 只保留
                     }
                 });
             }
