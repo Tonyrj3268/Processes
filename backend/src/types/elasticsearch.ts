@@ -41,13 +41,13 @@ export interface SearchBody {
             }>;
             filter?: Array<{
                 term: {
-                    isPublic: boolean;
+                    [key: string]: boolean | string | number;
                 };
             }>;
         };
     };
     sort: Array<Record<string, 'desc' | 'asc'>>;
-    search_after?: [number, string];
+    search_after?: Array<string | number>;
 }
 
 export interface SearchRequest {
@@ -56,5 +56,11 @@ export interface SearchRequest {
 }
 
 export interface ElasticGetResponse extends GetResponse {
-    _score: number;
+    _source: {
+        content: string;
+        userId: string;
+        userName: string;
+        createdAt: string;
+        [key: string]: unknown;
+    };
 }
