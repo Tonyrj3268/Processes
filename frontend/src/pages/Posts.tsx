@@ -162,12 +162,12 @@ const Posts: React.FC = () => {
       prev.map((post) =>
         post.postId === postId
           ? {
-            ...post,
-            likesCount: post.isLiked
-              ? post.likesCount - 1
-              : post.likesCount + 1,
-            isLiked: !post.isLiked,
-          }
+              ...post,
+              likesCount: post.isLiked
+                ? post.likesCount - 1
+                : post.likesCount + 1,
+              isLiked: !post.isLiked,
+            }
           : post,
       ),
     );
@@ -188,12 +188,12 @@ const Posts: React.FC = () => {
         prev.map((post) =>
           post.postId === postId
             ? {
-              ...post,
-              likesCount: post.isLiked
-                ? post.likesCount + 1
-                : post.likesCount - 1,
-              isLiked: post.isLiked,
-            }
+                ...post,
+                likesCount: post.isLiked
+                  ? post.likesCount + 1
+                  : post.likesCount - 1,
+                isLiked: post.isLiked,
+              }
             : post,
         ),
       );
