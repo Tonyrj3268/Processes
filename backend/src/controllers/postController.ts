@@ -7,6 +7,7 @@ import { IUserDocument, User } from '@src/models/user';
 import { Redis } from "ioredis";
 import redisClient from "@src/config/redis";
 import { Like } from '@src/models/like';
+import { Follow } from '@src/models/follow';
 export class PostController {
     constructor(private postService: PostService = new PostService(), private hotPostsService: HotPostService = new HotPostService(), private redisClient: Redis) { }
 
@@ -102,7 +103,8 @@ export class PostController {
                 res.status(404).json({ msg: '找不到使用者' });
                 return;
             }
-            if (!targetUser.isPublic && !currentUserId.equals(targetUserId)) {
+            const isFollowing = await Follow.exists({ follower: currentUserId, following: targetUserId, status: "accepted" });
+            if (currentUserId.toString() !== targetUserId && !targetUser.isPublic && !isFollowing) {
                 res.status(401).json({ msg: '該使用者未公開個人貼文' });
                 return;
             }
