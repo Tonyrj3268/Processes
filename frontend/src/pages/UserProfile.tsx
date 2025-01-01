@@ -92,6 +92,68 @@ const UserProfile: React.FC = () => {
     }
   };
 
+  const handleFollowToggle = async () => {
+    if (!userProfile || !userProfile._id) {
+      console.error("User ID is missing");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+
+    // 根據當前狀態確定 API 路徑
+    const url =
+      userProfile.isFollowing || userProfile.hasRequestedFollow
+        ? "/api/user/unfollow"
+        : "/api/user/follow";
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: userProfile._id }),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to ${
+            userProfile.isFollowing || userProfile.hasRequestedFollow
+              ? "unfollow"
+              : "follow"
+          } user: ${await response.text()}`,
+        );
+      }
+
+      // 按鈕行為處理
+      if (userProfile.isFollowing || userProfile.hasRequestedFollow) {
+        // 取消追蹤或撤銷請求，重置為「追蹤」
+        setUserProfile((prev: typeof userProfile) => ({
+          ...prev,
+          isFollowing: false,
+          hasRequestedFollow: false,
+        }));
+      } else {
+        // 新增追蹤或發送請求
+        setUserProfile((prev: typeof userProfile) => ({
+          ...prev,
+          isFollowing: userProfile.isPublic, // 公開帳號直接追蹤
+          hasRequestedFollow: !userProfile.isPublic, // 私密帳號發送請求
+        }));
+      }
+    } catch (error) {
+      console.error(
+        `Error toggling ${
+          userProfile.isFollowing || userProfile.hasRequestedFollow
+            ? "unfollow"
+            : "follow"
+        } status:`,
+        error,
+      );
+    }
+  };
+
   useEffect(() => {
     fetchUserProfile();
     fetchPosts();
@@ -118,10 +180,11 @@ const UserProfile: React.FC = () => {
       {userProfile && (
         <ProfileHeader
           userProfile={userProfile}
-          onFollowToggle={() => {
-            // 追蹤邏輯
-            console.log("Follow toggle triggered");
-          }}
+          onFollowToggle={handleFollowToggle}
+          // onFollowToggle={() => {
+          //   // 追蹤邏輯
+          //   console.log("Follow toggle triggered");
+          // }}
         />
       )}
       <Divider sx={{ marginY: "8px", margin: "20px 0" }} />

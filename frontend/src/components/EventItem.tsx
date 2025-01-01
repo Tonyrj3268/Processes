@@ -33,6 +33,7 @@ interface Event {
 
 interface EventItemProps {
   event: Event;
+  // eslint-disable-next-line no-unused-vars
   onEventUpdate: (eventId: string, newData?: Partial<Event>) => void;
 }
 
@@ -70,7 +71,7 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
     if (loading.accept) return;
 
     try {
-      setLoading(prev => ({ ...prev, accept: true }));
+      setLoading((prev) => ({ ...prev, accept: true }));
       const token = localStorage.getItem("token");
       const response = await fetch("/api/user/accept-follow", {
         method: "POST",
@@ -85,12 +86,12 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
 
       // 更新父組件中的事件狀態
       onEventUpdate(event._id, {
-        details: { ...event.details, status: "accepted" }
+        details: { ...event.details, status: "accepted" },
       });
     } catch (error) {
       console.error("Failed to accept follow request:", error);
     } finally {
-      setLoading(prev => ({ ...prev, accept: false }));
+      setLoading((prev) => ({ ...prev, accept: false }));
     }
   };
 
@@ -98,7 +99,7 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
     if (loading.reject) return;
 
     try {
-      setLoading(prev => ({ ...prev, reject: true }));
+      setLoading((prev) => ({ ...prev, reject: true }));
       const token = localStorage.getItem("token");
       const response = await fetch("/api/user/reject-follow", {
         method: "POST",
@@ -114,7 +115,7 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
     } catch (error) {
       console.error("Failed to reject follow request:", error);
     } finally {
-      setLoading(prev => ({ ...prev, reject: false }));
+      setLoading((prev) => ({ ...prev, reject: false }));
     }
   };
 
@@ -122,7 +123,7 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
     if (loading.unfollow) return;
 
     try {
-      setLoading(prev => ({ ...prev, unfollow: true }));
+      setLoading((prev) => ({ ...prev, unfollow: true }));
       const token = localStorage.getItem("token");
       const response = await fetch("/api/user/unfollow", {
         method: "POST",
@@ -139,13 +140,13 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
       onEventUpdate(event._id, {
         sender: {
           ...event.sender,
-          hasRequestedFollow: false
-        }
+          hasRequestedFollow: false,
+        },
       });
     } catch (error) {
       console.error("Failed to unfollow user:", error);
     } finally {
-      setLoading(prev => ({ ...prev, unfollow: false }));
+      setLoading((prev) => ({ ...prev, unfollow: false }));
     }
   };
 
@@ -153,7 +154,7 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
     if (loading.follow) return;
 
     try {
-      setLoading(prev => ({ ...prev, follow: true }));
+      setLoading((prev) => ({ ...prev, follow: true }));
       const token = localStorage.getItem("token");
       const response = await fetch("/api/user/follow", {
         method: "POST",
@@ -169,13 +170,13 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
       onEventUpdate(event._id, {
         sender: {
           ...event.sender,
-          hasRequestedFollow: true
-        }
+          hasRequestedFollow: true,
+        },
       });
     } catch (error) {
       console.error("Failed to follow user:", error);
     } finally {
-      setLoading(prev => ({ ...prev, follow: false }));
+      setLoading((prev) => ({ ...prev, follow: false }));
     }
   };
 
@@ -209,15 +210,20 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
             sx={buttonStyles}
           >
             {loading.accept ? (
-              <CircularProgress size={16} sx={{
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                marginLeft: "-8px",
-                marginTop: "-8px",
-                color: "#666"
-              }} />
-            ) : "確認"}
+              <CircularProgress
+                size={16}
+                sx={{
+                  position: "absolute",
+                  left: "50%",
+                  top: "50%",
+                  marginLeft: "-8px",
+                  marginTop: "-8px",
+                  color: "#666",
+                }}
+              />
+            ) : (
+              "確認"
+            )}
           </Button>
           <Button
             variant="outlined"
@@ -227,15 +233,20 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
             sx={buttonStyles}
           >
             {loading.reject ? (
-              <CircularProgress size={16} sx={{
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                marginLeft: "-8px",
-                marginTop: "-8px",
-                color: "#666"
-              }} />
-            ) : "拒絕"}
+              <CircularProgress
+                size={16}
+                sx={{
+                  position: "absolute",
+                  left: "50%",
+                  top: "50%",
+                  marginLeft: "-8px",
+                  marginTop: "-8px",
+                  color: "#666",
+                }}
+              />
+            ) : (
+              "拒絕"
+            )}
           </Button>
         </Stack>
       );
@@ -274,15 +285,22 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
             sx={buttonStyles}
           >
             {loading.unfollow ? (
-              <CircularProgress size={16} sx={{
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                marginLeft: "-8px",
-                marginTop: "-8px",
-                color: "#666"
-              }} />
-            ) : (event.sender.isPublic ? "已追蹤" : "已提出要求")}
+              <CircularProgress
+                size={16}
+                sx={{
+                  position: "absolute",
+                  left: "50%",
+                  top: "50%",
+                  marginLeft: "-8px",
+                  marginTop: "-8px",
+                  color: "#666",
+                }}
+              />
+            ) : event.sender.isPublic ? (
+              "已追蹤"
+            ) : (
+              "已提出要求"
+            )}
           </Button>
         );
       }
@@ -290,22 +308,43 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
       // 還沒追蹤對方，顯示可點擊的追蹤按鈕
       return (
         <Button
-          variant="outlined"
+          variant="contained"
           size="small"
           onClick={handleFollow}
           disabled={loading.follow}
-          sx={buttonStyles}
+          sx={{
+            textTransform: "none",
+            fontWeight: "bold",
+            borderRadius: "10px",
+            fontSize: "14px",
+            width: "100%",
+            color: "#fff",
+            backgroundColor: "#000",
+            boxShadow: "none",
+            "&:hover": {
+              backgroundColor: "#333",
+            },
+            "&:disabled": {
+              backgroundColor: "#ccc",
+              color: "#999",
+            },
+          }}
         >
           {loading.follow ? (
-            <CircularProgress size={16} sx={{
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              marginLeft: "-8px",
-              marginTop: "-8px",
-              color: "#666"
-            }} />
-          ) : "追蹤"}
+            <CircularProgress
+              size={16}
+              sx={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                marginLeft: "-8px",
+                marginTop: "-8px",
+                color: "#666",
+              }}
+            />
+          ) : (
+            "追蹤"
+          )}
         </Button>
       );
     }
@@ -314,12 +353,14 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
   };
 
   return (
-    <ListItem sx={{
-      py: 1.5,
-      px: 2,
-      display: "flex",
-      alignItems: "flex-start",
-    }}>
+    <ListItem
+      sx={{
+        py: 1.5,
+        px: 2,
+        display: "flex",
+        alignItems: "flex-start",
+      }}
+    >
       <Box sx={{ display: "flex", flex: 1 }}>
         <ListItemAvatar>
           <Avatar
@@ -330,31 +371,37 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
         </ListItemAvatar>
         <Box sx={{ flex: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography component="span" sx={{
-              fontSize: "14px",
-              fontWeight: 500,
-              color: "#000",
-            }}>
+            <Typography
+              component="span"
+              sx={{
+                fontSize: "14px",
+                fontWeight: 500,
+                color: "#000",
+              }}
+            >
               {event.sender.accountName}
             </Typography>
-            <Typography component="span" sx={{
-              fontSize: "14px",
-              color: "#666",
-            }}>
+            <Typography
+              component="span"
+              sx={{
+                fontSize: "14px",
+                color: "#666",
+              }}
+            >
               · {formatTime(event.timestamp)}
             </Typography>
           </Box>
-          <Typography sx={baseTypographyStyle}>
-            已追蹤你
-          </Typography>
+          <Typography sx={baseTypographyStyle}>已追蹤你</Typography>
         </Box>
       </Box>
-      <Box sx={{
-        ml: 2,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}>
+      <Box
+        sx={{
+          ml: 2,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         {renderActionButtons()}
       </Box>
     </ListItem>
