@@ -162,7 +162,7 @@ export class CommentService {
             }
 
             // 如果評論不是自己的，建立通知
-            if (!comment.user.equals(userId)) {
+            if (!comment.user._id.equals(userId)) {
                 await Event.create({
                     sender: userId,
                     receiver: comment.user,
@@ -178,6 +178,9 @@ export class CommentService {
             return true;
         } catch (error) {
             console.error('Error in likeComment service:', error);
+            if ((error as { code: number }).code === 11000) {
+                return false;
+            }
             throw error;
         }
     }

@@ -26,7 +26,17 @@ const Profile: React.FC = () => {
 
   return (
     <Box className="page">
-      <ProfileHeader />
+      <ProfileHeader
+        userProfile={{
+          id: userData.userId,
+          userName: userData.userName,
+          accountName: userData.accountName,
+          bio: userData.bio,
+          avatarUrl: userData.avatarUrl,
+          followersCount: userData.followersCount,
+          isFollowing: false,
+        }}
+      />
       <ProfileTabs />
       <Outlet
         context={{

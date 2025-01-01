@@ -8,22 +8,23 @@ import {
 } from "@mui/material";
 import EventItem from "../components/EventItem";
 
-interface SenderUser {
-  _id: string;
-  userName: string;
-  accountName: string;
-  avatarUrl: string;
-}
-
 interface Event {
   _id: string;
-  sender: SenderUser;
-  eventType: "follow" | "comment" | "like" | "friend_request";
+  sender: {
+    _id: string;
+    userName: string;
+    accountName: string;
+    avatarUrl: string;
+    isPublic: boolean;
+    isFollowing: boolean;
+    hasRequestedFollow: boolean;
+  };
+  eventType: "follow" | "comment" | "like";
   details: {
+    status: "pending" | "accepted";
     postText?: string;
     contentText?: string;
     commentText?: string;
-    [key: string]: unknown;
   };
   timestamp: Date;
 }
@@ -64,7 +65,11 @@ const Activity: React.FC = () => {
       }
 
       const data = await response.json();
-      setEvents((prev) => (cursor ? [...prev, ...data.events] : data.events));
+      const filteredEvents = data.events;
+
+      setEvents((prev) =>
+        cursor ? [...prev, ...filteredEvents] : filteredEvents,
+      );
       setNewCursor(data.newCursor);
     } catch (error) {
       console.error("Error fetching events:", error);
@@ -102,7 +107,23 @@ const Activity: React.FC = () => {
     fetchEvents();
   }, [fetchEvents]);
 
-  if (loading) {
+  const handleEventUpdate = (eventId: string, newData?: Partial<Event>) => {
+    if (newData) {
+      // 更新事件狀態
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event._id === eventId ? { ...event, ...newData } : event,
+        ),
+      );
+    } else {
+      // 如果沒有新數據，則移除事件（用於拒絕操作）
+      setEvents((prevEvents) =>
+        prevEvents.filter((event) => event._id !== eventId),
+      );
+    }
+  };
+
+  if (loading && !events.length) {
     return (
       <Box display="flex" justifyContent="center" p={4}>
         <CircularProgress />
@@ -123,7 +144,7 @@ const Activity: React.FC = () => {
       <List disablePadding>
         {events.map((event, index) => (
           <React.Fragment key={event._id}>
-            <EventItem event={event} />
+            <EventItem event={event} onEventUpdate={handleEventUpdate} />
             {index < events.length - 1 && (
               <Divider
                 sx={{
@@ -141,7 +162,6 @@ const Activity: React.FC = () => {
         )}
       </List>
 
-      {/* Loading Indicator for Auto-Load */}
       <Box ref={loaderRef} sx={{ textAlign: "center", marginY: "16px" }}>
         {isLoadingMore && <CircularProgress size={24} />}
       </Box>

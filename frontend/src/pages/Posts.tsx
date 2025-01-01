@@ -5,21 +5,15 @@ import {
   Divider,
   Typography,
   CircularProgress,
-  IconButton,
   Button,
   Menu,
   MenuItem,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Dialog,
 } from "@mui/material";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import PostDialog from "../components/PostDialog";
 import usePostHandler from "../hooks/usePostHandler";
-import { MoreHoriz } from "@mui/icons-material";
 import { useUser } from "../contexts/UserContext";
+import DeleteConfirmation from "../components/DeleteConfirmation";
+import PostList from "../components/PostList";
 
 interface Post {
   postId: string;
@@ -34,6 +28,7 @@ interface Post {
   likesCount: number;
   commentCount: number;
   createdAt: string;
+  isLiked: boolean;
 }
 
 const Posts: React.FC = () => {
@@ -87,7 +82,6 @@ const Posts: React.FC = () => {
     try {
       await handleSubmit(formData);
       await fetchPosts();
-      handleCloseDialog();
     } catch (error) {
       console.error("Error creating post:", error);
     }
@@ -159,6 +153,53 @@ const Posts: React.FC = () => {
   const handleConfirmDeleteOpen = () => setConfirmDeleteOpen(true);
   const handleConfirmDeleteClose = () => setConfirmDeleteOpen(false);
 
+  const handleToggleLike = async (postId: string, liked: boolean) => {
+    const token = localStorage.getItem("token");
+    const method = liked ? "DELETE" : "POST";
+
+    // 即時更新 UI 狀態
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.postId === postId
+          ? {
+              ...post,
+              likesCount: post.isLiked
+                ? post.likesCount - 1
+                : post.likesCount + 1,
+              isLiked: !post.isLiked,
+            }
+          : post,
+      ),
+    );
+
+    try {
+      const response = await fetch(`/api/post/${postId}/like`, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to toggle like");
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
+
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.postId === postId
+            ? {
+                ...post,
+                likesCount: post.isLiked
+                  ? post.likesCount + 1
+                  : post.likesCount - 1,
+                isLiked: post.isLiked,
+              }
+            : post,
+        ),
+      );
+    }
+  };
+
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
@@ -210,121 +251,17 @@ const Posts: React.FC = () => {
 
       <Divider sx={{ marginY: "16px" }} />
 
-      {/* 貼文列表 */}
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
           <CircularProgress />
         </Box>
-      ) : posts.length === 0 ? (
-        <Typography sx={{ textAlign: "center", color: "#aaa", mt: 4 }}>
-          尚無貼文
-        </Typography>
       ) : (
-        posts.map((post) => {
-          if (!post.author) {
-            console.error("Post author is missing:", post);
-            return null;
-          }
-
-          return (
-            <Box
-              key={`${post.postId}-${post.createdAt}`}
-              sx={{ marginBottom: "16px" }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Avatar
-                  src={
-                    post.author.id === userData?.userId
-                      ? userData?.avatarUrl || "/default_avatar.jpg"
-                      : post.author.avatarUrl || "/default_avatar.jpg"
-                  }
-                  alt={`${post.author.accountName}'s Avatar`}
-                  sx={{ width: 40, height: 40, marginRight: "8px" }}
-                />
-                <Box>
-                  <Typography sx={{ fontSize: "15px", fontWeight: "bold" }}>
-                    {post.author.accountName}
-                  </Typography>
-                  <Typography sx={{ fontSize: "12px", color: "#aaa" }}>
-                    {new Date(post.createdAt).toLocaleString()}
-                  </Typography>
-                </Box>
-                <IconButton
-                  onClick={(e) => handleMenuOpen(e, post)}
-                  sx={{ marginLeft: "auto" }}
-                >
-                  <MoreHoriz />
-                </IconButton>
-              </Box>
-              <Typography
-                sx={{ marginY: "8px", fontSize: "15px", paddingLeft: "8px" }}
-              >
-                {post.content}
-              </Typography>
-
-              {/* 顯示圖片 */}
-              <Box
-                sx={{
-                  display: "flex",
-                  gap: "8px",
-                  overflowX: "auto",
-                  marginBottom: "8px",
-                  scrollSnapType: "x mandatory",
-                }}
-              >
-                {(post.images || []).map((image, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      width: "500px",
-                      height: "500px",
-                      flexShrink: 0,
-                      borderRadius: "8px",
-                      overflow: "hidden",
-                      scrollSnapAlign: "start",
-                    }}
-                  >
-                    <img
-                      src={image}
-                      alt={`Post`}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
-                    />
-                  </Box>
-                ))}
-              </Box>
-
-              <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    marginRight: "16px",
-                    alignItems: "center",
-                  }}
-                >
-                  <IconButton>
-                    <FavoriteBorderIcon fontSize="small" />
-                  </IconButton>
-                  <Typography sx={{ fontSize: "13px" }}>
-                    {post.likesCount}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: "flex", gap: "4px", alignItems: "center" }}>
-                  <IconButton>
-                    <ChatBubbleOutlineIcon fontSize="small" />
-                  </IconButton>
-                  <Typography sx={{ fontSize: "13px" }}>
-                    {post.commentCount}
-                  </Typography>
-                </Box>
-              </Box>
-              <Divider sx={{ marginY: "8px" }} />
-            </Box>
-          );
-        })
+        <PostList
+          posts={posts}
+          onToggleLike={handleToggleLike}
+          onMenuOpen={handleMenuOpen}
+          showActions
+        />
       )}
 
       <Menu
@@ -359,41 +296,13 @@ const Posts: React.FC = () => {
         title="編輯貼文"
       />
 
-      {/* 刪除確認對話框 */}
-      <Dialog
+      <DeleteConfirmation
         open={confirmDeleteOpen}
         onClose={handleConfirmDeleteClose}
-        PaperProps={{
-          sx: { borderRadius: "20px", padding: "8px" },
-        }}
-      >
-        <DialogTitle>刪除貼文？</DialogTitle>
-        <DialogContent>
-          <Typography>刪除這則貼文後，即無法恢復顯示。</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={handleConfirmDeleteClose}
-            sx={{ color: "#888", fontSize: "16px", textTransform: "none" }}
-          >
-            取消
-          </Button>
-          <Button
-            onClick={async () => {
-              await handleDeletePost(); // 執行刪除貼文邏輯
-              handleConfirmDeleteClose(); // 關閉對話框
-            }}
-            sx={{
-              textTransform: "none",
-              color: "red",
-              fontWeight: "bold",
-              fontSize: "16px",
-            }}
-          >
-            刪除
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onConfirm={handleDeletePost}
+        title="刪除貼文？"
+        content="刪除這則貼文後，即無法恢復顯示。"
+      />
     </Box>
   );
 };

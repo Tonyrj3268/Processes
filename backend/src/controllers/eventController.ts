@@ -12,7 +12,7 @@ export class EventController {
             const user = req.user as IUserDocument;
 
             const notifications = await this.eventService.getEvents(user._id);
-            const eventsArray = this.formatNotifications(notifications);
+            const eventsArray = await this.formatNotifications(notifications);
 
             // 根據 cursor 和 limit 取數據
             const slicedEvents = eventsArray.slice(cursor, cursor + limit);
@@ -35,19 +35,35 @@ export class EventController {
     // 格式化通知
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private formatNotifications(notifications: any[]) {
-        return notifications.map(notification => ({
-            _id: notification._id.toString(),
-            eventType: notification.eventType,
-            timestamp: notification.timestamp.toISOString(),
-            sender: {
-                _id: (notification.sender as IUserDocument)._id.toString(),
-                accountName: (notification.sender as IUserDocument).accountName,
-                avatarUrl: (notification.sender as IUserDocument).avatarUrl,
-                isPublic: (notification.sender as IUserDocument).isPublic,
-                isFollowing: userService.isFollowing(notification.receiver._id, notification.sender._id),
-            },
-            details: notification.details || {},
-        }));
+        return Promise.all(
+            notifications.map(async (notification) => {
+                const [isFollowing, hasRequestedFollow] = await Promise.all([
+                    userService.isFollowing(
+                        notification.receiver._id,
+                        notification.sender._id
+                    ),
+                    userService.hasRequestedFollow(
+                        notification.receiver._id,
+                        notification.sender._id
+                    )
+                ]);
+
+                return {
+                    _id: notification._id.toString(),
+                    eventType: notification.eventType,
+                    timestamp: notification.timestamp.toISOString(),
+                    sender: {
+                        _id: notification.sender._id.toString(),
+                        accountName: notification.sender.accountName,
+                        avatarUrl: notification.sender.avatarUrl,
+                        isPublic: notification.sender.isPublic,
+                        isFollowing,
+                        hasRequestedFollow,  // 新增這個欄位
+                    },
+                    details: notification.details || {},
+                };
+            })
+        );
     }
 }
 

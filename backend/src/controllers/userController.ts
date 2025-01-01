@@ -13,12 +13,15 @@ export class UserController {
   getUserProfile = async (req: Request, res: Response): Promise<void> => {
     const user = req.user as IUserDocument;
     const requested_userId = req.params.userId;
+
     try {
       const requestedUser = await this.userService.findUserById(requested_userId);
+
       if (!requestedUser) {
         res.status(404).json({ msg: "使用者不存在" });
         return;
       }
+
       const publicFields = {
         _id: requestedUser._id,
         accountName: requestedUser.accountName,
@@ -31,20 +34,26 @@ export class UserController {
       };
 
       if (user._id !== requestedUser._id) {
+        const isFollowing = await this.userService.isFollowing(user._id, requestedUser._id);
+        const hasRequestedFollow = await this.userService.hasRequestedFollow(user._id, requestedUser._id);
+
         const extendedFields = {
           ...publicFields,
-          isFollowing: await this.userService.isFollowing(user._id, requestedUser._id),
+          isFollowing,
+          hasRequestedFollow, // 新增的欄位
         };
+
         res.status(200).json(extendedFields);
-        return 
+        return;
       }
+
       res.status(200).json(publicFields);
 
     } catch (err) {
       console.error(err);
-      res.status(500);
+      res.status(500).json({ msg: "伺服器錯誤" });
     }
-  }
+  };
 
   // 更新用戶資料
   updateUserProfile = async (req: Request, res: Response): Promise<void> => {

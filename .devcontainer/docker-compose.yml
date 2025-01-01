@@ -44,6 +44,19 @@ services:
     # Add "forwardPorts": ["27017"] to **devcontainer.json** to forward MongoDB locally.
     # (Adding the "ports" property to this file will not forward from a Codespace.)
 
+  elasticsearch:
+    image: elasticsearch:8.12.0
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - default
+
 volumes:
   mongodb-data:
   redis-data:
+  elasticsearch-data:

@@ -5,6 +5,8 @@ import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 import { userService } from "@src/services/userService";
 import { JWT_SECRET } from "@src/config/config";
 export default function initializePassport(passport: PassportStatic) {
+
+  // JWT 策略
   passport.use(
     new JwtStrategy(
       {

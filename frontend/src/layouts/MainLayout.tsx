@@ -15,6 +15,7 @@ interface RouteHandle {
 
 const MainLayout: React.FC = () => {
   const matches = useMatches();
+  const [dynamicTitle, setDynamicTitle] = useState<string | null>(null);
   const { userData, isGuest } = useUser();
   const [isGuestDialogOpen, setGuestDialogOpen] = useState(false);
 
@@ -34,10 +35,22 @@ const MainLayout: React.FC = () => {
   const currentMatch = matches.find(
     (match) => (match.handle as RouteHandle)?.title,
   );
+
   const pageTitle =
-    currentMatch && (currentMatch.handle as RouteHandle)?.title
-      ? (currentMatch.handle as RouteHandle).title
-      : "Processes";
+    dynamicTitle ?? // 使用動態標題優先
+    (currentMatch && (currentMatch.handle as RouteHandle)?.title) ??
+    "Processes";
+
+  useEffect(() => {
+    // 每次切換路由時清除動態標題，除非是 UserProfile 頁面
+    if (
+      !matches.some(
+        (match) => match.pathname.startsWith("/profile/") && dynamicTitle,
+      )
+    ) {
+      setDynamicTitle(null);
+    }
+  }, [matches, dynamicTitle]);
 
   const handleFabClick = () => {
     if (isGuest) {
@@ -56,7 +69,7 @@ const MainLayout: React.FC = () => {
           component="main"
           sx={{ flex: 1, paddingTop: "64px", overflowY: "auto" }}
         >
-          <Outlet context={userData} />
+          <Outlet context={{ userData, setDynamicTitle }} />
           <Fab
             aria-label="add"
             onClick={handleFabClick}
