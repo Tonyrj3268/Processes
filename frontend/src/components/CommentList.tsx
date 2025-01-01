@@ -13,11 +13,13 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import MoreHoriz from "@mui/icons-material/MoreHoriz";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import { useUser } from "../contexts/UserContext";
+import { useNavigate } from "react-router-dom";
 
 interface CommentListProps {
   comments: {
     _id: string;
     user: {
+      _id: string;
       accountName: string;
       avatarUrl: string;
     };
@@ -48,7 +50,8 @@ const CommentList: React.FC<CommentListProps> = ({
   const [selectedCommentId, setSelectedCommentId] = React.useState<
     string | null
   >(null);
-  const { userData } = useUser();
+  const { userData, isGuest } = useUser();
+  const navigate = useNavigate();
 
   const handleMoreMenuOpen = (
     event: React.MouseEvent<HTMLElement>,
@@ -78,7 +81,22 @@ const CommentList: React.FC<CommentListProps> = ({
               <Avatar
                 src={comment.user?.avatarUrl || "/default_avatar.jpg"}
                 alt={`${comment.user?.accountName || "預設使用者"}'s Avatar`}
-                sx={{ width: 40, height: 40, marginRight: 2 }}
+                sx={{
+                  width: 40,
+                  height: 40,
+                  marginRight: 2,
+                  cursor: "pointer",
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isGuest) {
+                    if (comment.user._id === userData?.userId) {
+                      navigate("/profile");
+                    } else {
+                      navigate(`/profile/${comment.user._id}`);
+                    }
+                  }
+                }}
               />
               <Box sx={{ flexGrow: 1 }}>
                 <Typography sx={{ fontWeight: "bold" }}>
@@ -90,7 +108,6 @@ const CommentList: React.FC<CommentListProps> = ({
                     : `${new Date(comment.createdAt).toLocaleString()}`}
                 </Typography>
                 <Typography sx={{ mt: 1 }}>{comment.content}</Typography>
-
                 <Box
                   sx={{
                     display: "flex",
