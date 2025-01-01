@@ -18,95 +18,36 @@ interface Event {
     accountName: string;
     avatarUrl: string;
     isPublic: boolean;
+    isFollowing: boolean;
+    hasRequestedFollow: boolean;
   };
-  eventType: "follow" | "comment" | "like" | "friend_request";
+  eventType: "follow" | "comment" | "like";
   details: {
+    status: "pending" | "accepted";
     postText?: string;
     contentText?: string;
     commentText?: string;
-    status?: "pending" | "accepted" | "rejected";
-    [key: string]: unknown;
   };
   timestamp: Date;
 }
 
 interface EventItemProps {
   event: Event;
-  onEventUpdate: (eventId: string) => void;
+  onEventUpdate: (eventId: string, newData?: Partial<Event>) => void;
 }
 
 const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
-  const [followStatus, setFollowStatus] = useState<'none' | 'following' | 'requested'>('none');
-  const [actionLoading, setActionLoading] = useState(false);
-  const [acceptLoading, setAcceptLoading] = useState(false);
-  const [rejectLoading, setRejectLoading] = useState(false);
+  const [loading, setLoading] = useState({
+    accept: false,
+    reject: false,
+    follow: false,
+    unfollow: false,
+  });
 
   const baseTypographyStyle = {
     color: "#666",
     fontSize: "14px",
     lineHeight: 1.5,
-  };
-
-  const getEventContent = () => {
-    switch (event.eventType) {
-      case "follow":
-        return (
-          <Typography component="div" sx={baseTypographyStyle}>
-            已追蹤你
-          </Typography>
-        );
-
-      case "comment":
-        return (
-          <Stack spacing={1}>
-            <Typography component="div" sx={baseTypographyStyle}>
-              回覆了你的貼文 💭 {event.details.postText}
-            </Typography>
-            {event.details.commentText && (
-              <Typography
-                component="div"
-                sx={{
-                  ...baseTypographyStyle,
-                  color: "#000",
-                  paddingLeft: "8px",
-                }}
-              >
-                {event.details.commentText}
-              </Typography>
-            )}
-          </Stack>
-        );
-
-      case "like":
-        return (
-          <Stack spacing={1}>
-            <Typography component="div" sx={baseTypographyStyle}>
-              喜歡你的貼文 ❤️ {event.details.contentText}
-            </Typography>
-            {event.details.postText && (
-              <Typography
-                component="div"
-                sx={{
-                  ...baseTypographyStyle,
-                  color: "#666",
-                  paddingLeft: "8px",
-                }}
-              >
-                {event.details.postText}
-              </Typography>
-            )}
-          </Stack>
-        );
-      case "friend_request":
-        return (
-          <Typography component="div" sx={baseTypographyStyle}>
-            追蹤要求
-          </Typography>
-        );
-
-      default:
-        return null;
-    }
   };
 
   const formatTime = (timestamp: Date) => {
@@ -125,43 +66,11 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
     }
   };
 
-  const handleFollow = async () => {
-    if (actionLoading) return;
-
-    try {
-      setActionLoading(true);
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("No auth token found");
-
-      const response = await fetch("/api/user/follow", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId: event.sender._id }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // 根據用戶的公開狀態設置不同的追蹤狀態
-      setFollowStatus(event.sender.isPublic ? 'following' : 'requested');
-
-    } catch (error) {
-      console.error("Failed to follow user:", error);
-      // 可以在這裡添加錯誤通知邏輯
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleAcceptFollow = async () => {
-    if (acceptLoading) return;
-    setAcceptLoading(true);
+    if (loading.accept) return;
 
     try {
+      setLoading(prev => ({ ...prev, accept: true }));
       const token = localStorage.getItem("token");
       const response = await fetch("/api/user/accept-follow", {
         method: "POST",
@@ -172,23 +81,24 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
         body: JSON.stringify({ userId: event.sender._id }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to accept follow request");
-      }
+      if (!response.ok) throw new Error("Failed to accept follow request");
 
-      onEventUpdate(event._id);
+      // 更新父組件中的事件狀態
+      onEventUpdate(event._id, {
+        details: { ...event.details, status: "accepted" }
+      });
     } catch (error) {
       console.error("Failed to accept follow request:", error);
     } finally {
-      setAcceptLoading(false);
+      setLoading(prev => ({ ...prev, accept: false }));
     }
   };
 
   const handleRejectFollow = async () => {
-    if (rejectLoading) return;
-    setRejectLoading(true);
+    if (loading.reject) return;
 
     try {
+      setLoading(prev => ({ ...prev, reject: true }));
       const token = localStorage.getItem("token");
       const response = await fetch("/api/user/reject-follow", {
         method: "POST",
@@ -199,15 +109,73 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
         body: JSON.stringify({ userId: event.sender._id }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to reject follow request");
-      }
-
+      if (!response.ok) throw new Error("Failed to reject follow request");
       onEventUpdate(event._id);
     } catch (error) {
       console.error("Failed to reject follow request:", error);
     } finally {
-      setRejectLoading(false);
+      setLoading(prev => ({ ...prev, reject: false }));
+    }
+  };
+
+  const handleUnfollow = async () => {
+    if (loading.unfollow) return;
+
+    try {
+      setLoading(prev => ({ ...prev, unfollow: true }));
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/user/unfollow", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: event.sender._id }),
+      });
+
+      if (!response.ok) throw new Error("Failed to unfollow user");
+
+      // 更新本地狀態，移除追蹤請求
+      onEventUpdate(event._id, {
+        sender: {
+          ...event.sender,
+          hasRequestedFollow: false
+        }
+      });
+    } catch (error) {
+      console.error("Failed to unfollow user:", error);
+    } finally {
+      setLoading(prev => ({ ...prev, unfollow: false }));
+    }
+  };
+
+  const handleFollow = async () => {
+    if (loading.follow) return;
+
+    try {
+      setLoading(prev => ({ ...prev, follow: true }));
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/user/follow", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: event.sender._id }),
+      });
+
+      if (!response.ok) throw new Error("Failed to follow user");
+
+      onEventUpdate(event._id, {
+        sender: {
+          ...event.sender,
+          hasRequestedFollow: true
+        }
+      });
+    } catch (error) {
+      console.error("Failed to follow user:", error);
+    } finally {
+      setLoading(prev => ({ ...prev, follow: false }));
     }
   };
 
@@ -229,106 +197,116 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
   };
 
   const renderActionButtons = () => {
-    if (event.eventType === "friend_request") {
-      if (event.details.status === "accepted") {
-        return (
-          <Typography
-            sx={{
-              fontSize: "14px",
-              color: "#666",
-            }}
-          >
-            你已接受追蹤
-          </Typography>
-        );
-      }
+    // 初始的 pending 狀態，顯示確認/拒絕按鈕
+    if (event.details.status === "pending") {
       return (
         <Stack direction="row" spacing={1}>
           <Button
             variant="outlined"
             size="small"
             onClick={handleAcceptFollow}
-            disabled={acceptLoading || rejectLoading}
+            disabled={loading.accept || loading.reject}
             sx={buttonStyles}
           >
-            {acceptLoading ? (
-              <CircularProgress
-                size={16}
-                sx={{
-                  position: "absolute",
-                  left: "50%",
-                  top: "50%",
-                  marginLeft: "-8px",
-                  marginTop: "-8px",
-                  color: "#666"
-                }}
-              />
-            ) : "確認"}
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={handleRejectFollow}
-            disabled={acceptLoading || rejectLoading}
-            sx={buttonStyles}
-          >
-            {rejectLoading ? (
-              <CircularProgress
-                size={16}
-                sx={{
-                  position: "absolute",
-                  left: "50%",
-                  top: "50%",
-                  marginLeft: "-8px",
-                  marginTop: "-8px",
-                  color: "#666"
-                }}
-              />
-            ) : "拒絕"}
-          </Button>
-        </Stack>
-      );
-    }
-
-    if (event.eventType === "follow" && followStatus === 'none') {
-      return (
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={handleFollow}
-          disabled={actionLoading}
-          sx={buttonStyles}
-        >
-          {actionLoading ? (
-            <CircularProgress
-              size={16}
-              sx={{
+            {loading.accept ? (
+              <CircularProgress size={16} sx={{
                 position: "absolute",
                 left: "50%",
                 top: "50%",
                 marginLeft: "-8px",
                 marginTop: "-8px",
                 color: "#666"
-              }}
-            />
-          ) : "追蹤對方"}
+              }} />
+            ) : "確認"}
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handleRejectFollow}
+            disabled={loading.accept || loading.reject}
+            sx={buttonStyles}
+          >
+            {loading.reject ? (
+              <CircularProgress size={16} sx={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                marginLeft: "-8px",
+                marginTop: "-8px",
+                color: "#666"
+              }} />
+            ) : "拒絕"}
+          </Button>
+        </Stack>
+      );
+    }
+
+    // 已確認狀態的按鈕顯示邏輯
+    if (event.details.status === "accepted") {
+      // 如果已經互相追蹤
+      if (event.sender.isFollowing) {
+        return (
+          <Button
+            variant="outlined"
+            size="small"
+            sx={{
+              ...buttonStyles,
+              cursor: "default",
+              "&:hover": {
+                backgroundColor: "#fff",
+              },
+            }}
+            disableRipple
+          >
+            已追蹤
+          </Button>
+        );
+      }
+
+      // 如果已發送追蹤請求但還沒被接受
+      if (event.sender.hasRequestedFollow) {
+        return (
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handleUnfollow}
+            disabled={loading.unfollow}
+            sx={buttonStyles}
+          >
+            {loading.unfollow ? (
+              <CircularProgress size={16} sx={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                marginLeft: "-8px",
+                marginTop: "-8px",
+                color: "#666"
+              }} />
+            ) : (event.sender.isPublic ? "已追蹤" : "已提出要求")}
+          </Button>
+        );
+      }
+
+      // 還沒追蹤對方，顯示可點擊的追蹤按鈕
+      return (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleFollow}
+          disabled={loading.follow}
+          sx={buttonStyles}
+        >
+          {loading.follow ? (
+            <CircularProgress size={16} sx={{
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              marginLeft: "-8px",
+              marginTop: "-8px",
+              color: "#666"
+            }} />
+          ) : "追蹤"}
         </Button>
-      );
-    }
-
-    if (followStatus === 'following') {
-      return (
-        <Typography sx={{ fontSize: "14px", color: "#666" }}>
-          追蹤中
-        </Typography>
-      );
-    }
-
-    if (followStatus === 'requested') {
-      return (
-        <Typography sx={{ fontSize: "14px", color: "#666" }}>
-          已提出要求
-        </Typography>
       );
     }
 
@@ -336,69 +314,47 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
   };
 
   return (
-    <ListItem
-      sx={{
-        py: 1.5,
-        px: 2,
-        display: "flex",
-        alignItems: "flex-start",
-      }}
-    >
+    <ListItem sx={{
+      py: 1.5,
+      px: 2,
+      display: "flex",
+      alignItems: "flex-start",
+    }}>
       <Box sx={{ display: "flex", flex: 1 }}>
         <ListItemAvatar>
           <Avatar
             src={event.sender.avatarUrl || "/default-avatar.png"}
-            alt={event.sender.userName}
-            sx={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-            }}
+            alt={event.sender.accountName}
+            sx={{ width: 36, height: 36, borderRadius: "50%" }}
           />
         </ListItemAvatar>
         <Box sx={{ flex: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography
-              component="span"
-              sx={{
-                fontSize: "14px",
-                fontWeight: 500,
-                color: "#000",
-              }}
-            >
+            <Typography component="span" sx={{
+              fontSize: "14px",
+              fontWeight: 500,
+              color: "#000",
+            }}>
               {event.sender.accountName}
             </Typography>
-            <Typography
-              component="span"
-              sx={{
-                fontSize: "14px",
-                color: "#666",
-              }}
-            >
+            <Typography component="span" sx={{
+              fontSize: "14px",
+              color: "#666",
+            }}>
               · {formatTime(event.timestamp)}
             </Typography>
           </Box>
-          <Typography
-            component="span"
-            sx={{
-              fontSize: "14px",
-              color: "#666",
-              display: "block",
-              mt: 0.5,
-            }}
-          >
-            {getEventContent()}
+          <Typography sx={baseTypographyStyle}>
+            已追蹤你
           </Typography>
         </Box>
       </Box>
-      <Box
-        sx={{
-          ml: 2,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
+      <Box sx={{
+        ml: 2,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}>
         {renderActionButtons()}
       </Box>
     </ListItem>

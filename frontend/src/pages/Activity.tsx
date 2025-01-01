@@ -8,24 +8,23 @@ import {
 } from "@mui/material";
 import EventItem from "../components/EventItem";
 
-interface SenderUser {
-  _id: string;
-  userName: string;
-  accountName: string;
-  avatarUrl: string;
-  isPublic: boolean;
-}
-
 interface Event {
   _id: string;
-  sender: SenderUser;
-  eventType: "follow" | "comment" | "like" | "friend_request";
+  sender: {
+    _id: string;
+    userName: string;
+    accountName: string;
+    avatarUrl: string;
+    isPublic: boolean;
+    isFollowing: boolean;
+    hasRequestedFollow: boolean;
+  };
+  eventType: "follow" | "comment" | "like";
   details: {
+    status: "pending" | "accepted";
     postText?: string;
     contentText?: string;
     commentText?: string;
-    status?: "pending" | "accepted" | "rejected";
-    [key: string]: unknown;
   };
   timestamp: Date;
 }
@@ -66,24 +65,7 @@ const Activity: React.FC = () => {
       }
 
       const data = await response.json();
-      // 過濾掉被拒絕的好友請求
-      // const filteredEvents = data.events.filter(
-      //   (event: Event) =>
-      //     !(
-      //       event.eventType === "friend_request" &&
-      //       event.details.status === "rejected"
-      //     ),
-      // );
-      // setEvents((prev) =>
-      //   cursor ? [...prev, ...filteredEvents.events] : data.events,
-      // );
-      const filteredEvents = data.events.filter(
-        (event: Event) =>
-          !(
-            event.eventType === "friend_request" &&
-            event.details.status === "rejected"
-          ),
-      );
+      const filteredEvents = data.events;
 
       setEvents((prev) =>
         cursor ? [...prev, ...filteredEvents] : filteredEvents
@@ -125,11 +107,21 @@ const Activity: React.FC = () => {
     fetchEvents();
   }, [fetchEvents]);
 
-  const handleEventUpdate = (eventId: string) => {
-    setEvents((prev) => prev.filter((event) => event._id !== eventId));
+  const handleEventUpdate = (eventId: string, newData?: Partial<Event>) => {
+    if (newData) {
+      // 更新事件狀態
+      setEvents(prevEvents => prevEvents.map(event =>
+        event._id === eventId
+          ? { ...event, ...newData }
+          : event
+      ));
+    } else {
+      // 如果沒有新數據，則移除事件（用於拒絕操作）
+      setEvents(prevEvents => prevEvents.filter(event => event._id !== eventId));
+    }
   };
 
-  if (loading) {
+  if (loading && !events.length) {
     return (
       <Box display="flex" justifyContent="center" p={4}>
         <CircularProgress />
