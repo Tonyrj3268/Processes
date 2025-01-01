@@ -1,6 +1,7 @@
 // src/controllers/searchController.ts
 import { Request, Response } from "express";
 import { searchService, SearchService } from "@src/services/searchService";
+import { IUserDocument } from "@src/models/user";
 
 export class SearchController {
     constructor(private searchService: SearchService) { }
@@ -17,10 +18,14 @@ export class SearchController {
                 return;
             }
 
+            // 獲取當前用戶 ID（如果用戶已登入）
+            const currentUserId = req.user ? (req.user as IUserDocument)._id.toString() : undefined;
+
             const result = await this.searchService.searchPosts(
                 q,
                 cursor as string | undefined,
-                parseInt(limit as string)
+                parseInt(limit as string),
+                currentUserId // 傳遞當前用戶 ID
             );
 
             res.status(200).json(result);
