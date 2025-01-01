@@ -9,6 +9,7 @@ import {
   Stack,
   CircularProgress,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 interface Event {
   _id: string;
@@ -39,6 +40,8 @@ interface EventItemProps {
 }
 
 const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
+  const navigate = useNavigate();
+
   const [loading, setLoading] = useState({
     accept: false,
     reject: false,
@@ -404,9 +407,15 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
       <Box sx={{ display: "flex", flex: 1 }}>
         <ListItemAvatar>
           <Avatar
-            src={event.sender.avatarUrl || "/default-avatar.png"}
-            alt={event.sender.accountName}
-            sx={{ width: 36, height: 36, borderRadius: "50%" }}
+            src={event.sender?.avatarUrl || "/default_avatar.jpg"}
+            alt={`${event.sender?.accountName || "預設使用者"}'s Avatar`}
+            sx={{
+              cursor: "pointer",
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/profile/${event.sender._id}`);
+            }}
           />
         </ListItemAvatar>
         <Box sx={{ flex: 1 }}>
@@ -417,6 +426,11 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
                 fontSize: "14px",
                 fontWeight: 500,
                 color: "#000",
+                cursor: "pointer",
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/profile/${event.sender._id}`);
               }}
             >
               {event.sender.accountName}
