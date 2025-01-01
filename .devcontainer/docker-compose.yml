@@ -55,6 +55,11 @@ services:
       - elasticsearch-data:/usr/share/elasticsearch/data
     networks:
       - default
+    command: >
+      bash -c '
+        bin/elasticsearch-plugin install --batch analysis-smartcn &&
+        /usr/local/bin/docker-entrypoint.sh elasticsearch
+      '
 
 volumes:
   mongodb-data:

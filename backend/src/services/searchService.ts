@@ -42,7 +42,7 @@ export class SearchService {
                 body: {
                     size: limit + 1,
                     sort: [
-                        { "createdAt": "desc" }
+                        { "_score": "desc" }
                     ],
                     query: {
                         bool: {
@@ -51,21 +51,32 @@ export class SearchService {
                                     bool: {
                                         should: [
                                             {
-                                                multi_match: {
-                                                    query,
-                                                    fields: ['content^3', 'userName^2'],
-                                                    fuzziness: 'AUTO'
-                                                }
-                                            },
-                                            {
                                                 match_phrase: {
                                                     content: {
-                                                        query,
+                                                        query: query,
                                                         boost: 4
                                                     }
                                                 }
+                                            },
+                                            {
+                                                match: {
+                                                    content: {
+                                                        query: query,
+                                                        operator: 'and',
+                                                        boost: 2
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                term: {
+                                                    'content.raw': {
+                                                        value: query,
+                                                        boost: 3
+                                                    }
+                                                }
                                             }
-                                        ]
+                                        ],
+                                        minimum_should_match: 1
                                     }
                                 }
                             ],
@@ -73,13 +84,22 @@ export class SearchService {
                                 {
                                     bool: {
                                         should: visibleUserIds.map(id => ({
-                                            term: {
-                                                "userId": id
-                                            }
+                                            term: { "userId": id }
                                         }))
                                     }
                                 }
                             ]
+                        }
+                    },
+                    highlight: {
+                        fields: {
+                            content: {
+                                type: "plain",
+                                fragment_size: 150,
+                                number_of_fragments: 1,
+                                pre_tags: ["<em>"],
+                                post_tags: ["</em>"]
+                            }
                         }
                     }
                 }
@@ -90,7 +110,7 @@ export class SearchService {
                 const cursorDoc = await client.get({
                     index: 'posts',
                     id: cursor
-                }) as ElasticGetResponse;
+                }) as ElasticGetResponse;  // 使用正確的類型
 
                 if (cursorDoc._source?.createdAt) {
                     searchQuery.body.search_after = [cursorDoc._source.createdAt];
@@ -105,17 +125,21 @@ export class SearchService {
                 hits.pop();
             }
 
+            // 獲取完整的貼文資訊
             const posts = await Post.find({
                 _id: { $in: hits.map(hit => hit._id) }
             }).populate('user', 'userName accountName avatarUrl');
 
             // 根據 Elasticsearch 的排序結果對 MongoDB 的結果進行排序
-            const sortedPosts = hits.map(hit =>
-                posts.find(post => post._id.toString() === hit._id)
-            ).filter(Boolean);
+            const sortedPosts = hits.map(hit => ({
+                post: posts.find(p => p._id.toString() === hit._id),
+                highlight: hit.highlight?.content?.[0] || null,
+                score: hit._score || 0
+            })).filter(item => item.post)  // 過濾掉未找到的貼文
+                .sort((a, b) => b.score - a.score);  // 按相關度排序
 
             return {
-                posts: sortedPosts.map(post => ({
+                posts: sortedPosts.map(({ post, highlight }) => ({
                     postId: post!._id,
                     author: {
                         id: post!.user._id,
@@ -124,13 +148,14 @@ export class SearchService {
                         avatarUrl: (post!.user as IUserDocument).avatarUrl
                     },
                     content: post!.content,
+                    highlight: highlight, // 添加高亮內容
                     likesCount: post!.likesCount,
                     commentCount: post!.comments.length,
                     createdAt: post!.createdAt,
-                    highlight: hits.find(hit => hit._id === post!._id.toString())?._source
+                    images: post!.images || []
                 })),
                 users: [],
-                nextCursor: hasMore ? sortedPosts[sortedPosts.length - 1]?._id : null
+                nextCursor: hasMore ? sortedPosts[sortedPosts.length - 1].post!._id : null
             };
         } catch (error) {
             console.error('Error in searchPosts:', error);
@@ -205,82 +230,6 @@ export class SearchService {
             throw error;
         }
     }
-
-    // /**
-    //  * 搜索評論
-    //  */
-    // async searchComments(query: string, cursor?: string, limit: number = 10) {
-    //     try {
-    //         const searchQuery: SearchRequest = {
-    //             index: 'comments',
-    //             body: {
-    //                 size: limit + 1,
-    //                 query: {
-    //                     bool: {
-    //                         should: [{
-    //                             multi_match: {
-    //                                 query,
-    //                                 fields: ['content^3', 'userName^2'],
-    //                                 fuzziness: 'AUTO'
-    //                             }
-    //                         }]
-    //                     }
-    //                 },
-    //                 sort: [
-    //                     { createdAt: 'desc' }
-    //                 ]
-    //             }
-    //         };
-
-    //         if (cursor) {
-    //             const cursorDoc = await client.get({
-    //                 index: 'comments',
-    //                 id: cursor
-    //             }) as ElasticGetResponse;
-
-    //             if (cursorDoc._source?.createdAt) {
-    //                 searchQuery.body.search_after = [cursorDoc._source.createdAt];
-    //             }
-    //         }
-
-    //         const result = await client.search(searchQuery);
-
-    //         const hits = result.hits.hits;
-    //         const hasMore = hits.length > limit;
-    //         if (hasMore) {
-    //             hits.pop();
-    //         }
-
-    //         const comments = await Comment.find({
-    //             _id: { $in: hits.map(hit => hit._id) }
-    //         }).populate('user', 'userName accountName avatarUrl');
-
-    //         const sortedComments = hits.map(hit =>
-    //             comments.find(comment => comment._id.toString() === hit._id)
-    //         ).filter(Boolean);
-
-    //         return {
-    //             comments: sortedComments.map(comment => ({
-    //                 commentId: comment!._id,
-    //                 author: {
-    //                     id: comment!.user._id,
-    //                     userName: (comment!.user as IUserDocument).userName,
-    //                     accountName: (comment!.user as IUserDocument).accountName,
-    //                     avatarUrl: (comment!.user as IUserDocument).avatarUrl
-    //                 },
-    //                 content: comment!.content,
-    //                 likesCount: comment!.likesCount,
-    //                 repliesCount: comment!.comments.length,
-    //                 createdAt: comment!.createdAt,
-    //                 highlight: hits.find(hit => hit._id === comment!._id.toString())?._source
-    //             })),
-    //             nextCursor: hasMore ? sortedComments[sortedComments.length - 1]?._id : null
-    //         };
-    //     } catch (error) {
-    //         console.error('Error in searchComments:', error);
-    //         throw error;
-    //     }
-    // }
 }
 
 export const searchService = new SearchService();
