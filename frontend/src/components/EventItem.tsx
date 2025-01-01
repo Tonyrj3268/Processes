@@ -27,6 +27,7 @@ interface Event {
     postText?: string;
     contentText?: string;
     commentText?: string;
+    postId?: string;
   };
   timestamp: Date;
 }
@@ -84,7 +85,6 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
 
       if (!response.ok) throw new Error("Failed to accept follow request");
 
-      // 更新父組件中的事件狀態
       onEventUpdate(event._id, {
         details: { ...event.details, status: "accepted" },
       });
@@ -136,7 +136,6 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
 
       if (!response.ok) throw new Error("Failed to unfollow user");
 
-      // 更新本地狀態，移除追蹤請求
       onEventUpdate(event._id, {
         sender: {
           ...event.sender,
@@ -209,19 +208,168 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
     },
   };
 
+  const renderEventMessage = () => {
+    switch (event.eventType) {
+      case "follow":
+        return "追蹤了你";
+      case "like":
+        return (
+          <Stack spacing={1}>
+            <Typography component="div" sx={baseTypographyStyle}>
+              喜歡你的貼文 ❤️ {event.details.postText}
+            </Typography>
+          </Stack>
+        );
+      case "comment":
+        return (
+          <>
+            <Stack spacing={1}>
+              <Typography component="div" sx={baseTypographyStyle}>
+                回覆了你的貼文 💭 {event.details.postText}
+              </Typography>
+              {event.details.commentText && (
+                <Typography
+                  component="div"
+                  sx={{
+                    ...baseTypographyStyle,
+                    color: "#000",
+                    paddingLeft: "8px",
+                  }}
+                >
+                  {event.details.commentText}
+                </Typography>
+              )}
+            </Stack>
+          </>
+        );
+      default:
+        return null;
+    }
+  };
+
   const renderActionButtons = () => {
-    // 初始的 pending 狀態，顯示確認/拒絕按鈕
-    if (event.details.status === "pending") {
-      return (
-        <Stack direction="row" spacing={1}>
+    if (event.eventType === "follow") {
+      if (event.details.status === "pending") {
+        return (
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleAcceptFollow}
+              disabled={loading.accept || loading.reject}
+              sx={followButtonStyles}
+            >
+              {loading.accept ? (
+                <CircularProgress
+                  size={16}
+                  sx={{
+                    position: "absolute",
+                    left: "50%",
+                    top: "50%",
+                    marginLeft: "-8px",
+                    marginTop: "-8px",
+                    color: "#666",
+                  }}
+                />
+              ) : (
+                "確認"
+              )}
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleRejectFollow}
+              disabled={loading.accept || loading.reject}
+              sx={buttonStyles}
+            >
+              {loading.reject ? (
+                <CircularProgress
+                  size={16}
+                  sx={{
+                    position: "absolute",
+                    left: "50%",
+                    top: "50%",
+                    marginLeft: "-8px",
+                    marginTop: "-8px",
+                    color: "#666",
+                  }}
+                />
+              ) : (
+                "拒絕"
+              )}
+            </Button>
+          </Stack>
+        );
+      }
+
+      if (event.details.status === "accepted") {
+        if (event.sender.isFollowing) {
+          return (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleUnfollow}
+              disabled={loading.unfollow}
+              sx={buttonStyles}
+            >
+              {loading.unfollow ? (
+                <CircularProgress
+                  size={16}
+                  sx={{
+                    position: "absolute",
+                    left: "50%",
+                    top: "50%",
+                    marginLeft: "-8px",
+                    marginTop: "-8px",
+                    color: "#666",
+                  }}
+                />
+              ) : (
+                "追蹤中"
+              )}
+            </Button>
+          );
+        }
+
+        if (event.sender.hasRequestedFollow) {
+          return (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleUnfollow}
+              disabled={loading.unfollow}
+              sx={buttonStyles}
+            >
+              {loading.unfollow ? (
+                <CircularProgress
+                  size={16}
+                  sx={{
+                    position: "absolute",
+                    left: "50%",
+                    top: "50%",
+                    marginLeft: "-8px",
+                    marginTop: "-8px",
+                    color: "#666",
+                  }}
+                />
+              ) : event.sender.isPublic ? (
+                "追蹤中"
+              ) : (
+                "已提出要求"
+              )}
+            </Button>
+          );
+        }
+
+        return (
           <Button
             variant="outlined"
             size="small"
-            onClick={handleAcceptFollow}
-            disabled={loading.accept || loading.reject}
+            onClick={handleFollow}
+            disabled={loading.follow}
             sx={followButtonStyles}
           >
-            {loading.accept ? (
+            {loading.follow ? (
               <CircularProgress
                 size={16}
                 sx={{
@@ -234,130 +382,11 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
                 }}
               />
             ) : (
-              "確認"
-            )}
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={handleRejectFollow}
-            disabled={loading.accept || loading.reject}
-            sx={buttonStyles}
-          >
-            {loading.reject ? (
-              <CircularProgress
-                size={16}
-                sx={{
-                  position: "absolute",
-                  left: "50%",
-                  top: "50%",
-                  marginLeft: "-8px",
-                  marginTop: "-8px",
-                  color: "#666",
-                }}
-              />
-            ) : (
-              "拒絕"
-            )}
-          </Button>
-        </Stack>
-      );
-    }
-
-    // 已確認狀態的按鈕顯示邏輯
-    if (event.details.status === "accepted") {
-      // 如果已經互相追蹤
-      if (event.sender.isFollowing) {
-        return (
-          <Button
-            variant="outlined"
-            size="small"
-            sx={{
-              ...buttonStyles,
-              cursor: "pointer",
-              "&:hover": {
-                backgroundColor: "#f5f5f5",
-              },
-            }}
-            onClick={handleUnfollow}
-            disabled={loading.unfollow}
-          >
-            {loading.unfollow ? (
-              <CircularProgress
-                size={16}
-                sx={{
-                  position: "absolute",
-                  left: "50%",
-                  top: "50%",
-                  marginLeft: "-8px",
-                  marginTop: "-8px",
-                  color: "#666",
-                }}
-              />
-            ) : (
-              "追蹤中"
+              "追蹤"
             )}
           </Button>
         );
       }
-
-      // 如果已發送追蹤請求但還沒被接受
-      if (event.sender.hasRequestedFollow) {
-        return (
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={handleUnfollow}
-            disabled={loading.unfollow}
-            sx={buttonStyles}
-          >
-            {loading.unfollow ? (
-              <CircularProgress
-                size={16}
-                sx={{
-                  position: "absolute",
-                  left: "50%",
-                  top: "50%",
-                  marginLeft: "-8px",
-                  marginTop: "-8px",
-                  color: "#666",
-                }}
-              />
-            ) : event.sender.isPublic ? (
-              "追蹤中"
-            ) : (
-              "已提出要求"
-            )}
-          </Button>
-        );
-      }
-
-      // 還沒追蹤對方，顯示可點擊的追蹤按鈕
-      return (
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={handleFollow}
-          disabled={loading.follow}
-          sx={followButtonStyles}
-        >
-          {loading.follow ? (
-            <CircularProgress
-              size={16}
-              sx={{
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                marginLeft: "-8px",
-                marginTop: "-8px",
-                color: "#666",
-              }}
-            />
-          ) : (
-            "追蹤"
-          )}
-        </Button>
-      );
     }
 
     return null;
@@ -402,7 +431,9 @@ const EventItem: React.FC<EventItemProps> = ({ event, onEventUpdate }) => {
               · {formatTime(event.timestamp)}
             </Typography>
           </Box>
-          <Typography sx={baseTypographyStyle}>追蹤中你</Typography>
+          <Typography sx={baseTypographyStyle}>
+            {renderEventMessage()}
+          </Typography>
         </Box>
       </Box>
       <Box
