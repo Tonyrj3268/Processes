@@ -11,64 +11,69 @@ export interface SearchHit {
         userName?: string;
         accountName?: string;
         avatarUrl?: string;
-        bio?: string;
-        isPublic?: boolean;
-        likesCount?: number;
-        repliesCount?: number;
-        followersCount?: number;
-        followingCount?: number;
         createdAt?: string;
-        updatedAt?: string;
+    };
+    highlight?: {
+        content?: string[];
     };
 }
 
-interface MatchQuery {
-    match: {
-        [key: string]: {
+interface HighlightField {
+    type: string;
+    fragment_size: number;
+    number_of_fragments: number;
+    pre_tags: string[];
+    post_tags: string[];
+}
+
+interface QueryOptions {
+    match_phrase?: {
+        content: {
             query: string;
-            [key: string]: unknown;
+            boost?: number;
         };
     };
-}
-
-interface MatchPhraseQuery {
-    match_phrase: {
-        [key: string]: {
+    match?: {
+        content: {
             query: string;
+            operator?: string;
+            boost?: number;
+        };
+    };
+    term?: {
+        'content.raw'?: {
+            value: string;
             boost?: number;
         };
     };
 }
 
-interface MultiMatchQuery {
-    multi_match: {
-        query: string;
-        fields: string[];
-        fuzziness?: string;
-        [key: string]: unknown;
-    };
-}
-
-interface TermQuery {
-    term: {
-        [key: string]: string | number | boolean;
-    };
-}
-
-interface BoolQuery {
-    bool: {
-        must?: Array<MatchQuery | MatchPhraseQuery | MultiMatchQuery | BoolQuery>;
-        should?: Array<MatchQuery | MatchPhraseQuery | MultiMatchQuery | TermQuery | BoolQuery>;
-        filter?: Array<TermQuery | BoolQuery>;
-        [key: string]: unknown;
-    };
-}
-
 export interface SearchBody {
     size: number;
-    query: BoolQuery;
-    sort: Array<Record<string, 'desc' | 'asc'>>;
+    sort?: Array<Record<string, "desc" | "asc">>;
     search_after?: Array<string | number>;
+    query: {
+        bool: {
+            must?: Array<{
+                bool?: {
+                    should: Array<QueryOptions>;
+                    minimum_should_match?: number;
+                };
+            }>;
+            filter?: Array<{
+                bool: {
+                    should: Array<{
+                        term: { [key: string]: string };
+                    }>;
+                };
+            }>;
+        };
+    };
+    highlight?: {
+        fields: {
+            content: HighlightField;
+        };
+    };
 }
 
 export interface SearchRequest {
@@ -82,6 +87,5 @@ export interface ElasticGetResponse extends GetResponse {
         userId: string;
         userName: string;
         createdAt: string;
-        [key: string]: unknown;
     };
 }
